@@ -110,46 +110,46 @@ namespace Picton.Common.UnitTests
 			mockBlobClient.Verify();
 		}
 
-		[TestMethod]
-		public void AddMessageAsync_large_message()
-		{
-			// Arrange
-			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
-			var mockBlobContainer = GetMockBlobContainer();
-			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
-			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+		//[TestMethod]
+		//public void AddMessageAsync_large_message()
+		//{
+		//	// Arrange
+		//	var queueName = "myqueue";
+		//	var mockQueue = GetMockQueue();
+		//	var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+		//	var mockBlobContainer = GetMockBlobContainer();
+		//	var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+		//	var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
-			var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict);
-			mockBlobItem
-				.Setup(b => b.UploadTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(true))
-				.Verifiable();
+		//	var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict);
+		//	mockBlobItem
+		//		.Setup(b => b.UploadTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+		//		.Returns(Task.FromResult(true))
+		//		.Verifiable();
 
-			mockBlobContainer
-				.Setup(c => c.GetBlockBlobReference(It.IsAny<string>()))
-				.Returns(mockBlobItem.Object)
-				.Verifiable();
+		//	mockBlobContainer
+		//		.Setup(c => c.GetBlockBlobReference(It.IsAny<string>()))
+		//		.Returns(mockBlobItem.Object)
+		//		.Verifiable();
 
-			mockQueue
-				.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(true))
-				.Verifiable();
-
-
-			// Act
-			var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
-			var queueProvider = new QueueProvider(queueName, storageAccount.Object);
-			queueProvider.AddMessageAsync(excessivelyLargeContent).Wait();
+		//	mockQueue
+		//		.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+		//		.Returns(Task.FromResult(true))
+		//		.Verifiable();
 
 
-			// Assert
-			mockQueue.Verify();
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
-			mockBlobClient.Verify();
-		}
+		//	// Act
+		//	var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
+		//	var queueProvider = new QueueProvider(queueName, storageAccount.Object);
+		//	queueProvider.AddMessageAsync(excessivelyLargeContent).Wait();
+
+
+		//	// Assert
+		//	mockQueue.Verify();
+		//	mockQueueClient.Verify();
+		//	mockBlobContainer.Verify();
+		//	mockBlobClient.Verify();
+		//}
 
 		[TestMethod]
 		public void ClearAsync()
