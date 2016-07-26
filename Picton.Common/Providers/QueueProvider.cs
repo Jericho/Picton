@@ -60,10 +60,10 @@ namespace Picton.Common.Providers
 
 		public async Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var envelope = new MessageContentEnvelope()
+			var envelope = new MessageEnvelope()
 			{
-				Content = message,
-				ContentType = message.GetType()
+				Payload = message,
+				PayloadType = message.GetType()
 			};
 			var serializedEnvelope = JsonConvert.SerializeObject(envelope);
 
@@ -79,7 +79,7 @@ namespace Picton.Common.Providers
 				await blob.UploadTextAsync(serializedEnvelope, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
-				var largeEnvelope = new MessageLargeContentEnvelope()
+				var largeEnvelope = new LargeMessageEnvelope()
 				{
 					BlobName = blobName
 				};
@@ -150,9 +150,9 @@ namespace Picton.Common.Providers
 
 			try
 			{
-				var envelope = JsonConvert.DeserializeObject<MessageContentEnvelope>(cloudMessage.AsString);
-				content = envelope.Content;
-				contentType = envelope.ContentType;
+				var envelope = JsonConvert.DeserializeObject<MessageEnvelope>(cloudMessage.AsString);
+				content = envelope.Payload;
+				contentType = envelope.PayloadType;
 			}
 			catch { }
 
@@ -160,7 +160,7 @@ namespace Picton.Common.Providers
 			{
 				try
 				{
-					var largeEnvelope = JsonConvert.DeserializeObject<MessageLargeContentEnvelope>(cloudMessage.AsString);
+					var largeEnvelope = JsonConvert.DeserializeObject<LargeMessageEnvelope>(cloudMessage.AsString);
 					var blob = _blobContainer.GetBlobReference(largeEnvelope.BlobName);
 
 					using (var stream = new MemoryStream())
@@ -169,9 +169,9 @@ namespace Picton.Common.Providers
 						var serializer = new JsonSerializer();
 						using (var streamReader = new StreamReader(stream))
 						{
-							var envelope = (MessageContentEnvelope)serializer.Deserialize(streamReader, typeof(MessageContentEnvelope));
-							content = envelope.Content;
-							contentType = envelope.ContentType;
+							var envelope = (MessageEnvelope)serializer.Deserialize(streamReader, typeof(MessageEnvelope));
+							content = envelope.Payload;
+							contentType = envelope.PayloadType;
 							largeContentBlobName = largeEnvelope.BlobName;
 						}
 					}

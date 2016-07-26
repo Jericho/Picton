@@ -1,6 +1,6 @@
 ﻿namespace Picton.Common
 {
-	internal class MessageLargeContentEnvelope
+	internal class LargeMessageEnvelope
 	{
 		#region PROPERTIES
 
