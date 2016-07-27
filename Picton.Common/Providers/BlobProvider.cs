@@ -26,7 +26,7 @@ namespace Picton.Common.Providers
 
 		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
 		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
-		private const string _pathSeparator = "/";
+		private const string PATH_SEPARATOR = "/";
 
 		#endregion
 
@@ -162,9 +162,9 @@ namespace Picton.Common.Providers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			blobName = blobName
-				.TrimStart("/devstoreaccount1")
-				.TrimStart("/" + _containerName)
-				.TrimStart("/");
+				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
+				.TrimStart($"{PATH_SEPARATOR}{_containerName}")
+				.TrimStart(PATH_SEPARATOR);
 			var blob = _blobContainer.GetBlockBlobReference(blobName);
 			await blob.DeleteIfExistsAsync(cancellationToken).ConfigureAwait(false);
 		}
@@ -187,7 +187,7 @@ namespace Picton.Common.Providers
 
 		public IEnumerable<IListBlobItem> ListBlobs(string folder, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null)
 		{
-			var blobPrefix = _containerName + "/" + folder;
+			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{folder}";
 			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
 			if (maxResults.HasValue)
 			{
@@ -241,8 +241,8 @@ namespace Picton.Common.Providers
 			blobName = blobName?
 				.Replace(@"\", "/") // Azure uses forward slash as the path segment seperator
 				.Replace(" ", "_")  // Azure supports spaces but it leads to problems in URLs
-				.Replace("#", "_")  // Azure supports the # character it leads to problems in URLs
-				.Replace("'", "_"); // Azure supports quotes it leads to problems in URLs
+				.Replace("#", "_")  // Azure supports the # character but it leads to problems in URLs
+				.Replace("'", "_"); // Azure supports quotes but it leads to problems in URLs
 
 			if (string.IsNullOrWhiteSpace(blobName)) throw new ArgumentException("A blob name must be at least one character long", nameof(blobName));
 			if (blobName.Length > 1024) throw new ArgumentException("A blob name cannot be more than 1,024 characters long", nameof(blobName));
