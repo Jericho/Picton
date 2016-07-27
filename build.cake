@@ -14,17 +14,12 @@ var configuration = Argument<string>("configuration", "Release");
 // GLOBAL VARIABLES
 ///////////////////////////////////////////////////////////////////////////////
 
-// It is important to filter out files under the 'packages' folder because some
-// package may have sample solutions. For example, OpenCover contains a sample
-// solution called BomSample.sln
-var solutions = GetFiles("./**/*.sln")
-	.Where(file => !file.ToString().Contains("/packages/"));
-var solutionPaths = solutions
-	.Select(solution => solution.GetDirectory())
-	.Where(directory => !directory.ToString().Contains("/packages/"));
+var solutions = GetFiles("./*.sln");
+var solutionPaths = solutions.Select(solution => solution.GetDirectory());
 var unitTestsPaths = GetDirectories("./*.UnitTests");
 var outputDir = "./artifacts/";
 var versionInfo = (GitVersion)null;
+var libraryName = "Picton.Common";
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,8 +51,8 @@ Task("Clean")
 	foreach(var path in solutionPaths)
 	{
 		Information("Cleaning {0}", path);
-		CleanDirectories(path + "/**/bin/" + configuration);
-		CleanDirectories(path + "/**/obj/" + configuration);
+		CleanDirectories(path + "/*/bin/" + configuration);
+		CleanDirectories(path + "/*/obj/" + configuration);
 	}
 
 	// Clean previous artifacts
@@ -133,64 +128,68 @@ Task("Unit-Tests")
 
 Task("Package")
 	.Description("Build the nuget package.")
-//	.IsDependentOn("Unit-Tests")
-	.IsDependentOn("Version")
+	.IsDependentOn("Unit-Tests")
 	.Does(() =>
 {
-	var files = GetFiles("./Picton.Common/bin/" + configuration + "/Picton.Common.dll")
-		.Select(file => new NuSpecContent {Source = file.ToString(), Target = "bin"})
-		.ToArray();
-
 	var settings = new NuGetPackSettings
 	{
-		Id                      = "Picton.Common",
+		Id                      = libraryName,
 		Version                 = versionInfo.NuGetVersionV2,
 		Title                   = "The Picton library for Azure",
-		Authors                 = new[] {"Jeremie Desautels"},
-		Owners                  = new[] {""},
-		Description             = "The description of the package",
-		Summary                 = "Excellent summary of what the package does",
-		ProjectUrl              = new Uri("https://github.com/SomeUser/TestNuget/"),
-		IconUrl                 = new Uri("http://cdn.rawgit.com/SomeUser/TestNuget/master/icons/testnuget.png"),
-		LicenseUrl              = new Uri("https://github.com/SomeUser/TestNuget/blob/master/LICENSE.md"),
-		Copyright               = "Some company 2015",
-		ReleaseNotes            = new [] {"Initial release"},
-		Tags                    = new [] {"Picton", "Azure"},
+		Authors                 = new[] { "Jeremie Desautels" },
+		Owners                  = new[] { "Jeremie Desautels" },
+		Description             = "Convenient library for Azure",
+		Summary                 = "Among other things, it contains extension methods and abstrations for StorageAccount, BlobClient, QueueClient, etc.",
+		ProjectUrl              = new Uri("https://github.com/Jericho/Picton.Common"),
+		IconUrl                 = new Uri("https://github.com/identicons/jericho.png"),
+		LicenseUrl              = new Uri("http://jericho.mit-license.org"),
+		Copyright               = "Copyright (c) 2016 Jeremie Desautels",
+		ReleaseNotes            = new [] { "Initial release" },
+		Tags                    = new [] { "Picton", "Azure" },
 		RequireLicenseAcceptance= false,
 		Symbols                 = false,
 		NoPackageAnalysis       = true,
-		Files                   = files,
-		BasePath                = "./src/TestNuget/bin/release",
+		Dependencies            = new [] {
+			new NuSpecDependency { Id = "Newtonsoft.Json", Version = "9.0.1" },
+			new NuSpecDependency { Id = "WindowsAzure.Storage", Version = "7.1.2" }
+		},
+		Files                   = new [] {
+			new NuSpecContent { Source = libraryName + ".dll", Target = "lib/net452" },
+		},
+		BasePath                = "./" + libraryName + "/bin/" + configuration,
 		OutputDirectory         = outputDir,
 		ArgumentCustomization   = args => args.Append("-Prop Configuration=" + configuration)
 	};
 			
 	NuGetPack(settings);
+});
 
-	// TODO not sure why this isn't working
-		// GitReleaseNotes("outputDir/releasenotes.md", new GitReleaseNotesSettings {
-		//     WorkingDirectory         = ".",
-		//     AllTags                  = false
-		// });
-		var releaseNotesExitCode = StartProcess(
-			@"tools\GitReleaseNotes\tools\gitreleasenotes.exe", 
-			new ProcessSettings { Arguments = ". /o artifacts/releasenotes.md" });
-		if (string.IsNullOrEmpty(System.IO.File.ReadAllText("./artifacts/releasenotes.md")))
-			System.IO.File.WriteAllText("./artifacts/releasenotes.md", "No issues closed since last release");
+Task("ReleaseNotes")
+	.Description("Update the release notes.")
+	.IsDependentOn("Clean")
+	.Does(() =>
+{
 
-		if (releaseNotesExitCode != 0) throw new Exception("Failed to generate release notes");
+	GitReleaseNotes(outputDir + "/releasenotes.md", new GitReleaseNotesSettings {
+		WorkingDirectory         = ".",
+		AllLabels                = true,
+		AllTags                  = true,
+		Verbose                  = true
+	});
+});
 
-		System.IO.File.WriteAllLines(outputDir + "artifacts", new[]{
-			"nuget:Picton.Common." + versionInfo.NuGetVersion + ".nupkg",
-			"nugetSymbols:Picton.Common." + versionInfo.NuGetVersion + ".symbols.nupkg",
-			"releaseNotes:releasenotes.md"
-		});
 
-		if (AppVeyor.IsRunningOnAppVeyor)
-		{
-			foreach (var file in GetFiles(outputDir + "**/*"))
-				AppVeyor.UploadArtifact(file.FullPath);
-		}
+Task("UploadArtifacts")
+	.Description("Upload artifacts to AppVeyor.")
+	.IsDependentOn("Package")
+	.IsDependentOn("ReleaseNotes")
+	.Does(() =>
+{
+	if (AppVeyor.IsRunningOnAppVeyor)
+	{
+		foreach (var file in GetFiles(outputDir))
+			AppVeyor.UploadArtifact(file.FullPath);
+	}
 });
 
 
@@ -200,7 +199,7 @@ Task("Package")
 
 Task("Default")
 	.Description("This is the default task which will be ran if no specific target is passed in.")
-	.IsDependentOn("Package");
+	.IsDependentOn("UploadArtifacts");
 
 
 ///////////////////////////////////////////////////////////////////////////////
