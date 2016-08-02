@@ -29,6 +29,10 @@ namespace Picton.Common.Providers
 		#region CONSTRUCTORS
 
 		[ExcludeFromCodeCoverage]
+		/// <summary>
+		/// </summary>
+		/// <param name="queueName"></param>
+		/// <param name="cloudStorageAccount"></param>
 		public QueueProvider(string queueName, CloudStorageAccount cloudStorageAccount) :
 			this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
 		{ }
@@ -37,7 +41,6 @@ namespace Picton.Common.Providers
 		/// For unit testing
 		/// </summary>
 		/// <param name="queueName"></param>
-		/// <param name="cloudStorageAccount"></param>
 		public QueueProvider(string queueName, IStorageAccount storageAccount)
 		{
 			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
@@ -60,7 +63,7 @@ namespace Picton.Common.Providers
 
 		public async Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var envelope = new MessageEnvelope()
+			var envelope = new MessageEnvelope
 			{
 				Payload = message,
 				PayloadType = message.GetType()
@@ -79,7 +82,7 @@ namespace Picton.Common.Providers
 				await blob.UploadTextAsync(serializedEnvelope, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
-				var largeEnvelope = new LargeMessageEnvelope()
+				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName
 				};
@@ -154,7 +157,9 @@ namespace Picton.Common.Providers
 				content = envelope.Payload;
 				contentType = envelope.PayloadType;
 			}
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
 			catch { }
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 
 			if (content == null)
 			{
@@ -176,7 +181,9 @@ namespace Picton.Common.Providers
 						}
 					}
 				}
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
 				catch { }
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 			}
 
 			if (content == null)
@@ -216,7 +223,7 @@ namespace Picton.Common.Providers
 		}
 
 		// GetSharedAccessSignature is not virtual therefore we can't mock it.
-		[ExcludeFromCodeCoverage()]
+		[ExcludeFromCodeCoverage]
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
@@ -261,28 +268,3 @@ namespace Picton.Common.Providers
 		#endregion
 	}
 }
-
-/*
-var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken);
-var content = _serializer.Deserialize(cloudMessage.AsBytes);
-var contentType = content.GetType();
-var specificType = typeof(CloudQueueMessage<>).MakeGenericType(new Type[] { contentType });
-
-var message = (CloudQueueMessage)Activator.CreateInstance(specificType, new object[] { cloudMessage.Id, cloudMessage.PopReceipt, content });
-message.DequeueCount = cloudMessage.DequeueCount;
-			message.ExpirationTime = cloudMessage.ExpirationTime;
-			message.InsertionTime = cloudMessage.InsertionTime;
-			message.NextVisibleTime = cloudMessage.NextVisibleTime;
-
-			return message as CloudQueueMessage;
-*/
-
-/*
- * 			var serializedContent = _serializer.Serialize(message);
-		//if (serializedContent.Length > MAX_MESSAGE_CONTENT_SIZE)
-		//{
-
-		//}
-		var cloudQueueMessage = new CloudQueueMessage(serializedContent);
-		return _queue.AddMessageAsync(cloudQueueMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken);
-*/

@@ -29,7 +29,7 @@ namespace Picton.Common
 
 		public StorageAccount(StorageCredentials storageCredentials, string endpointSuffix, bool useHttps)
 		{
-			_cloudStorageAccount = new CloudStorageAccount(storageCredentials, useHttps);
+			_cloudStorageAccount = new CloudStorageAccount(storageCredentials, endpointSuffix, useHttps);
 		}
 
 		public StorageAccount(StorageCredentials storageCredentials, string accountName, string endpointSuffix, bool useHttps)

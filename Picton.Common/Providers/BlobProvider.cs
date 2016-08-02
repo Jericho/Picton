@@ -85,7 +85,7 @@ namespace Picton.Common.Providers
 			var blob = _blobContainer.GetBlockBlobReference(blobName);
 
 			var leaseId = "";
-			if (acquireLease && blob.Exists())
+			if (acquireLease && await blob.ExistsAsync())
 			{
 				maxLeaseAttempts = Math.Max(maxLeaseAttempts, 1);   // At least one attempt
 				maxLeaseAttempts = Math.Min(maxLeaseAttempts, 10);  // No more than 10 attempts
@@ -93,7 +93,7 @@ namespace Picton.Common.Providers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(cancellationToken);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) Thread.Sleep(500);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -117,10 +117,8 @@ namespace Picton.Common.Providers
 
 		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			using (MemoryStream memoryStream = new MemoryStream(buffer))
-			{
-				return this.UploadStreamAsync(blobName, memoryStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
-			}
+			var memoryStream = new MemoryStream(buffer);
+			return this.UploadStreamAsync(blobName, memoryStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
 		public Task UploadTextAsync(string blobName, string content, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
@@ -131,10 +129,7 @@ namespace Picton.Common.Providers
 		public Task UploadFileAsync(string blobName, string fileName, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			FileStream fileStream = File.OpenRead(fileName);
-			using (fileStream)
-			{
-				return this.UploadStreamAsync(blobName, fileStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
-			}
+			return this.UploadStreamAsync(blobName, fileStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
 		public async Task AppendStreamAsync(string blobName, Stream stream, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
@@ -159,14 +154,14 @@ namespace Picton.Common.Providers
 			return AppendBytesAsync(blobName, content.ToBytes(), metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
+		public Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			blobName = blobName
 				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
 				.TrimStart($"{PATH_SEPARATOR}{_containerName}")
 				.TrimStart(PATH_SEPARATOR);
 			var blob = _blobContainer.GetBlockBlobReference(blobName);
-			await blob.DeleteIfExistsAsync(cancellationToken).ConfigureAwait(false);
+			return blob.DeleteIfExistsAsync(cancellationToken);
 		}
 
 		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken))
@@ -200,7 +195,7 @@ namespace Picton.Common.Providers
 			}
 		}
 
-		public IEnumerable<CloudBlobDirectory> ListSubFolders(string folder, CancellationToken cancellationToken = default(CancellationToken))
+		public IEnumerable<CloudBlobDirectory> ListSubFolders(string folder)
 		{
 			if (string.IsNullOrEmpty(folder)) return _blobContainer.ListBlobs().OfType<CloudBlobDirectory>();
 			else return _blobContainer.GetDirectoryReference(folder).ListBlobs().OfType<CloudBlobDirectory>();

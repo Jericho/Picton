@@ -36,16 +36,16 @@ namespace Picton.Common.Extensions
 			return leaseId;
 		}
 
-		public static async Task ReleaseLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task ReleaseLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var accessCondition = new AccessCondition() { LeaseId = leaseId };
-			await blob.ReleaseLeaseAsync(accessCondition, cancellationToken);
+			var accessCondition = new AccessCondition { LeaseId = leaseId };
+			return blob.ReleaseLeaseAsync(accessCondition, cancellationToken);
 		}
 
-		public static async Task RenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task RenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var accessCondition = new AccessCondition() { LeaseId = leaseId };
-			await blob.RenewLeaseAsync(accessCondition, cancellationToken);
+			var accessCondition = new AccessCondition { LeaseId = leaseId };
+			return blob.RenewLeaseAsync(accessCondition, cancellationToken);
 		}
 
 		public static async Task<bool> TryRenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
@@ -68,7 +68,7 @@ namespace Picton.Common.Extensions
 			}
 			else
 			{
-				var accessCondition = new AccessCondition() { LeaseId = leaseId };
+				var accessCondition = new AccessCondition { LeaseId = leaseId };
 				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
@@ -81,7 +81,7 @@ namespace Picton.Common.Extensions
 			}
 			else
 			{
-				var accessCondition = new AccessCondition() { LeaseId = leaseId };
+				var accessCondition = new AccessCondition { LeaseId = leaseId };
 				await blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 			}
 		}
@@ -94,7 +94,7 @@ namespace Picton.Common.Extensions
 				using (var reader = new StreamReader(stream, true))
 				{
 					stream.Position = 0;
-					return reader.ReadToEnd();
+					return await reader.ReadToEndAsync();
 				}
 			}
 		}
@@ -111,7 +111,7 @@ namespace Picton.Common.Extensions
 		{
 			using (var ms = new MemoryStream())
 			{
-				await blob.DownloadToStreamAsync(ms).ConfigureAwait(false);
+				await blob.DownloadToStreamAsync(ms, cancellationToken).ConfigureAwait(false);
 				ms.Position = 0;
 				return ms.ToArray();
 			}
@@ -130,11 +130,11 @@ namespace Picton.Common.Extensions
 
 		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration)
 		{
-			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy()
+			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
 			{
 				Permissions = permission,
 				SharedAccessStartTime = DateTime.UtcNow.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
-				SharedAccessExpiryTime = DateTime.UtcNow.Add(duration),
+				SharedAccessExpiryTime = DateTime.UtcNow.Add(duration)
 			});
 			return string.Format(CultureInfo.InvariantCulture, "{0}{1}", blob.Uri, sas);
 		}

@@ -674,7 +674,7 @@ namespace Picton.Common
 				{"video/x-dv", ".dv"},
 				{"video/x-la-asf", ".lsf"},
 				{"video/x-ms-asf", ".asf"},
-				{"x-world/x-vrml", ".xof"},
+				{"x-world/x-vrml", ".xof"}
 
 				#endregion
 
@@ -697,33 +697,36 @@ namespace Picton.Common
 		{
 			if (extension == null)
 			{
-				throw new ArgumentNullException("extension");
+				throw new ArgumentNullException(nameof(extension));
 			}
 
-			if (!extension.StartsWith("."))
+			if (!extension.StartsWith(".", StringComparison.InvariantCultureIgnoreCase))
 			{
 				extension = "." + extension;
 			}
 
-			string mime;
+			string mimeType;
+			if (!_mappings.Value.TryGetValue(extension, out mimeType))
+			{
+				mimeType = "application/octet-stream";
+			}
 
-			return _mappings.Value.TryGetValue(extension, out mime) ? mime : "application/octet-stream";
+			return mimeType;
 		}
 
 		public static string GetExtension(string mimeType)
 		{
 			if (mimeType == null)
 			{
-				throw new ArgumentNullException("mimeType");
+				throw new ArgumentNullException(nameof(mimeType));
 			}
 
-			if (mimeType.StartsWith("."))
+			if (mimeType.StartsWith(".", StringComparison.InvariantCultureIgnoreCase))
 			{
 				throw new ArgumentException("Requested mime type is not valid: " + mimeType);
 			}
 
 			string extension;
-
 			if (_mappings.Value.TryGetValue(mimeType, out extension))
 			{
 				return extension;

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace Picton.Common.Extensions
 {
@@ -12,10 +13,10 @@ namespace Picton.Common.Extensions
 		/// <param name="target"></param>
 		/// <param name="trimString"></param>
 		/// <returns></returns>
-		public static string TrimStart(this string target, string trimString)
+		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
 		{
 			string result = target;
-			while (result.StartsWith(trimString))
+			while (result.StartsWith(trimString, stringComparison))
 			{
 				result = result.Substring(trimString.Length);
 			}
@@ -30,10 +31,10 @@ namespace Picton.Common.Extensions
 		/// <param name="target"></param>
 		/// <param name="trimString"></param>
 		/// <returns></returns>
-		public static string TrimEnd(this string target, string trimString)
+		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
 		{
 			string result = target;
-			while (result.EndsWith(trimString))
+			while (result.EndsWith(trimString, stringComparison))
 			{
 				result = result.Substring(0, result.Length - trimString.Length);
 			}
