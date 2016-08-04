@@ -198,6 +198,7 @@ Task("Package")
 		},
 		Files                   = new [] {
 			new NuSpecContent { Source = libraryName + "/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net452" },
+			new NuSpecContent { Source = libraryName + ".451/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net451" },
 			new NuSpecContent { Source = libraryName + ".45/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net45" }
 		},
 		BasePath                = "./",

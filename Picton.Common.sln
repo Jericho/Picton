@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common", "Picton.Com
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.45", "Picton.Common.45\Picton.Common.45.csproj", "{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.451", "Picton.Common.451\Picton.Common.451.csproj", "{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
