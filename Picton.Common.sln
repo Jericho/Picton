@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.UnitTests", "Picton.Common.UnitTests\Picton.Common.UnitTests.csproj", "{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common", "Picton.Common\Picton.Common.csproj", "{5CA5F125-7CDA-4385-8D1B-581079372DAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.45", "Picton.Common.45\Picton.Common.45.csproj", "{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{5CA5F125-7CDA-4385-8D1B-581079372DAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CA5F125-7CDA-4385-8D1B-581079372DAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CA5F125-7CDA-4385-8D1B-581079372DAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

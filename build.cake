@@ -1,5 +1,13 @@
+// Install addins.
+#addin "nuget:?package=Polly&version=4.2.0"
+
+// Install tools.
 #tool "nuget:?package=GitReleaseNotes"
 #tool "nuget:?package=GitVersion.CommandLine"
+#tool "nuget:?package=gitreleasemanager&version=0.5.0"
+
+// Using statements
+using Polly;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,8 +26,10 @@ var solutions = GetFiles("./*.sln");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
 var unitTestsPaths = GetDirectories("./*.UnitTests");
 var outputDir = "./artifacts/";
-var versionInfo = (GitVersion)null;
+var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
 var libraryName = "Picton.Common";
+var isMainBranch = StringComparer.OrdinalIgnoreCase.Equals("master", BuildSystem.AppVeyor.Environment.Repository.Branch);
+var cakeVersion = typeof(ICakeContext).Assembly.GetName().Version.ToString();
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -28,8 +38,19 @@ var libraryName = "Picton.Common";
 
 Setup(context =>
 {
-	// Executed BEFORE the first task.
-	Information("Running tasks...");
+	if (isMainBranch && (context.Log.Verbosity != Verbosity.Diagnostic))
+	{
+		Information("Increasing verbosity to diagnostic.");
+		context.Log.Verbosity = Verbosity.Diagnostic;
+	}
+
+	Information("Building version {0} of {1} ({2}, {3}) using version {4} of Cake",
+		versionInfo.LegacySemVerPadded,
+		libraryName,
+		configuration,
+		target,
+		cakeVersion
+	);
 });
 
 Teardown(context =>
@@ -74,24 +95,42 @@ Task("Restore")
 	// Restore all NuGet packages.
 	foreach(var solution in solutions)
 	{
+		var maxRetryCount = 5;
+		var toolTimeout = 1d;
+
 		Information("Restoring {0}...", solution);
-		NuGetRestore(solution);
+
+		Policy
+			.Handle<Exception>()
+			.Retry(maxRetryCount, (exception, retryCount, context) => {
+				if (retryCount == maxRetryCount)
+				{
+					throw exception;
+				}
+				else
+				{
+					Verbose("{0}", exception);
+					toolTimeout += 0.5;
+				}})
+			.Execute(()=> {
+				NuGetRestore(solution, new NuGetRestoreSettings {
+					Source = new List<string> {
+						"https://api.nuget.org/v3/index.json",
+						"https://www.myget.org/F/roslyn-nightly/api/v3/index.json"
+					},
+					ToolTimeout = TimeSpan.FromMinutes(toolTimeout)
+				});
+			});
 	}
 });
 
 Task("Version")
 	.Does(() =>
 {
-	// We have to invoke GetVersion twice: the first time to update
-	// AssemblyInfo.cs and a second time to get the values in our C# code
 	GitVersion(new GitVersionSettings()
 	{
 		UpdateAssemblyInfo = true,
 		OutputType = GitVersionOutput.BuildServer
-	});
-	versionInfo = GitVersion(new GitVersionSettings()
-	{
-		UpdateAssemblyInfo = false
 	});
 });
 
@@ -106,15 +145,19 @@ Task("Build")
 	foreach(var solution in solutions)
 	{
 		Information("Building {0}", solution);
-		MSBuild(solution, settings =>
-			settings.SetPlatformTarget(PlatformTarget.MSIL)
-				.WithProperty("TreatWarningsAsErrors","true")
-				.WithTarget("Build")
-				.SetConfiguration(configuration));
+		MSBuild(solution, new MSBuildSettings()
+			.SetPlatformTarget(PlatformTarget.MSIL)
+			.SetConfiguration(configuration)
+			.SetVerbosity(Verbosity.Minimal)
+			.SetNodeReuse(false)
+			.WithProperty("Windows", "True")
+			.WithProperty("TreatWarningsAsErrors", "True")
+			.WithTarget("Build")
+		);
 	}
 });
 
-Task("Unit-Tests")
+Task("UnitTests")
 	.Description("Run the unit tests for the project.")
 	.IsDependentOn("Build")
 	.Does(() =>
@@ -128,7 +171,7 @@ Task("Unit-Tests")
 
 Task("Package")
 	.Description("Build the nuget package.")
-	.IsDependentOn("Unit-Tests")
+	.IsDependentOn("UnitTests")
 	.Does(() =>
 {
 	var settings = new NuGetPackSettings
@@ -154,9 +197,10 @@ Task("Package")
 			new NuSpecDependency { Id = "WindowsAzure.Storage", Version = "7.1.2" }
 		},
 		Files                   = new [] {
-			new NuSpecContent { Source = libraryName + ".dll", Target = "lib/net452" },
+			new NuSpecContent { Source = libraryName + "/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net452" },
+			new NuSpecContent { Source = libraryName + ".45/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net45" }
 		},
-		BasePath                = "./" + libraryName + "/bin/" + configuration,
+		BasePath                = "./",
 		OutputDirectory         = outputDir,
 		ArgumentCustomization   = args => args.Append("-Prop Configuration=" + configuration)
 	};

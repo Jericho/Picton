@@ -71,6 +71,7 @@
     <Compile Include="CloudMessage.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\CloudBlobExtensions.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="LargeMessageEnvelope.cs" />
     <Compile Include="MessageEnvelope.cs" />
     <Compile Include="BlobClient.cs" />
