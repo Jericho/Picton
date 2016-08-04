@@ -99,9 +99,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Picton.Common\Picton.Common.csproj">
+    <ProjectReference Include="..\Picton.Common.452\Picton.Common.452.csproj">
       <Project>{5CA5F125-7CDA-4385-8D1B-581079372DAE}</Project>
-      <Name>Picton.Common</Name>
+      <Name>Picton.Common.452</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>

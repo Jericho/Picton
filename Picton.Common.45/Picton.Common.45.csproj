@@ -69,55 +69,55 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Picton.Common\BlobClient.cs">
+    <Compile Include="..\Picton.Common.452\BlobClient.cs">
       <Link>BlobClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\CloudMessage.cs">
+    <Compile Include="..\Picton.Common.452\CloudMessage.cs">
       <Link>CloudMessage.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Extensions\CloudBlobExtensions.cs">
+    <Compile Include="..\Picton.Common.452\Extensions\CloudBlobExtensions.cs">
       <Link>Extensions\CloudBlobExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Extensions\StringExtensions.cs">
+    <Compile Include="..\Picton.Common.452\Extensions\StringExtensions.cs">
       <Link>Extensions\StringExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\GlobalSuppressions.cs">
+    <Compile Include="..\Picton.Common.452\GlobalSuppressions.cs">
       <Link>GlobalSuppressions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Interfaces\IBlobClient.cs">
+    <Compile Include="..\Picton.Common.452\Interfaces\IBlobClient.cs">
       <Link>Interfaces\IBlobClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Interfaces\IQueueClient.cs">
+    <Compile Include="..\Picton.Common.452\Interfaces\IQueueClient.cs">
       <Link>Interfaces\IQueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Interfaces\IQueueProvider.cs">
+    <Compile Include="..\Picton.Common.452\Interfaces\IQueueProvider.cs">
       <Link>Interfaces\IQueueProvider.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Interfaces\IStorageAccount.cs">
+    <Compile Include="..\Picton.Common.452\Interfaces\IStorageAccount.cs">
       <Link>Interfaces\IStorageAccount.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\LargeMessageEnvelope.cs">
+    <Compile Include="..\Picton.Common.452\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\MessageEnvelope.cs">
+    <Compile Include="..\Picton.Common.452\MessageEnvelope.cs">
       <Link>MessageEnvelope.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\MimeTypeMap.cs">
+    <Compile Include="..\Picton.Common.452\MimeTypeMap.cs">
       <Link>MimeTypeMap.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\MultiStream.cs">
+    <Compile Include="..\Picton.Common.452\MultiStream.cs">
       <Link>MultiStream.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Providers\BlobProvider.cs">
+    <Compile Include="..\Picton.Common.452\Providers\BlobProvider.cs">
       <Link>Providers\BlobProvider.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\Providers\QueueProvider.cs">
+    <Compile Include="..\Picton.Common.452\Providers\QueueProvider.cs">
       <Link>Providers\QueueProvider.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\QueueClient.cs">
+    <Compile Include="..\Picton.Common.452\QueueClient.cs">
       <Link>QueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.Common\StorageAccount.cs">
+    <Compile Include="..\Picton.Common.452\StorageAccount.cs">
       <Link>StorageAccount.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />

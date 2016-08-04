@@ -128,7 +128,7 @@ namespace Picton.Common.Providers
 
 		public Task UploadFileAsync(string blobName, string fileName, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			FileStream fileStream = File.OpenRead(fileName);
+			var fileStream = File.OpenRead(fileName);
 			return this.UploadStreamAsync(blobName, fileStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
