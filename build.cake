@@ -4,7 +4,10 @@
 // Install tools.
 #tool "nuget:?package=GitReleaseNotes"
 #tool "nuget:?package=GitVersion.CommandLine"
-#tool "nuget:?package=gitreleasemanager&version=0.5.0"
+#tool "nuget:?package=gitreleasemanager"
+#tool "nuget:?package=OpenCover"
+#tool "nuget:?package=ReportGenerator"
+#tool "nuget:?package=coveralls.io"
 
 // Using statements
 using Polly;
@@ -93,7 +96,6 @@ Teardown(context =>
 ///////////////////////////////////////////////////////////////////////////////
 
 Task("Clean")
-	.Description("Cleans all directories that are used during the build process.")
 	.Does(() =>
 {
 	// Clean solution directories.
@@ -116,8 +118,8 @@ Task("Clean")
 	}
 });
 
-Task("Restore")
-	.Description("Restores all the NuGet packages that are used by the specified solution.")
+Task("Restore-NuGet-Packages")
+	.IsDependentOn("Clean")
 	.Does(() =>
 {
 	// Restore all NuGet packages.
@@ -152,7 +154,7 @@ Task("Restore")
 	}
 });
 
-Task("Version")
+Task("Update-Asembly-Version")
 	.Does(() =>
 {
 	GitVersion(new GitVersionSettings()
@@ -163,10 +165,8 @@ Task("Version")
 });
 
 Task("Build")
-	.Description("Builds all the different parts of the project.")
-	.IsDependentOn("Clean")
-	.IsDependentOn("Restore")
-	.IsDependentOn("Version")
+	.IsDependentOn("Restore-NuGet-Packages")
+	.IsDependentOn("Update-Asembly-Version")
 	.Does(() =>
 {
 	// Build all solutions.
@@ -185,8 +185,7 @@ Task("Build")
 	}
 });
 
-Task("UnitTests")
-	.Description("Run the unit tests for the project.")
+Task("Run-Unit-Tests")
 	.IsDependentOn("Build")
 	.Does(() =>
 {
@@ -197,9 +196,41 @@ Task("UnitTests")
 	}
 });
 
-Task("Package")
-	.Description("Build the nuget package.")
-	.IsDependentOn("UnitTests")
+Task("Run-Code-Coverage")
+	.IsDependentOn("Build")
+	.Does(() =>
+{
+	OpenCover(
+		tool => { tool.MSTest("./*.UnitTests/bin/" + configuration + "/*.UnitTests.dll"); },
+		new FilePath("./CodeCoverageData/coverage.xml"),
+		new OpenCoverSettings()
+			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
+			.WithFilter("+[Picton.Common]*")
+			.WithFilter("-[Picton.]Picton.Common.Properties.*")
+	);
+});
+
+Task("Upload-Coverage-Result")
+	.Does(() =>
+{
+	StartProcess("./tools/coveralls.io/tools/coveralls.net.exe", "--opencover ./CodeCoverageData/coverage.xml");
+});
+
+Task("Generate-Code-Coverage-Report")
+	.IsDependentOn("Run-Code-Coverage")
+	.Does(() =>
+{
+	ReportGenerator(
+		"./CodeCoverageData/*.xml",
+		"./CodeCoverageReport",
+		new ReportGeneratorSettings() {
+			ClassFilters = new[] { "*.UnitTests*" }
+		}
+	);
+});
+
+Task("Create-NuGet-Package")
+	.IsDependentOn("Build")
 	.Does(() =>
 {
 	var settings = new NuGetPackSettings
@@ -239,12 +270,9 @@ Task("Package")
 	NuGetPack(settings);
 });
 
-Task("ReleaseNotes")
-	.Description("Update the release notes.")
-	.IsDependentOn("Clean")
+Task("Create-Release-Notes")
 	.Does(() =>
 {
-
 	GitReleaseNotes(outputDir + "releasenotes.md", new GitReleaseNotesSettings {
 		WorkingDirectory         = ".",
 		AllLabels                = true,
@@ -253,10 +281,7 @@ Task("ReleaseNotes")
 	});
 });
 
-Task("UploadArtifacts")
-	.Description("Upload artifacts to AppVeyor.")
-	.IsDependentOn("Package")
-	.IsDependentOn("ReleaseNotes")
+Task("Upload-AppVeyor-Artifacts")
 	.WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
 	.Does(() =>
 {
@@ -267,9 +292,7 @@ Task("UploadArtifacts")
 });
 
 Task("Publish-NuGet")
-	.IsDependentOn("Package")
-	.IsDependentOn("ReleaseNotes")
-	.IsDependentOn("UploadArtifacts")
+	.IsDependentOn("Create-NuGet-Package")
 	.WithCriteria(() => !isLocalBuild)
 	.WithCriteria(() => !isPullRequest)
 	.WithCriteria(() => isMainRepo)
@@ -300,9 +323,6 @@ Task("Publish-NuGet")
 });
 
 Task("Publish-GitHub-Release")
-	.IsDependentOn("Package")
-	.IsDependentOn("ReleaseNotes")
-	.IsDependentOn("UploadArtifacts")
 	.WithCriteria(() => !isLocalBuild)
 	.WithCriteria(() => !isPullRequest)
 	.WithCriteria(() => isMainRepo)
@@ -317,10 +337,9 @@ Task("Publish-GitHub-Release")
 		Name              = milestone,
 		InputFilePath     = outputDir + "releasenotes.md",
 		Prerelease        = true,
-		TargetCommitish   = "master",
-		TargetDirectory   = "c:/_build/Picton.Common/"
+		TargetCommitish   = "master"
 	});
-	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, milestone);
+//	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, milestone);
 });
 
 
@@ -328,9 +347,31 @@ Task("Publish-GitHub-Release")
 // TARGETS
 ///////////////////////////////////////////////////////////////////////////////
 
-Task("Default")
-	.Description("This is the default task which will be ran if no specific target is passed in.")
+Task("Package")
+	.IsDependentOn("Run-Unit-Tests")
+	.IsDependentOn("Create-NuGet-Package");
+
+Task("Coverage")
+	.IsDependentOn("Generate-Code-Coverage-Report")
+	.Does(() =>
+{
+	StartProcess("cmd", "/c start ./CodeCoverageReport/index.htm");
+});
+
+Task("AppVeyor")
+	.IsDependentOn("Run-Code-Coverage")
+	.IsDependentOn("Upload-Coverage-Result")
+	.IsDependentOn("Create-NuGet-Package")
+	.IsDependentOn("Upload-AppVeyor-Artifacts")
+	.IsDependentOn("Publish-NuGet")
+	.IsDependentOn("Create-Release-Notes")
 	.IsDependentOn("Publish-GitHub-Release");
+
+Task("ReleaseNotes")
+	.IsDependentOn("Create-Release-Notes");
+
+Task("Default")
+	.IsDependentOn("Package");
 
 
 ///////////////////////////////////////////////////////////////////////////////
