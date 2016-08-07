@@ -116,14 +116,17 @@ Task("Clean")
 
 	// Clean previous artifacts
 	Information("Cleaning {0}", outputDir);
-	if (DirectoryExists(outputDir))
-	{
-		CleanDirectories(MakeAbsolute(Directory(outputDir)).FullPath);
-	}
-	else
-	{
-		CreateDirectory(outputDir);
-	}
+	if (DirectoryExists(outputDir)) CleanDirectories(MakeAbsolute(Directory(outputDir)).FullPath);
+	else CreateDirectory(outputDir);
+
+	// Clean code coverage folders
+	Information("Cleaning Code Coverage folders");
+	if (DirectoryExists("./CodeCoverageData")) CleanDirectories(MakeAbsolute(Directory("./CodeCoverageData")).FullPath);
+	else CreateDirectory("./CodeCoverageData");
+
+	if (DirectoryExists("./CodeCoverageReport")) CleanDirectories(MakeAbsolute(Directory("./CodeCoverageReport")).FullPath);
+	else CreateDirectory("./CodeCoverageReport");
+
 });
 
 Task("Restore-NuGet-Packages")
