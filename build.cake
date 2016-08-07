@@ -25,9 +25,9 @@ var configuration = Argument<string>("configuration", "Release");
 // GLOBAL VARIABLES
 ///////////////////////////////////////////////////////////////////////////////
 
-var libraryName = "Picton.Common";
+var libraryName = "Picton";
 var gitHubAccountName = "Jericho";
-var gitHubRepo = "Picton.Common";
+var gitHubRepo = "Picton";
 
 var solutions = GetFiles("./*.sln");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
@@ -205,8 +205,8 @@ Task("Run-Code-Coverage")
 		new FilePath("./CodeCoverageData/coverage.xml"),
 		new OpenCoverSettings()
 			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
-			.WithFilter("+[Picton.Common]*")
-			.WithFilter("-[Picton.]Picton.Common.Properties.*")
+			.WithFilter("+[Picton]*")
+			.WithFilter("-[Picton.]Picton.Properties.*")
 	);
 });
 
@@ -242,7 +242,7 @@ Task("Create-NuGet-Package")
 		Owners                  = new[] { "Jeremie Desautels" },
 		Description             = "Convenient library for Azure",
 		Summary                 = "Among other things, it contains extension methods and abstrations for StorageAccount, BlobClient, QueueClient, etc.",
-		ProjectUrl              = new Uri("https://github.com/Jericho/Picton.Common"),
+		ProjectUrl              = new Uri("https://github.com/Jericho/Picton"),
 		IconUrl                 = new Uri("https://github.com/identicons/jericho.png"),
 		LicenseUrl              = new Uri("http://jericho.mit-license.org"),
 		Copyright               = "Copyright (c) 2016 Jeremie Desautels",

@@ -3,17 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.UnitTests", "Picton.Common.UnitTests\Picton.Common.UnitTests.csproj", "{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.UnitTests", "Picton.UnitTests\Picton.UnitTests.csproj", "{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.452", "Picton.Common.452\Picton.Common.452.csproj", "{5CA5F125-7CDA-4385-8D1B-581079372DAE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.452", "Picton.452\Picton.452.csproj", "{5CA5F125-7CDA-4385-8D1B-581079372DAE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.45", "Picton.Common.45\Picton.Common.45.csproj", "{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.45", "Picton.45\Picton.45.csproj", "{2EF4BF83-1029-4DC6-B5A5-71F44898AA44}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.451", "Picton.Common.451\Picton.Common.451.csproj", "{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.451", "Picton.451\Picton.451.csproj", "{DAA7854A-13EA-4D4C-8D2D-D3658CF60B30}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.46", "Picton.Common.46\Picton.Common.46.csproj", "{E001F631-C4A3-4C9C-A3CC-5320BD543D60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.46", "Picton.46\Picton.46.csproj", "{E001F631-C4A3-4C9C-A3CC-5320BD543D60}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.Common.461", "Picton.Common.461\Picton.Common.461.csproj", "{3DDB99CE-D3B3-4673-98D0-3E4EB30CC7B9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.461", "Picton.461\Picton.461.csproj", "{3DDB99CE-D3B3-4673-98D0-3E4EB30CC7B9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1C27358F-3DB6-4F3B-8FD0-7D82EE691688}"
 	ProjectSection(SolutionItems) = preProject
