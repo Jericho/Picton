@@ -214,7 +214,7 @@ Task("Run-Code-Coverage")
 		new OpenCoverSettings()
 			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
 			.WithFilter("+[Picton]*")
-			.WithFilter("-[Picton.]Picton.Properties.*")
+			.WithFilter("-[Picton]Picton.Properties.*")
 	);
 });
 
