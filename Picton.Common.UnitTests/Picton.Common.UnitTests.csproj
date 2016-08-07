@@ -6,8 +6,8 @@
     <ProjectGuid>{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Picton.Core.UnitTests</RootNamespace>
-    <AssemblyName>Picton.Core.UnitTests</AssemblyName>
+    <RootNamespace>Picton.Common.UnitTests</RootNamespace>
+    <AssemblyName>Picton.Common.UnitTests</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
