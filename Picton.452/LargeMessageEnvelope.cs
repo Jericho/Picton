@@ -1,4 +1,4 @@
-﻿namespace Picton.Common
+﻿namespace Picton
 {
 	internal class LargeMessageEnvelope
 	{

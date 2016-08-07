@@ -4,8 +4,8 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Moq;
-using Picton.Common.Interfaces;
-using Picton.Common.Providers;
+using Picton.Interfaces;
+using Picton.Providers;
 using Shouldly;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common.UnitTests
+namespace Picton.UnitTests
 {
 	[TestClass]
 	public class QueueProviderTests

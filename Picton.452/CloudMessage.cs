@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Picton.Common
+namespace Picton
 {
 	public class CloudMessage
 	{

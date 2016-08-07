@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.IO;
 
-namespace Picton.Common
+namespace Picton
 {
 	public class MultiStream : Stream
 	{

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common.Extensions
+namespace Picton.Extensions
 {
 	public static class CloudBlobExtensions
 	{

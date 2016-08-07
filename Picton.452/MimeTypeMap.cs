@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Picton.Common
+namespace Picton
 {
 	/// <summary>
 	/// From: https://github.com/HelmGlobal/MimeTypeMap

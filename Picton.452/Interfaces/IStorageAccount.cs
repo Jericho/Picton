@@ -1,6 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 
-namespace Picton.Common.Interfaces
+namespace Picton.Interfaces
 {
 	public interface IStorageAccount
 	{

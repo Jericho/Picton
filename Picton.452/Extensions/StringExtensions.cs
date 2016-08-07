@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Picton.Common.Extensions
+namespace Picton.Extensions
 {
 	public static class StringExtensions
 	{

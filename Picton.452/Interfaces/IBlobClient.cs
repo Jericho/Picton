@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common.Interfaces
+namespace Picton.Interfaces
 {
 	public interface IBlobClient
 	{

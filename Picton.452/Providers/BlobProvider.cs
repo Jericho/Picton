@@ -1,8 +1,8 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.RetryPolicies;
-using Picton.Common.Extensions;
-using Picton.Common.Interfaces;
+using Picton.Extensions;
+using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common.Providers
+namespace Picton.Providers
 {
 	public class BlobProvider
 	{

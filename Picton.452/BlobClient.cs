@@ -2,13 +2,13 @@
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Shared.Protocol;
-using Picton.Common.Interfaces;
+using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common
+namespace Picton
 {
 	public class BlobClient : IBlobClient
 	{

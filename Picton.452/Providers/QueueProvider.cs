@@ -3,7 +3,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Newtonsoft.Json;
-using Picton.Common.Interfaces;
+using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -11,7 +11,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Common.Providers
+namespace Picton.Providers
 {
 	public class QueueProvider : IQueueProvider
 	{

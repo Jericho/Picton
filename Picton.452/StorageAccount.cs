@@ -1,10 +1,10 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
-using Picton.Common.Interfaces;
+using Picton.Interfaces;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Picton.Common
+namespace Picton
 {
 	public class StorageAccount : IStorageAccount
 	{

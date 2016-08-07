@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Picton.Common
+namespace Picton
 {
 	internal class MessageEnvelope
 	{

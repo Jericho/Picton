@@ -7,8 +7,8 @@
     <ProjectGuid>{5CA5F125-7CDA-4385-8D1B-581079372DAE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Picton.Common</RootNamespace>
-    <AssemblyName>Picton.Common</AssemblyName>
+    <RootNamespace>Picton</RootNamespace>
+    <AssemblyName>Picton</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
