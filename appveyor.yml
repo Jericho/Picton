@@ -13,3 +13,13 @@ test: off
 cache:
 - packages -> **\packages.config  # preserve "packages" directory in the root of build folder but will reset it if packages.config is modified
 - tools -> build.cake, tools\packages.config
+
+# Environment variables
+environment:
+  NUGET_API_KEY:
+    secure: TtNPR7FUOtryJtreq842P15PwOPdYKkGFjk3F7yfWCAjhMJx8l8Vx6b0FfKq7E+o
+  GITHUB_USERNAME:
+    secure: gHPYi00QLCs4JtO2P9vBJA==
+  GITHUB_PASSWORD:
+    secure: 5abKAwVOMrijmwyhs/r6F1HBLLkTx/7DlVTTfA+gkf8=
+

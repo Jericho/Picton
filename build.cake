@@ -29,6 +29,11 @@ var libraryName = "Picton";
 var gitHubAccountName = "Jericho";
 var gitHubRepo = "Picton";
 
+var nuGetApiUrl = EnvironmentVariable("NUGET_API_URL");	// nuget.org is used if this value is omitted
+var nuGetApiKey = EnvironmentVariable("NUGET_API_KEY");
+var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
+var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
+
 var solutions = GetFiles("./*.sln");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
 var unitTestsPaths = GetDirectories("./*.UnitTests");
@@ -36,8 +41,6 @@ var outputDir = "./artifacts/";
 var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
 var milestone = string.Concat("v", versionInfo.MajorMinorPatch);
 var cakeVersion = typeof(ICakeContext).Assembly.GetName().Version.ToString();
-var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
-var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
 var isLocalBuild = BuildSystem.IsLocalBuild;
 var isMainBranch = StringComparer.OrdinalIgnoreCase.Equals("master", BuildSystem.AppVeyor.Environment.Repository.Branch);
 var	isMainRepo = StringComparer.OrdinalIgnoreCase.Equals(gitHubAccountName + "/" + gitHubRepo, BuildSystem.AppVeyor.Environment.Repository.Name);
@@ -76,11 +79,16 @@ Setup(context =>
 		isTagged
 	);
 
+	Information("Nuget Info:\r\n\tApi Url: {0}\r\n\tApi Key: {1}",
+		nuGetApiUrl,
+		string.IsNullOrEmpty(nuGetApiKey) ? "[NULL]" : new string('*', nuGetApiKey.Length)
+	);
+
 	Information("GitHub Info:\r\n\tAccount: {0}\r\n\tRepo: {1}\r\n\tUserName: {2}\r\n\tPassword: {3}",
 		gitHubAccountName,
 		gitHubRepo,
 		gitHubUserName,
-		new string('*', gitHubPassword.Length)
+		string.IsNullOrEmpty(gitHubPassword) ? "[NULL]" : new string('*', gitHubPassword.Length)
 	);
 });
 
@@ -300,24 +308,15 @@ Task("Publish-NuGet")
 	.WithCriteria(() => isTagged)
 	.Does(() =>
 {
-	// Resolve the API key.
-	var apiKey = EnvironmentVariable("NUGET_API_KEY");
-	if(string.IsNullOrEmpty(apiKey)) {
-		throw new InvalidOperationException("Could not resolve NuGet API key.");
-	}
-
-	// Resolve the API url.
-	var apiUrl = EnvironmentVariable("NUGET_API_URL");
-	if(string.IsNullOrEmpty(apiUrl)) {
-		throw new InvalidOperationException("Could not resolve NuGet API url.");
-	}
+	if(string.IsNullOrEmpty(nuGetApiKey)) throw new InvalidOperationException("Could not resolve NuGet API key.");
+	if(string.IsNullOrEmpty(nuGetApiUrl)) throw new InvalidOperationException("Could not resolve NuGet API url.");
 
 	foreach(var package in GetFiles(outputDir + "*.nupkg"))
 	{
 		// Push the package.
 		NuGetPush(package, new NuGetPushSettings {
-			ApiKey = apiKey,
-			Source = apiUrl
+			ApiKey = nuGetApiKey,
+			Source = nuGetApiUrl
 		});
 	}
 });
