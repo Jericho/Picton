@@ -22,14 +22,27 @@ var configuration = Argument<string>("configuration", "Release");
 // GLOBAL VARIABLES
 ///////////////////////////////////////////////////////////////////////////////
 
+var libraryName = "Picton.Common";
+var gitHubAccountName = "Jericho";
+var gitHubRepo = "Picton.Common";
+
 var solutions = GetFiles("./*.sln");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
 var unitTestsPaths = GetDirectories("./*.UnitTests");
 var outputDir = "./artifacts/";
 var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
-var libraryName = "Picton.Common";
-var isMainBranch = StringComparer.OrdinalIgnoreCase.Equals("master", BuildSystem.AppVeyor.Environment.Repository.Branch);
+var milestone = string.Concat("v", versionInfo.MajorMinorPatch);
 var cakeVersion = typeof(ICakeContext).Assembly.GetName().Version.ToString();
+var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
+var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
+var isLocalBuild = BuildSystem.IsLocalBuild;
+var isMainBranch = StringComparer.OrdinalIgnoreCase.Equals("master", BuildSystem.AppVeyor.Environment.Repository.Branch);
+var	isMainRepo = StringComparer.OrdinalIgnoreCase.Equals(gitHubAccountName + "/" + gitHubRepo, BuildSystem.AppVeyor.Environment.Repository.Name);
+var	isPullRequest = BuildSystem.AppVeyor.Environment.PullRequest.IsPullRequest;
+var	isTagged = (
+	BuildSystem.AppVeyor.Environment.Repository.Tag.IsTag &&
+	!string.IsNullOrWhiteSpace(BuildSystem.AppVeyor.Environment.Repository.Tag.Name)
+);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,6 +63,21 @@ Setup(context =>
 		configuration,
 		target,
 		cakeVersion
+	);
+
+	Information("Variables:\r\n\tLocalBuild: {0}\r\n\tIsMainBranch: {1}\r\n\tIsMainRepo: {2}\r\n\tIsPullRequest: {3}\r\n\tIsTagged: {4}",
+		isLocalBuild,
+		isMainBranch,
+		isMainRepo,
+		isPullRequest,
+		isTagged
+	);
+
+	Information("GitHub Info:\r\n\tAccount: {0}\r\n\tRepo: {1}\r\n\tUserName: {2}\r\n\tPassword: {3}",
+		gitHubAccountName,
+		gitHubRepo,
+		gitHubUserName,
+		new string('*', gitHubPassword.Length)
 	);
 });
 
@@ -197,9 +225,11 @@ Task("Package")
 			new NuSpecDependency { Id = "WindowsAzure.Storage", Version = "7.1.2" }
 		},
 		Files                   = new [] {
-			new NuSpecContent { Source = libraryName + "/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net452" },
+			new NuSpecContent { Source = libraryName + ".45/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net45" },
 			new NuSpecContent { Source = libraryName + ".451/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net451" },
-			new NuSpecContent { Source = libraryName + ".45/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net45" }
+			new NuSpecContent { Source = libraryName + ".452/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net452" },
+			new NuSpecContent { Source = libraryName + ".46/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net46" },
+			new NuSpecContent { Source = libraryName + ".461/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net461" }
 		},
 		BasePath                = "./",
 		OutputDirectory         = outputDir,
@@ -215,7 +245,7 @@ Task("ReleaseNotes")
 	.Does(() =>
 {
 
-	GitReleaseNotes(outputDir + "/releasenotes.md", new GitReleaseNotesSettings {
+	GitReleaseNotes(outputDir + "releasenotes.md", new GitReleaseNotesSettings {
 		WorkingDirectory         = ".",
 		AllLabels                = true,
 		AllTags                  = true,
@@ -223,18 +253,74 @@ Task("ReleaseNotes")
 	});
 });
 
-
 Task("UploadArtifacts")
 	.Description("Upload artifacts to AppVeyor.")
 	.IsDependentOn("Package")
 	.IsDependentOn("ReleaseNotes")
+	.WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
 	.Does(() =>
 {
-	if (AppVeyor.IsRunningOnAppVeyor)
+	foreach (var file in GetFiles(outputDir))
 	{
-		foreach (var file in GetFiles(outputDir))
-			AppVeyor.UploadArtifact(file.FullPath);
+		AppVeyor.UploadArtifact(file.FullPath);
 	}
+});
+
+Task("Publish-NuGet")
+	.IsDependentOn("Package")
+	.IsDependentOn("ReleaseNotes")
+	.IsDependentOn("UploadArtifacts")
+	.WithCriteria(() => !isLocalBuild)
+	.WithCriteria(() => !isPullRequest)
+	.WithCriteria(() => isMainRepo)
+	.WithCriteria(() => isMainBranch)
+	.WithCriteria(() => isTagged)
+	.Does(() =>
+{
+	// Resolve the API key.
+	var apiKey = EnvironmentVariable("NUGET_API_KEY");
+	if(string.IsNullOrEmpty(apiKey)) {
+		throw new InvalidOperationException("Could not resolve NuGet API key.");
+	}
+
+	// Resolve the API url.
+	var apiUrl = EnvironmentVariable("NUGET_API_URL");
+	if(string.IsNullOrEmpty(apiUrl)) {
+		throw new InvalidOperationException("Could not resolve NuGet API url.");
+	}
+
+	foreach(var package in GetFiles(outputDir + "*.nupkg"))
+	{
+		// Push the package.
+		NuGetPush(package, new NuGetPushSettings {
+			ApiKey = apiKey,
+			Source = apiUrl
+		});
+	}
+});
+
+Task("Publish-GitHub-Release")
+	.IsDependentOn("Package")
+	.IsDependentOn("ReleaseNotes")
+	.IsDependentOn("UploadArtifacts")
+	.WithCriteria(() => !isLocalBuild)
+	.WithCriteria(() => !isPullRequest)
+	.WithCriteria(() => isMainRepo)
+	.WithCriteria(() => isMainBranch)
+	.WithCriteria(() => isTagged)
+	.Does(() =>
+{
+	if(string.IsNullOrEmpty(gitHubUserName)) throw new InvalidOperationException("Could not resolve GitHub user name.");
+	if(string.IsNullOrEmpty(gitHubPassword)) throw new InvalidOperationException("Could not resolve GitHub password.");
+
+	GitReleaseManagerCreate(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, new GitReleaseManagerCreateSettings {
+		Name              = milestone,
+		InputFilePath     = outputDir + "releasenotes.md",
+		Prerelease        = true,
+		TargetCommitish   = "master",
+		TargetDirectory   = "c:/_build/Picton.Common/"
+	});
+	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, milestone);
 });
 
 
@@ -244,7 +330,7 @@ Task("UploadArtifacts")
 
 Task("Default")
 	.Description("This is the default task which will be ran if no specific target is passed in.")
-	.IsDependentOn("UploadArtifacts");
+	.IsDependentOn("Publish-GitHub-Release");
 
 
 ///////////////////////////////////////////////////////////////////////////////
