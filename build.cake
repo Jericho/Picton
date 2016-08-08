@@ -368,9 +368,9 @@ Task("AppVeyor")
 	.IsDependentOn("Run-Code-Coverage")
 	.IsDependentOn("Upload-Coverage-Result")
 	.IsDependentOn("Create-NuGet-Package")
+	.IsDependentOn("Create-Release-Notes")
 	.IsDependentOn("Upload-AppVeyor-Artifacts")
 	.IsDependentOn("Publish-NuGet")
-	.IsDependentOn("Create-Release-Notes")
 	.IsDependentOn("Publish-GitHub-Release");
 
 Task("ReleaseNotes")
