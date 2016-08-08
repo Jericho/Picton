@@ -300,7 +300,7 @@ Task("Upload-AppVeyor-Artifacts")
 	.WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
 	.Does(() =>
 {
-	foreach (var file in GetFiles(outputDir))
+	foreach (var file in GetFiles(outputDir + "*.*"))
 	{
 		AppVeyor.UploadArtifact(file.FullPath);
 	}
