@@ -203,7 +203,7 @@ Task("Run-Unit-Tests")
 	foreach(var path in unitTestsPaths)
 	{
 		Information("Running unit tests in {0}...", path);
-		MSTest(path + "/bin/" + configuration + "/*.UnitTests.dll");
+		VSTest(path + "/bin/" + configuration + "/*.UnitTests.dll");
 	}
 });
 
@@ -211,14 +211,14 @@ Task("Run-Code-Coverage")
 	.IsDependentOn("Build")
 	.Does(() =>
 {
-	var testAsemblyPath = string.Format("./{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
+	var testAssemblyPath = string.Format("./{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
+	var vsTestSettings = new VSTestSettings();
+	if (AppVeyor.IsRunningOnAppVeyor) vsTestSettings.ArgumentCustomization = args => args.Append("/logger:Appveyor");
+
 	OpenCover(
-		tool => { tool.MSTest(testAsemblyPath); },
+		tool => { tool.VSTest(testAssemblyPath, vsTestSettings); },
 		new FilePath("./CodeCoverageData/coverage.xml"),
 		new OpenCoverSettings()
-		{
-			ArgumentCustomization = args => args.Append("/logger:Appveyor \"" + testAsemblyPath + "\"")
-		}
 			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
 			.WithFilter("+[Picton]*")
 			.WithFilter("-[Picton]Picton.Properties.*")
