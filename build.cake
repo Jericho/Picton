@@ -211,10 +211,14 @@ Task("Run-Code-Coverage")
 	.IsDependentOn("Build")
 	.Does(() =>
 {
+	var testAsemblyPath = string.Format("./{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
 	OpenCover(
-		tool => { tool.MSTest("./*.UnitTests/bin/" + configuration + "/*.UnitTests.dll"); },
+		tool => { tool.MSTest(testAsemblyPath); },
 		new FilePath("./CodeCoverageData/coverage.xml"),
 		new OpenCoverSettings()
+		{
+			ArgumentCustomization = args => args.Append("/logger:Appveyor \"" + testAsemblyPath + "\"")
+		}
 			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
 			.WithFilter("+[Picton]*")
 			.WithFilter("-[Picton]Picton.Properties.*")
