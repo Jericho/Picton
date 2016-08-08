@@ -23,5 +23,5 @@ environment:
   GITHUB_PASSWORD:
     secure: 5abKAwVOMrijmwyhs/r6F1HBLLkTx/7DlVTTfA+gkf8=
   COVERALLS_REPO_TOKEN:
-    secure: UFzWya6z1lSVM9ns9TIhin52+NW1NkH6lov5kRm91AWnK83utbXWDlUwtnXeeshJ
+    secure: ny+E/VcmQMxAYVtrEwAoqhKX2wI7aKJy2Os4YF32KWmvbIs0j9EyjJdEnFpJAMNx
 
