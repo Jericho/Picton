@@ -34,9 +34,9 @@ var nuGetApiKey = EnvironmentVariable("NUGET_API_KEY");
 var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
 var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
 
-var solutions = GetFiles("./*.sln");
+var solutions = GetFiles("./src/*.sln");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
-var unitTestsPaths = GetDirectories("./*.UnitTests");
+var unitTestsPaths = GetDirectories("./src/*.UnitTests");
 var outputDir = "./artifacts/";
 var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
 var milestone = string.Concat("v", versionInfo.MajorMinorPatch);
@@ -211,7 +211,7 @@ Task("Run-Code-Coverage")
 	.IsDependentOn("Build")
 	.Does(() =>
 {
-	var testAssemblyPath = string.Format("./{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
+	var testAssemblyPath = string.Format("./src/{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
 	var vsTestSettings = new VSTestSettings();
 	if (AppVeyor.IsRunningOnAppVeyor) vsTestSettings.ArgumentCustomization = args => args.Append("/logger:Appveyor");
 
@@ -277,7 +277,7 @@ Task("Create-NuGet-Package")
 			new NuSpecContent { Source = libraryName + ".46/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net46" },
 			new NuSpecContent { Source = libraryName + ".461/bin/" + configuration + "/" + libraryName + ".dll", Target = "lib/net461" }
 		},
-		BasePath                = "./",
+		BasePath                = "./src/",
 		OutputDirectory         = outputDir,
 		ArgumentCustomization   = args => args.Append("-Prop Configuration=" + configuration)
 	};
@@ -354,7 +354,8 @@ Task("Publish-GitHub-Release")
 
 Task("Package")
 	.IsDependentOn("Run-Unit-Tests")
-	.IsDependentOn("Create-NuGet-Package");
+	.IsDependentOn("Create-NuGet-Package")
+	.IsDependentOn("Create-Release-Notes");
 
 Task("Coverage")
 	.IsDependentOn("Generate-Code-Coverage-Report")
