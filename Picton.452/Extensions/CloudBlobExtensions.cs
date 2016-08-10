@@ -14,9 +14,9 @@ namespace Picton.Extensions
 	{
 		#region PUBLIC EXTENSION METHODS
 
-		public static async Task<string> TryAcquireLeaseAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> TryAcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			try { return await blob.AcquireLeaseAsync(cancellationToken); }
+			try { return await blob.AcquireLeaseAsync(leaseTime, cancellationToken); }
 			catch (WebException e)
 			{
 				if ((e.Response == null) || ((HttpWebResponse)e.Response).StatusCode != HttpStatusCode.Conflict) // 409, already leased
@@ -28,11 +28,11 @@ namespace Picton.Extensions
 			}
 		}
 
-		public static async Task<string> AcquireLeaseAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> AcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var leaseTime = TimeSpan.FromSeconds(15);   // Acquire a 15 second lease on the blob. Leave it null for infinite lease. Otherwise it should be between 15 and 60 seconds.
-			var proposedLeaseId = (string)null;         // Proposed lease id (leave it null for storage service to return you one).
-			var leaseId = await blob.AcquireLeaseAsync(leaseTime, proposedLeaseId, cancellationToken);
+			var defaultLeaseTime = TimeSpan.FromSeconds(15);    // Acquire a 15 second lease on the blob. Leave it null for infinite lease. Otherwise it should be between 15 and 60 seconds.
+			var proposedLeaseId = (string)null;                 // Proposed lease id (leave it null for storage service to return you one).
+			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, cancellationToken);
 			return leaseId;
 		}
 

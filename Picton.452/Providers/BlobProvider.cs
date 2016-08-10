@@ -91,7 +91,7 @@ namespace Picton.Providers
 				maxLeaseAttempts = Math.Min(maxLeaseAttempts, 10);  // No more than 10 attempts
 				for (var attempts = 0; attempts < maxLeaseAttempts; attempts++)
 				{
-					leaseId = await blob.TryAcquireLeaseAsync(cancellationToken);
+					leaseId = await blob.TryAcquireLeaseAsync(null, cancellationToken);
 					if (string.IsNullOrEmpty(leaseId)) break;
 					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500);    // Make sure we don't attempt too quickly
 				}
