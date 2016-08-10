@@ -218,7 +218,7 @@ Task("Run-Code-Coverage")
 	OpenCover(
 		tool => { tool.VSTest(testAssemblyPath, vsTestSettings); },
 		new FilePath("./CodeCoverageData/coverage.xml"),
-		new OpenCoverSettings()
+		new OpenCoverSettings() { ReturnTargetCodeOffset = 0 }
 			.ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
 			.WithFilter("+[Picton]*")
 			.WithFilter("-[Picton]Picton.Properties.*")
@@ -316,7 +316,6 @@ Task("Publish-NuGet")
 	.Does(() =>
 {
 	if(string.IsNullOrEmpty(nuGetApiKey)) throw new InvalidOperationException("Could not resolve NuGet API key.");
-	if(string.IsNullOrEmpty(nuGetApiUrl)) throw new InvalidOperationException("Could not resolve NuGet API url.");
 
 	foreach(var package in GetFiles(outputDir + "*.nupkg"))
 	{
