@@ -2,9 +2,8 @@
 #addin "nuget:?package=Polly&version=4.2.0"
 
 // Install tools.
-#tool "nuget:?package=GitReleaseNotes"
 #tool "nuget:?package=GitVersion.CommandLine"
-#tool "nuget:?package=gitreleasemanager"
+#tool "nuget:?package=GitReleaseManager"
 #tool "nuget:?package=OpenCover"
 #tool "nuget:?package=ReportGenerator"
 #tool "nuget:?package=coveralls.io"
@@ -26,7 +25,6 @@ var configuration = Argument<string>("configuration", "Release");
 ///////////////////////////////////////////////////////////////////////////////
 
 var libraryName = "Picton";
-var gitHubAccountName = "Jericho";
 var gitHubRepo = "Picton";
 
 var nuGetApiUrl = EnvironmentVariable("NUGET_API_URL");	// nuget.org is used if this value is omitted
@@ -43,7 +41,7 @@ var milestone = string.Concat("v", versionInfo.MajorMinorPatch);
 var cakeVersion = typeof(ICakeContext).Assembly.GetName().Version.ToString();
 var isLocalBuild = BuildSystem.IsLocalBuild;
 var isMainBranch = StringComparer.OrdinalIgnoreCase.Equals("master", BuildSystem.AppVeyor.Environment.Repository.Branch);
-var	isMainRepo = StringComparer.OrdinalIgnoreCase.Equals(gitHubAccountName + "/" + gitHubRepo, BuildSystem.AppVeyor.Environment.Repository.Name);
+var	isMainRepo = StringComparer.OrdinalIgnoreCase.Equals(gitHubUserName + "/" + gitHubRepo, BuildSystem.AppVeyor.Environment.Repository.Name);
 var	isPullRequest = BuildSystem.AppVeyor.Environment.PullRequest.IsPullRequest;
 var	isTagged = (
 	BuildSystem.AppVeyor.Environment.Repository.Tag.IsTag &&
@@ -84,8 +82,7 @@ Setup(context =>
 		string.IsNullOrEmpty(nuGetApiKey) ? "[NULL]" : new string('*', nuGetApiKey.Length)
 	);
 
-	Information("GitHub Info:\r\n\tAccount: {0}\r\n\tRepo: {1}\r\n\tUserName: {2}\r\n\tPassword: {3}",
-		gitHubAccountName,
+	Information("GitHub Info:\r\n\tRepo: {0}\r\n\tUserName: {1}\r\n\tPassword: {2}",
 		gitHubRepo,
 		gitHubUserName,
 		string.IsNullOrEmpty(gitHubPassword) ? "[NULL]" : new string('*', gitHubPassword.Length)
@@ -285,17 +282,6 @@ Task("Create-NuGet-Package")
 	NuGetPack(settings);
 });
 
-Task("Create-Release-Notes")
-	.Does(() =>
-{
-	GitReleaseNotes(outputDir + "releasenotes.md", new GitReleaseNotesSettings {
-		WorkingDirectory         = ".",
-		AllLabels                = true,
-		AllTags                  = true,
-		Verbose                  = true
-	});
-});
-
 Task("Upload-AppVeyor-Artifacts")
 	.WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
 	.Does(() =>
@@ -338,13 +324,13 @@ Task("Publish-GitHub-Release")
 	if(string.IsNullOrEmpty(gitHubUserName)) throw new InvalidOperationException("Could not resolve GitHub user name.");
 	if(string.IsNullOrEmpty(gitHubPassword)) throw new InvalidOperationException("Could not resolve GitHub password.");
 
-	GitReleaseManagerCreate(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, new GitReleaseManagerCreateSettings {
+	GitReleaseManagerCreate(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, new GitReleaseManagerCreateSettings {
 		Name              = milestone,
-		InputFilePath     = outputDir + "releasenotes.md",
+		Milestone         = milestone,
 		Prerelease        = true,
-		TargetCommitish   = "master"
+		WorkingDirectory  = outputDir
 	});
-//	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubAccountName, gitHubRepo, milestone);
+//	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, milestone);
 });
 
 
@@ -354,8 +340,7 @@ Task("Publish-GitHub-Release")
 
 Task("Package")
 	.IsDependentOn("Run-Unit-Tests")
-	.IsDependentOn("Create-NuGet-Package")
-	.IsDependentOn("Create-Release-Notes");
+	.IsDependentOn("Create-NuGet-Package");
 
 Task("Coverage")
 	.IsDependentOn("Generate-Code-Coverage-Report")
@@ -368,13 +353,9 @@ Task("AppVeyor")
 	.IsDependentOn("Run-Code-Coverage")
 	.IsDependentOn("Upload-Coverage-Result")
 	.IsDependentOn("Create-NuGet-Package")
-	.IsDependentOn("Create-Release-Notes")
 	.IsDependentOn("Upload-AppVeyor-Artifacts")
 	.IsDependentOn("Publish-NuGet")
 	.IsDependentOn("Publish-GitHub-Release");
-
-Task("ReleaseNotes")
-	.IsDependentOn("Create-Release-Notes");
 
 Task("Default")
 	.IsDependentOn("Package");
