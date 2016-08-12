@@ -93,6 +93,7 @@
   <ItemGroup>
     <Compile Include="Extensions\CloudBlobExtensionsTests.cs" />
     <Compile Include="Extensions\StringExtensionsTests.cs" />
+    <Compile Include="MockSystemClock.cs" />
     <Compile Include="MockWebResponse.cs" />
     <Compile Include="QueueProviderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

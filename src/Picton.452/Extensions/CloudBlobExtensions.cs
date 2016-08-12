@@ -58,31 +58,31 @@ namespace Picton.Extensions
 			catch { return false; }
 		}
 
-		public static async Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
 			if (string.IsNullOrEmpty(leaseId))
 			{
-				await blob.UploadFromStreamAsync(stream, cancellationToken).ConfigureAwait(false);
+				return blob.UploadFromStreamAsync(stream, cancellationToken);
 			}
 			else
 			{
 				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				return blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
 		}
 
-		public static async Task SetMetadataAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task SetMetadataAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (string.IsNullOrEmpty(leaseId))
 			{
-				await blob.SetMetadataAsync(cancellationToken).ConfigureAwait(false);
+				return blob.SetMetadataAsync(cancellationToken);
 			}
 			else
 			{
 				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				await blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
+				return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 			}
 		}
 
@@ -107,7 +107,7 @@ namespace Picton.Extensions
 			}
 		}
 
-		public static async Task<byte[]> DownloadByteArray(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<byte[]> DownloadByteArrayAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			using (var ms = new MemoryStream())
 			{
@@ -123,18 +123,19 @@ namespace Picton.Extensions
 		/// <remarks>
 		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/
 		/// </remarks>
-		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission)
+		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, ISystemClock systemClock = null)
 		{
-			return GetSharedAccessSignatureUri(blob, permission, TimeSpan.FromMinutes(15));
+			return GetSharedAccessSignatureUri(blob, permission, TimeSpan.FromMinutes(15), systemClock);
 		}
 
-		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration)
+		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
 		{
+			var now = (systemClock ?? SystemClock.Instance).UtcNow;
 			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
 			{
 				Permissions = permission,
-				SharedAccessStartTime = DateTime.UtcNow.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
-				SharedAccessExpiryTime = DateTime.UtcNow.Add(duration)
+				SharedAccessStartTime = now.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
+				SharedAccessExpiryTime = now.Add(duration)
 			});
 			return string.Format(CultureInfo.InvariantCulture, "{0}{1}", blob.Uri, sas);
 		}

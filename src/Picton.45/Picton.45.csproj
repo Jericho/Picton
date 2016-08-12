@@ -96,6 +96,9 @@
     <Compile Include="..\Picton.452\Interfaces\IStorageAccount.cs">
       <Link>Interfaces\IStorageAccount.cs</Link>
     </Compile>
+    <Compile Include="..\Picton.452\ISystemClock.cs">
+      <Link>ISystemClock.cs</Link>
+    </Compile>
     <Compile Include="..\Picton.452\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
     </Compile>
@@ -119,6 +122,9 @@
     </Compile>
     <Compile Include="..\Picton.452\StorageAccount.cs">
       <Link>StorageAccount.cs</Link>
+    </Compile>
+    <Compile Include="..\Picton.452\SystemClock.cs">
+      <Link>SystemClock.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

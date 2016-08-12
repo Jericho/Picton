@@ -72,6 +72,7 @@
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\CloudBlobExtensions.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="ISystemClock.cs" />
     <Compile Include="LargeMessageEnvelope.cs" />
     <Compile Include="MessageEnvelope.cs" />
     <Compile Include="BlobClient.cs" />
@@ -86,6 +87,7 @@
     <Compile Include="QueueClient.cs" />
     <Compile Include="Providers\QueueProvider.cs" />
     <Compile Include="StorageAccount.cs" />
+    <Compile Include="SystemClock.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
