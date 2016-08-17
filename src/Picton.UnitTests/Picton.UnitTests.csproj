@@ -96,6 +96,7 @@
     <Compile Include="MockSystemClock.cs" />
     <Compile Include="MockWebResponse.cs" />
     <Compile Include="BlobClientTests.cs" />
+    <Compile Include="MimeTypeMapTests.cs" />
     <Compile Include="MultistreamTests.cs" />
     <Compile Include="QueueProviderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
