@@ -1,8 +1,13 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.IO;
 
 namespace Picton
 {
+	/// <summary>
+	/// This class allows multiple streams to be merged into a single one
+	/// </summary>
+	/// <remarks>From: http://www.c-sharpcorner.com/article/combine-multiple-streams-in-a-single-net-framework-stream-o/</remarks>
 	public class MultiStream : Stream
 	{
 		#region FIELDS
@@ -68,6 +73,8 @@ namespace Picton
 				case SeekOrigin.End:
 					position = len - offset;
 					break;
+				default:
+					throw new ArgumentException(string.Format("{0} is not a valid SeekOrigin", origin));
 			}
 			if (position > len)
 			{
@@ -82,6 +89,10 @@ namespace Picton
 
 		public override void SetLength(long value) { }
 
+		/// <summary>
+		/// Add a stream to the collection
+		/// </summary>
+		/// <param name="stream">The stream to be added</param>
 		public void AddStream(Stream stream)
 		{
 			streamList.Add(stream);
