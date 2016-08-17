@@ -18,6 +18,8 @@ namespace Picton.UnitTests
 	[TestClass]
 	public class QueueProviderTests
 	{
+		private static readonly string QUEUE_STORAGE_URL = "http://bogus:10001/devstoreaccount1/";
+
 		[TestMethod]
 		[ExpectedException(typeof(ArgumentNullException))]
 		public void Null_queueName_throws()
@@ -63,8 +65,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -86,8 +88,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -115,8 +117,8 @@ namespace Picton.UnitTests
 		//{
 		//	// Arrange
 		//	var queueName = "myqueue";
-		//	var mockQueue = GetMockQueue();
-		//	var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+		//	var mockQueue = GetMockQueue(queueName);
+		//	var mockQueueClient = GetMockQueueClient(mockQueue);
 		//	var mockBlobContainer = GetMockBlobContainer();
 		//	var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 		//	var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -156,8 +158,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -185,8 +187,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -214,8 +216,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -243,8 +245,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -272,8 +274,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -302,8 +304,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -332,8 +334,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -361,8 +363,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -394,8 +396,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -430,8 +432,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -453,8 +455,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -474,8 +476,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -505,8 +507,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -536,8 +538,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -572,8 +574,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -595,8 +597,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -616,8 +618,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -645,8 +647,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -675,8 +677,8 @@ namespace Picton.UnitTests
 		{
 			// Arrange
 			var queueName = "myqueue";
-			var mockQueue = GetMockQueue();
-			var mockQueueClient = GetMockQueueClient(queueName, mockQueue);
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
@@ -724,10 +726,10 @@ namespace Picton.UnitTests
 			return mockBlobClient;
 		}
 
-		private static Mock<CloudQueue> GetMockQueue()
+		private static Mock<CloudQueue> GetMockQueue(string queueName)
 		{
-			var mockQueuesUri = new Uri("http://bogus/myaccount/queues");
-			var mockQueue = new Mock<CloudQueue>(MockBehavior.Strict, mockQueuesUri);
+			var queueAddres = new Uri(QUEUE_STORAGE_URL + queueName);
+			var mockQueue = new Mock<CloudQueue>(MockBehavior.Strict, queueAddres);
 			mockQueue
 				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
 				.ReturnsAsync(false)
@@ -735,11 +737,11 @@ namespace Picton.UnitTests
 			return mockQueue;
 		}
 
-		private static Mock<IQueueClient> GetMockQueueClient(string queueName, Mock<CloudQueue> mockQueue)
+		private static Mock<IQueueClient> GetMockQueueClient(Mock<CloudQueue> mockQueue)
 		{
 			var mockQueueClient = new Mock<IQueueClient>(MockBehavior.Strict);
 			mockQueueClient
-				.Setup(c => c.GetQueueReference(queueName))
+				.Setup(c => c.GetQueueReference(mockQueue.Object.Name))
 				.Returns(mockQueue.Object)
 				.Verifiable();
 			return mockQueueClient;

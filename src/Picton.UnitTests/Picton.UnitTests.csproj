@@ -91,6 +91,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="QueueClientTests.cs" />
     <Compile Include="Extensions\CloudBlobExtensionsTests.cs" />
     <Compile Include="Extensions\StringExtensionsTests.cs" />
     <Compile Include="MockSystemClock.cs" />
