@@ -6,6 +6,7 @@ using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,11 +26,13 @@ namespace Picton
 			_cloudQueueClient = cloudQueueClient;
 		}
 
+		[ExcludeFromCodeCoverage]
 		public QueueClient(StorageUri storageUri, StorageCredentials credentials)
 		{
 			_cloudQueueClient = new CloudQueueClient(storageUri, credentials);
 		}
 
+		[ExcludeFromCodeCoverage]
 		public QueueClient(Uri baseUri, StorageCredentials credentials)
 		{
 			_cloudQueueClient = new CloudQueueClient(baseUri, credentials);
