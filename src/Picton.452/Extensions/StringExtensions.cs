@@ -15,6 +15,8 @@ namespace Picton.Extensions
 		/// <returns></returns>
 		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
 		{
+			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+
 			string result = target;
 			while (result.StartsWith(trimString, stringComparison))
 			{
@@ -33,6 +35,8 @@ namespace Picton.Extensions
 		/// <returns></returns>
 		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
 		{
+			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+
 			string result = target;
 			while (result.EndsWith(trimString, stringComparison))
 			{
