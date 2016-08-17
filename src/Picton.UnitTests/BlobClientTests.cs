@@ -3,8 +3,10 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 using Moq;
+using Shouldly;
 using System;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,12 +15,14 @@ namespace Picton.UnitTests
 	[TestClass]
 	public class BlobClientTests
 	{
+		private static readonly string BLOB_STORAGE_URL = "http://bogus:10000/devstoreaccount1/";
+
 		[TestMethod]
 		public void GetBlobReferenceFromServerAsync()
 		{
 			// Arrange
-			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri("http://bogus/myaccount/blob"));
-			var blobUri = new StorageUri(new Uri("http://bogus/myaccount/blob/blablabla.txt"));
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
+			var blobUri = new StorageUri(new Uri(BLOB_STORAGE_URL + "blablabla.txt"));
 			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
 
 			mockCloudBlobClient
@@ -40,7 +44,7 @@ namespace Picton.UnitTests
 		public void GetServicePropertiesAsync()
 		{
 			// Arrange
-			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri("http://bogus/myaccount/blob"));
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
 			var serviceProperties = new ServiceProperties();
 
 			mockCloudBlobClient
@@ -59,17 +63,39 @@ namespace Picton.UnitTests
 		}
 
 		[TestMethod]
+		public void GetServiceStatsAsync()
+		{
+			// Arrange
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
+			var serviceStats = (ServiceStats)FormatterServices.GetUninitializedObject(typeof(ServiceStats)); //does not call ctor
+
+			mockCloudBlobClient
+				.Setup(c => c.GetServiceStatsAsync(It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(serviceStats))
+				.Verifiable();
+
+			// Act
+			var blobClient = new BlobClient(mockCloudBlobClient.Object);
+			var result = blobClient.GetServiceStatsAsync();
+			result.Wait();
+
+			// Assert
+			mockCloudBlobClient.Verify();
+			result.Result.ShouldBe(serviceStats);
+		}
+
+		[TestMethod]
 		public void ListBlobs()
 		{
 			// Arrange
-			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri("http://bogus/myaccount/blob"));
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
 			var prefix = "/myfiles/*.*";
 			var useFlatBlobListing = true;
 			var blobs = new[]
 			{
-				new CloudBlockBlob(new Uri("http://bogus/myaccount/blob/myfiles/test1.txt")),
-				new CloudBlockBlob(new Uri("http://bogus/myaccount/blob/myfiles/test2.txt")),
-				new CloudBlockBlob(new Uri("http://bogus/myaccount/blob/myfiles/test3.txt"))
+				new CloudBlockBlob(new Uri(BLOB_STORAGE_URL + "test1.txt")),
+				new CloudBlockBlob(new Uri(BLOB_STORAGE_URL + "test2.txt")),
+				new CloudBlockBlob(new Uri(BLOB_STORAGE_URL + "test3.txt"))
 			};
 
 			mockCloudBlobClient
@@ -84,6 +110,30 @@ namespace Picton.UnitTests
 			// Assert
 			mockCloudBlobClient.Verify();
 			CollectionAssert.AreEqual(blobs, result.ToArray());
+		}
+
+		[TestMethod]
+		public void ListBlobsSegmentedAsync()
+		{
+			// Arrange
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
+			var prefix = "/myfiles/*.*";
+			var useFlatBlobListing = true;
+			var segmentedResult = (BlobResultSegment)FormatterServices.GetUninitializedObject(typeof(BlobResultSegment));
+
+			mockCloudBlobClient
+				.Setup(c => c.ListBlobsSegmentedAsync(prefix, useFlatBlobListing, It.IsAny<BlobListingDetails>(), It.IsAny<int?>(), It.IsAny<BlobContinuationToken>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(segmentedResult))
+				.Verifiable();
+
+			// Act
+			var blobClient = new BlobClient(mockCloudBlobClient.Object);
+			var result = blobClient.ListBlobsSegmentedAsync(prefix, useFlatBlobListing);
+			result.Wait();
+
+			// Assert
+			mockCloudBlobClient.Verify();
+			result.Result.ShouldBe(segmentedResult);
 		}
 
 		[TestMethod]
@@ -111,6 +161,28 @@ namespace Picton.UnitTests
 			// Assert
 			mockCloudBlobClient.Verify();
 			CollectionAssert.AreEqual(containers, result.ToArray());
+		}
+
+		[TestMethod]
+		public void ListContainersSegmentedAsync()
+		{
+			// Arrange
+			var mockCloudBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, new Uri(BLOB_STORAGE_URL));
+			var segmentedResult = (ContainerResultSegment)FormatterServices.GetUninitializedObject(typeof(ContainerResultSegment));
+
+			mockCloudBlobClient
+				.Setup(c => c.ListContainersSegmentedAsync(It.IsAny<string>(), It.IsAny<ContainerListingDetails>(), It.IsAny<int?>(), It.IsAny<BlobContinuationToken>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(segmentedResult))
+				.Verifiable();
+
+			// Act
+			var blobClient = new BlobClient(mockCloudBlobClient.Object);
+			var result = blobClient.ListContainersSegmentedAsync();
+			result.Wait();
+
+			// Assert
+			mockCloudBlobClient.Verify();
+			result.Result.ShouldBe(segmentedResult);
 		}
 
 		[TestMethod]
