@@ -30,6 +30,14 @@ namespace Picton.Extensions
 
 		public static async Task<string> AcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			// From: https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+			// The Lease Blob operation establishes and manages a lock on a blob for write and delete operations.
+			// The lock duration can be 15 to 60 seconds, or can be infinite. 
+			if (leaseTime.HasValue && (leaseTime.Value < TimeSpan.FromSeconds(15) | leaseTime.Value > TimeSpan.FromSeconds(60)))
+			{
+				throw new ArgumentOutOfRangeException(nameof(leaseTime), "LeaseTime must be between 15 and 60 seconds");
+			}
+
 			var defaultLeaseTime = TimeSpan.FromSeconds(15);    // Acquire a 15 second lease on the blob. Leave it null for infinite lease. Otherwise it should be between 15 and 60 seconds.
 			var proposedLeaseId = (string)null;                 // Proposed lease id (leave it null for storage service to return you one).
 			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, cancellationToken);
@@ -38,12 +46,14 @@ namespace Picton.Extensions
 
 		public static Task ReleaseLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
 			return blob.ReleaseLeaseAsync(accessCondition, cancellationToken);
 		}
 
 		public static Task RenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
 			return blob.RenewLeaseAsync(accessCondition, cancellationToken);
 		}
@@ -60,6 +70,9 @@ namespace Picton.Extensions
 
 		public static Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (stream == null) throw new ArgumentNullException(nameof(stream));
+
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
 			if (string.IsNullOrEmpty(leaseId))
@@ -75,6 +88,8 @@ namespace Picton.Extensions
 
 		public static Task SetMetadataAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+
 			if (string.IsNullOrEmpty(leaseId))
 			{
 				return blob.SetMetadataAsync(cancellationToken);
@@ -130,6 +145,8 @@ namespace Picton.Extensions
 
 		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+
 			var now = (systemClock ?? SystemClock.Instance).UtcNow;
 			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
 			{

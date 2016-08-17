@@ -125,6 +125,21 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void AcquireLeaseAsync_10_seconds()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = TimeSpan.FromSeconds(10);
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+
+			// Act
+			var result = mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
 		public void AcquireLeaseAsync_30_seconds()
 		{
 			// Arrange
@@ -148,6 +163,34 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void AcquireLeaseAsync_2_minutes()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = TimeSpan.FromMinutes(2);
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+
+			// Act
+			var result = mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void ReleaseLeaseAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+
+			// Act
+			var result = ((ICloudBlob)null).ReleaseLeaseAsync(leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
 		public void ReleaseLeaseAsync()
 		{
 			// Arrange
@@ -166,6 +209,19 @@ namespace Picton.Extensions.UnitTests
 
 			// Assert
 			mockBlob.Verify();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void RenewLeaseAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+
+			// Act
+			var result = ((ICloudBlob)null).RenewLeaseAsync(leaseId, cancellationToken);
+			result.Wait();
 		}
 
 		[TestMethod]
@@ -234,6 +290,37 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void UploadStreamAsyn_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			// Act
+			var result = ((ICloudBlob)null).UploadStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void UploadStreamAsync_throws_when_stream_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+			var stream = (Stream)null;
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+
+			// Act
+			var result = mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
 		public void UploadStreamAsync_without_lease()
 		{
 			// Arrange
@@ -280,6 +367,19 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void SetMetadataAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+
+			// Act
+			var result = ((ICloudBlob)null).SetMetadataAsync(leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
 		public void SetMetadataAsync_without_lease()
 		{
 			// Arrange
@@ -319,6 +419,18 @@ namespace Picton.Extensions.UnitTests
 
 			// Assert
 			mockBlob.Verify();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void DownloadTextAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+
+			// Act
+			var result = ((ICloudBlob)null).DownloadTextAsync(cancellationToken);
+			result.Wait();
 		}
 
 		[TestMethod]
@@ -397,6 +509,20 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void GetSharedAccessSignatureUri_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var permission = SharedAccessBlobPermissions.Read;
+			var duration = TimeSpan.FromMinutes(1);
+			var systemClock = new MockSystemClock(new DateTime(2016, 8, 12, 15, 0, 0, 0, DateTimeKind.Utc)).Object;
+
+			// Act
+			var result = ((ICloudBlob)null).GetSharedAccessSignatureUri(permission, duration, systemClock);
+		}
+
+		[TestMethod]
 		public void GetSharedAccessSignatureUri_with_specified_duration()
 		{
 			// Arrange
@@ -417,7 +543,7 @@ namespace Picton.Extensions.UnitTests
 				.Returns(sas)
 				.Verifiable();
 
-			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/bob"));
+			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/myaccount/blob"));
 
 			// Act
 			var result = mockBlob.Object.GetSharedAccessSignatureUri(permission, duration, systemClock);
@@ -447,7 +573,7 @@ namespace Picton.Extensions.UnitTests
 				.Returns(sas)
 				.Verifiable();
 
-			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/bob"));
+			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/myaccount/blob"));
 
 			// Act
 			var result = mockBlob.Object.GetSharedAccessSignatureUri(permission, systemClock);
@@ -462,7 +588,7 @@ namespace Picton.Extensions.UnitTests
 			var sc = new StreamingContext();
 			var headers = new WebHeaderCollection();
 			si.AddValue("m_HttpResponseHeaders", headers);
-			si.AddValue("m_Uri", new Uri("http://bogus/blob"));
+			si.AddValue("m_Uri", new Uri("http://bogus/myaccount/blob"));
 			si.AddValue("m_Certificate", null);
 			si.AddValue("m_Version", HttpVersion.Version11);
 			si.AddValue("m_StatusCode", statusCode);
