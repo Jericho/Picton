@@ -1,5 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Picton.Interfaces;
 using System;
 using System.Globalization;
 using System.IO;

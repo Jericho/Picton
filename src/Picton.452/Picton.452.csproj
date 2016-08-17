@@ -72,7 +72,7 @@
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\CloudBlobExtensions.cs" />
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="ISystemClock.cs" />
+    <Compile Include="Interfaces\ISystemClock.cs" />
     <Compile Include="LargeMessageEnvelope.cs" />
     <Compile Include="MessageEnvelope.cs" />
     <Compile Include="BlobClient.cs" />
