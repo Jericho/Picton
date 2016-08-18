@@ -5,7 +5,6 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Moq;
 using Picton.Interfaces;
-using Picton.Providers;
 using Shouldly;
 using System;
 using System.Collections.Generic;
@@ -13,12 +12,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.UnitTests
+namespace Picton.Providers.UnitTests
 {
 	[TestClass]
 	public class QueueProviderTests
 	{
 		private static readonly string QUEUE_STORAGE_URL = "http://bogus:10001/devstoreaccount1/";
+		private static readonly string BLOB_STORAGE_URL = "http://bogus:10002/devstoreaccount1/";
 
 		[TestMethod]
 		[ExpectedException(typeof(ArgumentNullException))]
@@ -705,13 +705,13 @@ namespace Picton.UnitTests
 			mockBlobClient.Verify();
 		}
 
-		private static Mock<CloudBlobContainer> GetMockBlobContainer()
+		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName = "mycontainer")
 		{
-			var mockBlobUri = new Uri("http://bogus/myaccount/blob");
-			var mockBlobContainer = new Mock<CloudBlobContainer>(MockBehavior.Strict, mockBlobUri);
+			var mockContainerUri = new Uri(BLOB_STORAGE_URL + containerName);
+			var mockBlobContainer = new Mock<CloudBlobContainer>(MockBehavior.Strict, mockContainerUri);
 			mockBlobContainer
 				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<BlobContainerPublicAccessType>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync(false)
+				.ReturnsAsync(true)
 				.Verifiable();
 			return mockBlobContainer;
 		}

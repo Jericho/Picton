@@ -15,6 +15,34 @@ namespace Picton.Extensions.UnitTests
 	[TestClass]
 	public class CloudBlobExtensionsTests
 	{
+		private static readonly string BLOB_STORAGE_URL = "http://bogus:10000/devstoreaccount1/";
+
+		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void TryAcquireLeaseAsync_throws_when_blob_is_null()
+		{
+			var result = ((ICloudBlob)null).TryAcquireLeaseAsync();
+			result.Wait();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_small()
+		{
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 0);
+			result.Wait();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_large()
+		{
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 11);
+			result.Wait();
+		}
+
 		[TestMethod]
 		public void TryAcquireLeaseAsync_success()
 		{
@@ -30,7 +58,7 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, cancellationToken);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken);
 			result.Wait();
 
 			// Assert
@@ -44,7 +72,7 @@ namespace Picton.Extensions.UnitTests
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = (TimeSpan?)null;
-			var exception = GetWebException("Already leased", HttpStatusCode.Conflict);
+			var exception = GetWebException("Already leased", HttpStatusCode.Conflict, true);
 
 			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
 			mockBlob
@@ -53,12 +81,32 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, cancellationToken);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken);
 			result.Wait();
 
 			// Assert
 			mockBlob.Verify();
 			Assert.IsNull(result.Result);
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(AggregateException))]
+		public void TryAcquireLeaseAsync_throws_when_lease_fails()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = (TimeSpan?)null;
+			var exception = new Exception("An exception occured");
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+			mockBlob
+				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, cancellationToken))
+				.ThrowsAsync(exception)
+				.Verifiable();
+
+			// Act
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken);
+			result.Wait();
 		}
 
 		[TestMethod]
@@ -77,7 +125,7 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, cancellationToken);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken);
 			result.Wait();
 		}
 
@@ -97,8 +145,65 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, cancellationToken);
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken);
 			result.Wait();
+		}
+
+		[TestMethod]
+		public void TryAcquireLeaseAsync_with_retries()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = TimeSpan.FromSeconds(15);
+			var expected = "Hello World";
+			var maxRetries = 5;
+			var attempts = 0;
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+			mockBlob
+				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, cancellationToken))
+				.Returns(Task.FromResult(expected))
+				.Callback(() =>
+				{
+					attempts++;
+					if (attempts < maxRetries)
+					{
+						var exception = GetWebException("Already leased", HttpStatusCode.Conflict, true);
+						throw exception;
+					}
+				}
+			);
+
+			// Act
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken);
+			result.Wait();
+
+			// Assert
+			mockBlob.Verify(c => c.AcquireLeaseAsync(It.IsAny<TimeSpan?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(maxRetries));
+			Assert.AreEqual(expected, result.Result);
+		}
+
+		[TestMethod]
+		public void TryAcquireLeaseAsync_retries_when_lease_is_blank()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = TimeSpan.FromSeconds(15);
+			var expected = "";
+			var maxRetries = 5;
+
+			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+			mockBlob
+				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, cancellationToken))
+				.Returns(Task.FromResult(expected));
+
+			// Act
+			var result = mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken);
+			result.Wait();
+
+			// Assert
+			mockBlob.Verify(c => c.AcquireLeaseAsync(It.IsAny<TimeSpan?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(maxRetries));
+			Assert.AreEqual(expected, result.Result);
 		}
 
 		[TestMethod]
@@ -164,7 +269,7 @@ namespace Picton.Extensions.UnitTests
 
 		[TestMethod]
 		[ExpectedException(typeof(AggregateException))]
-		public void AcquireLeaseAsync_2_minutes()
+		public void AcquireLeaseAsync_too_long()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -360,6 +465,86 @@ namespace Picton.Extensions.UnitTests
 
 			// Act
 			var result = mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void AppendStreamAsyn_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			// Act
+			var result = ((CloudAppendBlob)null).AppendStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
+		[ExpectedException(typeof(ArgumentNullException))]
+		public void AppendStreamAsync_throws_when_stream_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var mockBlobUri = new Uri(BLOB_STORAGE_URL + "test.txt");
+			var leaseId = (string)null;
+			var stream = (Stream)null;
+
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, mockBlobUri);
+
+			// Act
+			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+		}
+
+		[TestMethod]
+		public void AppendStreamAsync_without_lease()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var mockBlobUri = new Uri(BLOB_STORAGE_URL + "test.txt");
+			var leaseId = (string)null;
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, mockBlobUri);
+			mockBlob
+				.Setup(c => c.AppendFromStreamAsync(It.IsAny<Stream>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
+			result.Wait();
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[TestMethod]
+		public void AppendStreamAsync_with_lease()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var mockBlobUri = new Uri(BLOB_STORAGE_URL + "test.txt");
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, mockBlobUri);
+			mockBlob
+				.Setup(c => c.AppendFromStreamAsync(It.IsAny<Stream>(), It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
 			result.Wait();
 
 			// Assert
@@ -588,7 +773,7 @@ namespace Picton.Extensions.UnitTests
 			var sc = new StreamingContext();
 			var headers = new WebHeaderCollection();
 			si.AddValue("m_HttpResponseHeaders", headers);
-			si.AddValue("m_Uri", new Uri("http://bogus/myaccount/blob"));
+			si.AddValue("m_Uri", new Uri(BLOB_STORAGE_URL));
 			si.AddValue("m_Certificate", null);
 			si.AddValue("m_Version", HttpVersion.Version11);
 			si.AddValue("m_StatusCode", statusCode);

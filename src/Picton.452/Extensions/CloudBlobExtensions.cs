@@ -15,18 +15,39 @@ namespace Picton.Extensions
 	{
 		#region PUBLIC EXTENSION METHODS
 
-		public static async Task<string> TryAcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> TryAcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			try { return await blob.AcquireLeaseAsync(leaseTime, cancellationToken); }
-			catch (WebException e)
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
 			{
-				if ((e.Response == null) || ((HttpWebResponse)e.Response).StatusCode != HttpStatusCode.Conflict) // 409, already leased
-				{
-					throw;
-				}
-				e.Response.Close();
-				return null;
+				throw new ArgumentOutOfRangeException(string.Format("{0} must be between 1 and 10", nameof(maxLeaseAttempts)));
 			}
+
+			var leaseId = (string)null;
+			for (var attempts = 0; attempts < maxLeaseAttempts; attempts++)
+			{
+				try
+				{
+					leaseId = await blob.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
+					if (!string.IsNullOrEmpty(leaseId)) break;
+				}
+				catch (WebException e)
+				{
+					if (e.Response != null && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.Conflict) // 409, already leased
+					{
+						e.Response.Close();
+						if (attempts < maxLeaseAttempts - 1)
+						{
+							await Task.Delay(500);    // Make sure we don't attempt too quickly
+						}
+					}
+					else
+					{
+						throw;
+					}
+				}
+			}
+			return leaseId;
 		}
 
 		public static async Task<string> AcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -36,12 +57,12 @@ namespace Picton.Extensions
 			// The lock duration can be 15 to 60 seconds, or can be infinite. 
 			if (leaseTime.HasValue && (leaseTime.Value < TimeSpan.FromSeconds(15) | leaseTime.Value > TimeSpan.FromSeconds(60)))
 			{
-				throw new ArgumentOutOfRangeException(nameof(leaseTime), "LeaseTime must be between 15 and 60 seconds");
+				throw new ArgumentOutOfRangeException(nameof(leaseTime), string.Format("{0} must be between 15 and 60 seconds", nameof(leaseTime)));
 			}
 
-			var defaultLeaseTime = TimeSpan.FromSeconds(15);    // Acquire a 15 second lease on the blob. Leave it null for infinite lease. Otherwise it should be between 15 and 60 seconds.
-			var proposedLeaseId = (string)null;                 // Proposed lease id (leave it null for storage service to return you one).
-			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, cancellationToken);
+			var defaultLeaseTime = TimeSpan.FromSeconds(15);
+			var proposedLeaseId = (string)null; // Proposed lease id (leave it null for storage service to return you one).
+			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, cancellationToken).ConfigureAwait(false);
 			return leaseId;
 		}
 
@@ -84,6 +105,24 @@ namespace Picton.Extensions
 			{
 				var accessCondition = new AccessCondition { LeaseId = leaseId };
 				return blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+			}
+		}
+
+		public static Task AppendStreamAsync(this CloudAppendBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+			stream.Position = 0; // Rewind the stream. IMPORTANT!
+
+			if (string.IsNullOrEmpty(leaseId))
+			{
+				return blob.AppendFromStreamAsync(stream, cancellationToken);
+			}
+			else
+			{
+				var accessCondition = new AccessCondition { LeaseId = leaseId };
+				return blob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
 		}
 
