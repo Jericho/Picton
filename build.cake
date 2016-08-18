@@ -1,5 +1,6 @@
 // Install addins.
-#addin "nuget:?package=Polly&version=4.2.0"
+#addin "nuget:?package=Polly"
+#addin "nuget:?package=Cake.Coveralls""
 
 // Install tools.
 #tool "nuget:?package=GitVersion.CommandLine"
@@ -225,7 +226,7 @@ Task("Run-Code-Coverage")
 Task("Upload-Coverage-Result")
 	.Does(() =>
 {
-	StartProcess("./tools/coveralls.io/tools/coveralls.net.exe", "--opencover ./CodeCoverageData/coverage.xml");
+	CoverallsIo("./CodeCoverageData/coverage.xml");
 });
 
 Task("Generate-Code-Coverage-Report")
