@@ -99,30 +99,26 @@ namespace Picton.Extensions
 
 			if (string.IsNullOrEmpty(leaseId))
 			{
-				return blob.UploadFromStreamAsync(stream, cancellationToken);
+				if (blob is CloudAppendBlob)
+				{
+					return ((CloudAppendBlob)blob).AppendFromStreamAsync(stream, cancellationToken);
+				}
+				else
+				{
+					return blob.UploadFromStreamAsync(stream, cancellationToken);
+				}
 			}
 			else
 			{
 				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				return blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
-			}
-		}
-
-		public static Task AppendStreamAsync(this CloudAppendBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (stream == null) throw new ArgumentNullException(nameof(stream));
-
-			stream.Position = 0; // Rewind the stream. IMPORTANT!
-
-			if (string.IsNullOrEmpty(leaseId))
-			{
-				return blob.AppendFromStreamAsync(stream, cancellationToken);
-			}
-			else
-			{
-				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				return blob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+				if (blob is CloudAppendBlob)
+				{
+					return ((CloudAppendBlob)blob).AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+				}
+				else
+				{
+					return blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+				}
 			}
 		}
 
@@ -154,11 +150,11 @@ namespace Picton.Extensions
 			}
 		}
 
-		public static async Task UploadTextAsync(this ICloudBlob blob, string text, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task UploadTextAsync(this ICloudBlob blob, string text, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(text)))
 			{
-				await blob.UploadFromStreamAsync(ms, cancellationToken).ConfigureAwait(false);
+				await blob.UploadStreamAsync(ms, leaseId, cancellationToken).ConfigureAwait(false);
 			}
 		}
 

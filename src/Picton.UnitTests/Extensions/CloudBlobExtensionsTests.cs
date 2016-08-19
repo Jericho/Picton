@@ -472,39 +472,7 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
-		public void AppendStreamAsyn_throws_when_blob_is_null()
-		{
-			// Arrange
-			var cancellationToken = CancellationToken.None;
-			var leaseId = (string)null;
-			var streamContent = "Hello World".ToBytes();
-			var stream = new MemoryStream(streamContent);
-
-			// Act
-			var result = ((CloudAppendBlob)null).AppendStreamAsync(stream, leaseId, cancellationToken);
-			result.Wait();
-		}
-
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
-		public void AppendStreamAsync_throws_when_stream_is_null()
-		{
-			// Arrange
-			var cancellationToken = CancellationToken.None;
-			var mockBlobUri = new Uri(BLOB_STORAGE_URL + "test.txt");
-			var leaseId = (string)null;
-			var stream = (Stream)null;
-
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, mockBlobUri);
-
-			// Act
-			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
-			result.Wait();
-		}
-
-		[TestMethod]
-		public void AppendStreamAsync_without_lease()
+		public void UploadStreamAsync_to_CloudAppendBlob_without_lease()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -520,7 +488,7 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
+			var result = mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken);
 			result.Wait();
 
 			// Assert
@@ -528,7 +496,7 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[TestMethod]
-		public void AppendStreamAsync_with_lease()
+		public void UploadStreamAsync_to_CloudAppendBlob_with_lease()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -544,7 +512,7 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken);
+			var result = mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken);
 			result.Wait();
 
 			// Assert
@@ -659,7 +627,7 @@ namespace Picton.Extensions.UnitTests
 				.Verifiable();
 
 			// Act
-			var result = mockBlob.Object.UploadTextAsync(content, cancellationToken);
+			var result = mockBlob.Object.UploadTextAsync(content, "", cancellationToken);
 			result.Wait();
 
 			// Assert
