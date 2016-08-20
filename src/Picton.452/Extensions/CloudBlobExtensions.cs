@@ -90,36 +90,86 @@ namespace Picton.Extensions
 			catch { return false; }
 		}
 
-		public static Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (stream == null) throw new ArgumentNullException(nameof(stream));
 
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
-			if (string.IsNullOrEmpty(leaseId))
+			var accessCondition = (string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId });
+
+			if (blob is CloudAppendBlob)
 			{
-				if (blob is CloudAppendBlob)
-				{
-					return ((CloudAppendBlob)blob).AppendFromStreamAsync(stream, cancellationToken);
-				}
-				else
-				{
-					return blob.UploadFromStreamAsync(stream, cancellationToken);
-				}
+				var appendBlob = blob as CloudAppendBlob;
+				await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
 			else
 			{
-				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				if (blob is CloudAppendBlob)
-				{
-					return ((CloudAppendBlob)blob).AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
-				}
-				else
-				{
-					return blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
-				}
+				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
+		}
+
+		public static Task UploadBytesAsync(this ICloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var stream = new MemoryStream(buffer);
+			return blob.UploadStreamAsync(stream, leaseId, cancellationToken);
+		}
+
+		public static Task UploadTextAsync(this ICloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var buffer = Encoding.UTF8.GetBytes(content);
+			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
+		}
+
+		public static async Task AppendStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+			stream.Position = 0; // Rewind the stream. IMPORTANT!
+
+			var blobExits = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			var accessCondition = (string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId });
+
+			if (blob is CloudAppendBlob)
+			{
+				var appendBlob = blob as CloudAppendBlob;
+				if (!blobExits)
+				{
+					await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+					blobExits = true;
+				}
+				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+			}
+			else if (!blobExits)
+			{
+				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+			}
+			else
+			{
+				var currentContent = new MemoryStream();
+				await blob.DownloadToStreamAsync(currentContent, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+
+				var newContent = new MultiStream();
+				newContent.AddStream(currentContent);
+				newContent.AddStream(stream);
+
+				await blob.UploadFromStreamAsync(newContent, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		public static Task AppendBytesAsync(this ICloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var stream = new MemoryStream(buffer);
+			return blob.AppendStreamAsync(stream, leaseId, cancellationToken);
+		}
+
+		public static Task AppendTextAsync(this ICloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var buffer = Encoding.UTF8.GetBytes(content);
+			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
 		public static Task SetMetadataAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
@@ -150,14 +200,6 @@ namespace Picton.Extensions
 			}
 		}
 
-		public static async Task UploadTextAsync(this ICloudBlob blob, string text, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(text)))
-			{
-				await blob.UploadStreamAsync(ms, leaseId, cancellationToken).ConfigureAwait(false);
-			}
-		}
-
 		public static async Task<byte[]> DownloadByteArrayAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			using (var ms = new MemoryStream())
@@ -166,6 +208,38 @@ namespace Picton.Extensions
 				ms.Position = 0;
 				return ms.ToArray();
 			}
+		}
+
+		public static async Task CopyAsync(this ICloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			var container = blob.Container;
+			Func<CopyState, Task> waitForCopyCompletion = async (copyState) =>
+			{
+				while (copyState.Status == CopyStatus.Pending)
+					await Task.Delay(100).ConfigureAwait(false);
+				if (copyState.Status != CopyStatus.Success)
+					throw new ApplicationException($"CopyAsync failed: {copyState.Status}");
+			};
+
+			if (blob is CloudBlockBlob)
+			{
+				var blockTarget = container.GetBlockBlobReference(destinationBlobName);
+				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, cancellationToken).ConfigureAwait(false);
+				await waitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
+			}
+			else if (blob is CloudPageBlob)
+			{
+				var pageTarget = container.GetPageBlobReference(destinationBlobName);
+				await pageTarget.StartCopyAsync((CloudPageBlob)blob, cancellationToken).ConfigureAwait(false);
+				await waitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
+			}
+			else
+			{
+				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
+				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, cancellationToken).ConfigureAwait(false);
+				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
+			}
+
 		}
 
 		/// <summary>
