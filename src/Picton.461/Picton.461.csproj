@@ -108,9 +108,6 @@
     <Compile Include="..\Picton.452\MimeTypeMap.cs">
       <Link>MimeTypeMap.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\MultiStream.cs">
-      <Link>MultiStream.cs</Link>
-    </Compile>
     <Compile Include="..\Picton.452\Providers\BlobProvider.cs">
       <Link>Providers\BlobProvider.cs</Link>
     </Compile>

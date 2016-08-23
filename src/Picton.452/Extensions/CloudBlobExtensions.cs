@@ -149,14 +149,10 @@ namespace Picton.Extensions
 			}
 			else
 			{
-				var currentContent = new MemoryStream();
-				await blob.DownloadToStreamAsync(currentContent, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
-
-				var newContent = new MultiStream();
-				newContent.AddStream(currentContent);
-				newContent.AddStream(stream);
-
-				await blob.UploadFromStreamAsync(newContent, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				var content = new MemoryStream();
+				await blob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				await stream.CopyToAsync(content).ConfigureAwait(false);
+				await blob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
