@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Extensions
+namespace Picton
 {
 	public static class CloudBlobExtensions
 	{
