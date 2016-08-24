@@ -172,15 +172,12 @@ namespace Picton
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
+			var accessCondition = new AccessCondition();
 			if (string.IsNullOrEmpty(leaseId))
 			{
-				return blob.SetMetadataAsync(cancellationToken);
+				accessCondition.LeaseId = leaseId;
 			}
-			else
-			{
-				var accessCondition = new AccessCondition { LeaseId = leaseId };
-				return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
-			}
+			return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 		}
 
 		public static async Task<string> DownloadTextAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))

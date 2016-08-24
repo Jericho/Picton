@@ -11,7 +11,18 @@ Picton is a library intendent to make it easier to work with Azure storage.
 The main features in this library are:
 
 #### Blob extension metods:
-For instance, it contains extension methods to append the content of a string/byte array/stream to an existing blob, to get a lock (AKA lease) on an existing blob, to perform operations on a blob only if a lease can be obtained, etc.
+The extension methods allow operations on blob while holding a lock (also known as a 'lease'). Specifically:
+
+- Lock a blob for a givenperiod of time with retries in case it is already locked by another proces
+- Eextend an existing lease
+- Release an existing lease
+- Overwrite the content of a blob with a given string (there are also similar methods to upload a byte array and a stream)
+- Append a given string to a blob (there are also similar methods to append a byte array and a stream)
+- Update the metadata associated with a blob
+- Download the content of a blob to a `string` (there is also a similar method to download the content to a `byte[]`)
+- Make a copy of a blob
+- Get a URI which can be used to gain access to a blob for a limid period of time
+
 
 #### Abstractions:
 In release 7.0 of the Azure Storage library, Microsoft unsealed most classes and marked most methods as virtual which is quite significant because it allows mocking these classes when they are injected in one of your own classes. 
@@ -44,11 +55,44 @@ The easiest way to include Picton in your C# project is by grabing the nuget pac
 PM> Install-Package Picton
 ```
 
-Once you have the Picton library properly referenced in your project, add the following namespace:
+Once you have the Picton library properly referenced in your project, add the following namespace(s):
 
 ```
-using Picton;
+using Picton;            // This is always required
+using Picton.Interfaces; // This is only required if you want to use the abstractions
+using Picton.Managers;   // This is only required if you want to use BlobManager or QueueManager
 ```
 
 ## Usage
 
+
+#### Blob extension metods:
+Fist of all, some boilerplate code necessary for the code samples below:
+
+```
+var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
+var blobClient = storageAccount.CreateCloudBlobClient();
+var container = blobClient.GetContainerReference("mycontainer");
+await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+var blob = container.GetBlobkBlobRference("MyBlob.txt");
+```
+
+Here are a few examples how to use the extnsion methods:
+```
+var maxRetries = 5;
+var leaseTimeout = TimeSpan.FromSeconds(15);
+var leaseId = await blob.TryAcquireLeaseAsync(leaseTimeout, maxRetries, CancellationToken.None).ConfigureAwait(false);
+await blob.UploadTextAsync("Hello World", leaseId, CancellationToken.None).ConfigureAwait(false);
+await blob.AppendTextAsync("More content", leaseId, CancellationToken.None).ConfigureAwait(false);
+await blob.AppendTextAsync("Even more content", leaseId, CancellationToken.None).ConfigureAwait(false);
+await blob.TryRenewLeaseAsync(leaseId, CancellationToken.None).ConfigureAwait(false);
+await blob.AppendTextAsync("Mo more more", leaseId, CancellationToken.None).ConfigureAwait(false);
+await blob.ReleaseLeaseAsync(leaseId, CancellationToken.None).ConfigureAwait(false);
+
+var content = await blob.DownloadTextAsync(CancellationToken.None).ConfigureAwait(false);
+await blob.CopyAsync("MyCopy.txt", CancellationToken.None).ConfigureAwait(false);
+
+var permission = SharedAccessBlobPermissions.Read;
+var duration = TimeSpan.FromMinutes(30);
+var accessUri = await blob.GetSharedAccessSignatureUri(permission, duration).ConfigureAwait(false);
+```
