@@ -102,17 +102,17 @@
     <Compile Include="..\Picton.452\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
     </Compile>
+    <Compile Include="..\Picton.452\Managers\BlobProvider.cs">
+      <Link>Managers\BlobProvider.cs</Link>
+    </Compile>
+    <Compile Include="..\Picton.452\Managers\QueueProvider.cs">
+      <Link>Managers\QueueProvider.cs</Link>
+    </Compile>
     <Compile Include="..\Picton.452\MessageEnvelope.cs">
       <Link>MessageEnvelope.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\MimeTypeMap.cs">
       <Link>MimeTypeMap.cs</Link>
-    </Compile>
-    <Compile Include="..\Picton.452\Providers\BlobProvider.cs">
-      <Link>Providers\BlobProvider.cs</Link>
-    </Compile>
-    <Compile Include="..\Picton.452\Providers\QueueProvider.cs">
-      <Link>Providers\QueueProvider.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\QueueClient.cs">
       <Link>QueueClient.cs</Link>

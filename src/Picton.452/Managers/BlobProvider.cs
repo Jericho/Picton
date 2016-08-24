@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Picton.Providers
+namespace Picton.Managers
 {
 	public class BlobProvider
 	{
