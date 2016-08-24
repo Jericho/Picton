@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
-	public class BlobProvider
+	public class BlobManager
 	{
 		#region FIELDS
 
@@ -31,11 +31,11 @@ namespace Picton.Managers
 		#region CONSTRUCTORS
 
 		[ExcludeFromCodeCoverage]
-		public BlobProvider(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
+		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
 			this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
 		{ }
 
-		public BlobProvider(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
 			if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentNullException(nameof(containerName));
 			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));

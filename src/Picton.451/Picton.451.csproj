@@ -102,11 +102,11 @@
     <Compile Include="..\Picton.452\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Managers\BlobProvider.cs">
-      <Link>Managers\BlobProvider.cs</Link>
+    <Compile Include="..\Picton.452\Managers\BlobManager.cs">
+      <Link>Managers\BlobManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Managers\QueueProvider.cs">
-      <Link>Managers\QueueProvider.cs</Link>
+    <Compile Include="..\Picton.452\Managers\QueueManager.cs">
+      <Link>Managers\QueueManager.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\MessageEnvelope.cs">
       <Link>MessageEnvelope.cs</Link>

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
-	public class QueueProvider : IQueueProvider
+	public class QueueManager : IQueueProvider
 	{
 		#region FIELDS
 
@@ -33,7 +33,7 @@ namespace Picton.Managers
 		/// </summary>
 		/// <param name="queueName"></param>
 		/// <param name="cloudStorageAccount"></param>
-		public QueueProvider(string queueName, CloudStorageAccount cloudStorageAccount) :
+		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount) :
 			this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
 		{ }
 
@@ -41,7 +41,7 @@ namespace Picton.Managers
 		/// For unit testing
 		/// </summary>
 		/// <param name="queueName"></param>
-		public QueueProvider(string queueName, IStorageAccount storageAccount)
+		public QueueManager(string queueName, IStorageAccount storageAccount)
 		{
 			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
 			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
