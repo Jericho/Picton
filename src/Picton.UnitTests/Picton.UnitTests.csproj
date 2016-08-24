@@ -91,6 +91,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Providers\BlobProviderTests.cs" />
+    <Compile Include="Providers\QueueProviderTests.cs" />
     <Compile Include="QueueClientTests.cs" />
     <Compile Include="Extensions\CloudBlobExtensionsTests.cs" />
     <Compile Include="Extensions\StringExtensionsTests.cs" />
@@ -98,7 +100,6 @@
     <Compile Include="MockWebResponse.cs" />
     <Compile Include="BlobClientTests.cs" />
     <Compile Include="MimeTypeMapTests.cs" />
-    <Compile Include="QueueProviderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
