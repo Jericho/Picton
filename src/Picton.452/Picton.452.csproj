@@ -72,6 +72,7 @@
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\CloudBlobExtensions.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Interfaces\IQueueManager.cs" />
     <Compile Include="Interfaces\ISystemClock.cs" />
     <Compile Include="LargeMessageEnvelope.cs" />
     <Compile Include="Managers\BlobManager.cs" />
@@ -80,7 +81,6 @@
     <Compile Include="BlobClient.cs" />
     <Compile Include="Interfaces\IBlobClient.cs" />
     <Compile Include="Interfaces\IQueueClient.cs" />
-    <Compile Include="Interfaces\IQueueProvider.cs" />
     <Compile Include="Interfaces\IStorageAccount.cs" />
     <Compile Include="MimeTypeMap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

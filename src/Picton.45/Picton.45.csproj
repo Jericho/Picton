@@ -90,8 +90,8 @@
     <Compile Include="..\Picton.452\Interfaces\IQueueClient.cs">
       <Link>Interfaces\IQueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IQueueProvider.cs">
-      <Link>Interfaces\IQueueProvider.cs</Link>
+    <Compile Include="..\Picton.452\Interfaces\IQueueManager.cs">
+      <Link>Interfaces\IQueueManager.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\Interfaces\IStorageAccount.cs">
       <Link>Interfaces\IStorageAccount.cs</Link>

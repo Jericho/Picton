@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
-	public class QueueManager : IQueueProvider
+	public class QueueManager : IQueueManager
 	{
 		#region FIELDS
 
