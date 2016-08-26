@@ -40,6 +40,16 @@ namespace Picton
 
 		#endregion
 
+		#region STATIC METHODS
+
+		public static QueueClient FromCloudSQueueClient(CloudQueueClient cloudQueueClient)
+		{
+			if (cloudQueueClient == null) return null;
+			return new QueueClient(cloudQueueClient);
+		}
+
+		#endregion
+
 		#region PUBLIC METHODS
 
 		public CloudQueue GetQueueReference(string queueName)
