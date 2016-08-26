@@ -45,6 +45,16 @@ namespace Picton
 
 		#endregion
 
+		#region STATIC METHODS
+
+		public static BlobClient FromCloudBlobClient(CloudBlobClient cloudBlobClient)
+		{
+			if (cloudBlobClient == null) return null;
+			return new BlobClient(cloudBlobClient);
+		}
+
+		#endregion
+
 		#region PUBLIC METHODS
 
 		public Task<ICloudBlob> GetBlobReferenceFromServerAsync(StorageUri blobUri, AccessCondition accessCondition = null, BlobRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
