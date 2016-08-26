@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Interfaces
 {
-	public interface IQueueProvider
+	public interface IQueueManager
 	{
 		Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = default(TimeSpan?), TimeSpan? initialVisibilityDelay = default(TimeSpan?), QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken));
 		Task ClearAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken));

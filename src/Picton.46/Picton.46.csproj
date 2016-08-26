@@ -47,8 +47,8 @@
       <HintPath>..\packages\Microsoft.Data.Services.Client.5.7.0\lib\net40\Microsoft.Data.Services.Client.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.WindowsAzure.Storage, Version=7.1.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\WindowsAzure.Storage.7.1.2\lib\net40\Microsoft.WindowsAzure.Storage.dll</HintPath>
+    <Reference Include="Microsoft.WindowsAzure.Storage, Version=7.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\WindowsAzure.Storage.7.2.0\lib\net40\Microsoft.WindowsAzure.Storage.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -90,14 +90,23 @@
     <Compile Include="..\Picton.452\Interfaces\IQueueClient.cs">
       <Link>Interfaces\IQueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IQueueProvider.cs">
-      <Link>Interfaces\IQueueProvider.cs</Link>
+    <Compile Include="..\Picton.452\Interfaces\IQueueManager.cs">
+      <Link>Interfaces\IQueueManager.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\Interfaces\IStorageAccount.cs">
       <Link>Interfaces\IStorageAccount.cs</Link>
     </Compile>
+    <Compile Include="..\Picton.452\Interfaces\ISystemClock.cs">
+      <Link>Interfaces\ISystemClock.cs</Link>
+    </Compile>
     <Compile Include="..\Picton.452\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
+    </Compile>
+    <Compile Include="..\Picton.452\Managers\BlobManager.cs">
+      <Link>Managers\BlobManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Picton.452\Managers\QueueManager.cs">
+      <Link>Managers\QueueManager.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\MessageEnvelope.cs">
       <Link>MessageEnvelope.cs</Link>
@@ -105,20 +114,14 @@
     <Compile Include="..\Picton.452\MimeTypeMap.cs">
       <Link>MimeTypeMap.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\MultiStream.cs">
-      <Link>MultiStream.cs</Link>
-    </Compile>
-    <Compile Include="..\Picton.452\Providers\BlobProvider.cs">
-      <Link>Providers\BlobProvider.cs</Link>
-    </Compile>
-    <Compile Include="..\Picton.452\Providers\QueueProvider.cs">
-      <Link>Providers\QueueProvider.cs</Link>
-    </Compile>
     <Compile Include="..\Picton.452\QueueClient.cs">
       <Link>QueueClient.cs</Link>
     </Compile>
     <Compile Include="..\Picton.452\StorageAccount.cs">
       <Link>StorageAccount.cs</Link>
+    </Compile>
+    <Compile Include="..\Picton.452\SystemClock.cs">
+      <Link>SystemClock.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
