@@ -522,7 +522,7 @@ namespace Picton.Extensions.UnitTests
 
 			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
 			mockBlob
-				.Setup(c => c.SetMetadataAsync(cancellationToken))
+				.Setup(c => c.SetMetadataAsync(It.IsAny<AccessCondition>(), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
@@ -542,7 +542,7 @@ namespace Picton.Extensions.UnitTests
 
 			var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
 			mockBlob
-				.Setup(c => c.SetMetadataAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Setup(c => c.SetMetadataAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 

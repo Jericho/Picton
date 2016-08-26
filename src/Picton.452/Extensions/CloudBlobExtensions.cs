@@ -173,7 +173,7 @@ namespace Picton
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var accessCondition = new AccessCondition();
-			if (string.IsNullOrEmpty(leaseId))
+			if (!string.IsNullOrEmpty(leaseId))
 			{
 				accessCondition.LeaseId = leaseId;
 			}
