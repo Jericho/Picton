@@ -2,7 +2,6 @@
 using Microsoft.WindowsAzure.Storage.Auth;
 using Picton.Interfaces;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Picton
 {
@@ -16,7 +15,6 @@ namespace Picton
 
 		#region CONSTRUCTOR
 
-		[ExcludeFromCodeCoverage]
 		public StorageAccount(CloudStorageAccount cloudStorageAccount)
 		{
 			_cloudStorageAccount = cloudStorageAccount;

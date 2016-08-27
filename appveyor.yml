@@ -9,9 +9,18 @@ build_script:
 # Tests
 test: off
 
+# Branches to build
+branches:
+  # Whitelist
+  only:
+    - develop
+    - master
+    - /release/.*/
+    - /hotfix/.*/
+
 # Build cache
 cache:
-- packages -> **\packages.config  # preserve "packages" directory in the root of build folder but will reset it if packages.config is modified
+- src\packages -> src\**\packages.config
 - tools -> build.cake, tools\packages.config
 
 # Environment variables

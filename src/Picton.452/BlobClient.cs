@@ -5,6 +5,7 @@ using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,19 +25,32 @@ namespace Picton
 			_cloudBlobClient = cloudBlobClient;
 		}
 
+		[ExcludeFromCodeCoverage]
 		public BlobClient(Uri baseUri)
 		{
 			_cloudBlobClient = new CloudBlobClient(baseUri);
 		}
 
+		[ExcludeFromCodeCoverage]
 		public BlobClient(StorageUri storageUri, StorageCredentials credentials)
 		{
 			_cloudBlobClient = new CloudBlobClient(storageUri, credentials);
 		}
 
+		[ExcludeFromCodeCoverage]
 		public BlobClient(Uri baseUri, StorageCredentials credentials)
 		{
 			_cloudBlobClient = new CloudBlobClient(baseUri, credentials);
+		}
+
+		#endregion
+
+		#region STATIC METHODS
+
+		public static BlobClient FromCloudBlobClient(CloudBlobClient cloudBlobClient)
+		{
+			if (cloudBlobClient == null) return null;
+			return new BlobClient(cloudBlobClient);
 		}
 
 		#endregion
@@ -63,7 +77,7 @@ namespace Picton
 			return _cloudBlobClient.GetServicePropertiesAsync(requestOptions, operationContext, cancellationToken);
 		}
 
-		public Task<ServiceStats> GetServiceStatsAsync(BlobRequestOptions requestOptions, OperationContext operationContext, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<ServiceStats> GetServiceStatsAsync(BlobRequestOptions requestOptions = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return _cloudBlobClient.GetServiceStatsAsync(requestOptions, operationContext, cancellationToken);
 		}
