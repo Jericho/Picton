@@ -71,10 +71,8 @@ namespace Picton.Managers.UnitTests
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-
 
 			// Assert
 			mockQueue.Verify();
@@ -99,11 +97,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.AddMessageAsync("Hello world!").Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -139,12 +135,10 @@ namespace Picton.Managers.UnitTests
 		//		.Returns(Task.FromResult(true))
 		//		.Verifiable();
 
-
 		//	// Act
 		//	var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
 		//	var queueManager = new QueueManager(queueName, storageAccount.Object);
 		//	queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
-
 
 		//	// Assert
 		//	mockQueue.Verify();
@@ -169,11 +163,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.ClearAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -198,11 +190,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.CreateAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -227,11 +217,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.CreateIfNotExistsAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -256,11 +244,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.DeleteIfExistsAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -286,11 +272,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.DeleteMessageAsync(message).Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -315,11 +299,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.ExistsAsync().Result;
-
 
 			// Assert
 			mockQueue.Verify();
@@ -345,11 +327,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.FetchAttributesAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -376,11 +356,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(cloudMessage))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.GetMessageAsync().Result;
-
 
 			// Assert
 			mockQueue.Verify();
@@ -412,11 +390,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)messages))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.GetMessagesAsync(5).Result.ToArray();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -439,11 +415,9 @@ namespace Picton.Managers.UnitTests
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = 0;
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
-
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -466,7 +440,6 @@ namespace Picton.Managers.UnitTests
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
 
-
 			// Assert
 			// Nothing to assert because an exception will be thrown
 		}
@@ -488,11 +461,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(permissions))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.GetPermissionsAsync().Result;
-
 
 			// Assert
 			mockQueue.Verify();
@@ -519,11 +490,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(message))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.PeekMessageAsync().Result;
-
 
 			// Assert
 			mockQueue.Verify();
@@ -554,11 +523,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)messages))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.PeekMessagesAsync(5).Result.ToArray();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -581,11 +548,9 @@ namespace Picton.Managers.UnitTests
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = 0;
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
-
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -608,7 +573,6 @@ namespace Picton.Managers.UnitTests
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
 
-
 			// Assert
 			// Nothing to assert because an exception will be thrown
 		}
@@ -629,11 +593,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.SetMetadataAsync().Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -659,11 +621,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.SetPermissionsAsync(permissions).Wait();
-
 
 			// Assert
 			mockQueue.Verify();
@@ -692,11 +652,9 @@ namespace Picton.Managers.UnitTests
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
-
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.UpdateMessageAsync(message, visibilityTimeout, updateFields).Wait();
-
 
 			// Assert
 			mockQueue.Verify();
