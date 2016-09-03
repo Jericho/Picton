@@ -33,7 +33,8 @@ namespace Picton
 				}
 				catch (WebException e)
 				{
-					if (e.Response != null && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.Conflict) // 409, already leased
+					// If the status code is 409 (HttpStatusCode.Conflict), it means the resource is already leased
+					if (e.Response != null && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.Conflict)
 					{
 						e.Response.Close();
 						if (attempts < maxLeaseAttempts - 1)
@@ -87,7 +88,10 @@ namespace Picton
 				await RenewLeaseAsync(blob, leaseId, cancellationToken);
 				return true;
 			}
-			catch { return false; }
+			catch
+			{
+				return false;
+			}
 		}
 
 		public static async Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
@@ -97,7 +101,7 @@ namespace Picton
 
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
-			var accessCondition = (string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId });
+			var accessCondition = string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId };
 
 			if (blob is CloudAppendBlob)
 			{
@@ -131,7 +135,7 @@ namespace Picton
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
 			var blobExits = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			var accessCondition = (string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId });
+			var accessCondition = string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId };
 
 			if (blob is CloudAppendBlob)
 			{
@@ -232,7 +236,6 @@ namespace Picton
 				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, cancellationToken).ConfigureAwait(false);
 				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
 			}
-
 		}
 
 		/// <summary>
