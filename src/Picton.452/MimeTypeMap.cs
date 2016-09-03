@@ -15,22 +15,24 @@ namespace Picton
 		{
 			var mappings = new Dictionary<string, string>(StringComparer.CurrentCultureIgnoreCase)
 			{
-				// maps both ways,
-				// extension -> mime type
-				//   and
-				// mime type -> extension
-
-				// any mime types on left side not pre-loaded on right side, are added automatically
-				// some mime types can map to multiple extensions, so to get a deterministic mapping,
-				// add those to the dictionary specifcially
-
-				// combination of values from Windows 7 Registry and 
-				// from C:\Windows\System32\inetsrv\config\applicationHost.config
-				// some added, including .7z and .dat
-
-				// Some added based on http://www.iana.org/assignments/media-types/media-types.xhtml
-				// which lists mime types, but not extensions
-
+				/*
+				 * maps both ways,
+				 * extension -> mime type
+				 * and
+				 * mime type -> extension
+				 * 
+				 * any mime types on left side not pre-loaded on right side, are added automatically
+				 * some mime types can map to multiple extensions, so to get a deterministic mapping,
+				 * add those to the dictionary specifcially
+				 * 
+				 * combination of values from Windows 7 Registry and 
+				 * from C:\Windows\System32\inetsrv\config\applicationHost.config
+				 * some added, including .7z and .dat
+				 * 
+				 * Some added based on http://www.iana.org/assignments/media-types/media-types.xhtml
+				 * which lists mime types, but not extensions
+				 */
+				
 				{ ".323", "text/h323" },
 				{ ".3g2", "video/3gpp2" },
 				{ ".3gp", "video/3gpp" },
