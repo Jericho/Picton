@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://jericho.mit-license.org/)
 [![Build status](https://ci.appveyor.com/api/projects/status/9guqjro396ytudv3?svg=true)](https://ci.appveyor.com/project/Jericho/picton)
 [![Coverage Status](https://coveralls.io/repos/github/Jericho/Picton/badge.svg?branch=master)](https://coveralls.io/github/Jericho/Picton?branch=master)
+[![CodeFactor](https://www.codefactor.io/repository/github/jericho/picton/badge)](https://www.codefactor.io/repository/github/jericho/picton)
 
 ## About
 
@@ -14,7 +15,7 @@ The main features in this library are:
 The extension methods allow operations on blob while holding a lock (also known as a 'lease'). Specifically:
 
 - Lock a blob for a givenperiod of time with retries in case it is already locked by another proces
-- Eextend an existing lease
+- Extend an existing lease
 - Release an existing lease
 - Overwrite the content of a blob with a given string (there are also similar methods to upload a byte array and a stream)
 - Append a given string to a blob (there are also similar methods to append a byte array and a stream)
