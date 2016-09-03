@@ -21,7 +21,7 @@ namespace Picton.Managers
 		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
-		private static readonly long MAX_MESSAGE_CONTENT_SIZE = ((CloudQueueMessage.MaxMessageSize - 1) / 4 * 3);
+		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 		private const string DateFormatInBlobName = "yyyy-MM-dd-HH-mm-ss-ffff";
 
 		#endregion
@@ -35,7 +35,8 @@ namespace Picton.Managers
 		/// <param name="cloudStorageAccount"></param>
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount) :
 			this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
-		{ }
+		{
+		}
 
 		/// <summary>
 		/// For unit testing
@@ -149,8 +150,7 @@ namespace Picton.Managers
 			// 1) If the message was added to a queue by invoking QueueProvider.AddMessage, the type is MessageContentEnvelope
 			// 2) If the message exceeded the Azure Storage size limit, the type is MessageLargeContentEnvelope
 			// 3) Otherwise, it was added to the queue using some other method (for example, using the Azure SDK or invoking the Azure REST API)
-			//		and therfore we treat the content as a string.
-
+			//		and therefore we treat the content as a string.
 			try
 			{
 				var envelope = JsonConvert.DeserializeObject<MessageEnvelope>(cloudMessage.AsString);
@@ -158,7 +158,9 @@ namespace Picton.Managers
 				contentType = envelope.PayloadType;
 			}
 #pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
-			catch { }
+			catch
+			{
+			}
 #pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 
 			if (content == null)
@@ -182,7 +184,9 @@ namespace Picton.Managers
 					}
 				}
 #pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
-				catch { }
+				catch
+				{
+				}
 #pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 			}
 
