@@ -332,7 +332,7 @@ Task("Publish-GitHub-Release")
 		Prerelease        = true,
 		WorkingDirectory  = outputDir
 	});
-//	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, milestone);
+	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, milestone);
 });
 
 
