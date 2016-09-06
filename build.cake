@@ -330,7 +330,7 @@ Task("Publish-GitHub-Release")
 	GitReleaseManagerCreate(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, new GitReleaseManagerCreateSettings {
 		Name              = milestone,
 		Milestone         = milestone,
-		Prerelease        = true,
+		Prerelease        = false,
 		WorkingDirectory  = outputDir
 	});
 	GitReleaseManagerClose(gitHubUserName, gitHubPassword, gitHubUserName, gitHubRepo, milestone);
