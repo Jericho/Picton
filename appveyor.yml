@@ -6,6 +6,9 @@ init:
 build_script:
   - ps: .\build.ps1 -Target "AppVeyor"
 
+# Make sure we build when branch is tagged
+skip_tags: false
+
 # Tests
 test: off
 
@@ -21,7 +24,7 @@ branches:
 # Build cache
 cache:
 - src\packages -> src\**\packages.config
-- tools -> build.cake, tools\packages.config
+- tools -> build.cake
 
 # Environment variables
 environment:
