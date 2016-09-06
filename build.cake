@@ -28,7 +28,7 @@ var configuration = Argument<string>("configuration", "Release");
 var libraryName = "Picton";
 var gitHubRepo = "Picton";
 
-var nuGetApiUrl = EnvironmentVariable("NUGET_API_URL");	// nuget.org is used if this value is omitted
+var nuGetApiUrl = EnvironmentVariable("NUGET_API_URL");
 var nuGetApiKey = EnvironmentVariable("NUGET_API_KEY");
 var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
 var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
@@ -304,6 +304,7 @@ Task("Publish-NuGet")
 	.Does(() =>
 {
 	if(string.IsNullOrEmpty(nuGetApiKey)) throw new InvalidOperationException("Could not resolve NuGet API key.");
+	if(string.IsNullOrEmpty(nuGetApiUrl)) throw new InvalidOperationException("Could not resolve NuGet API url.");
 
 	foreach(var package in GetFiles(outputDir + "*.nupkg"))
 	{
