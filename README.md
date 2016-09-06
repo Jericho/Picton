@@ -15,7 +15,7 @@ The main features in this library are:
 The extension methods allow operations on blob while holding a lock (also known as a 'lease'). Specifically:
 
 - Lock a blob for a givenperiod of time with retries in case it is already locked by another proces
-- Eextend an existing lease
+- Extend an existing lease
 - Release an existing lease
 - Overwrite the content of a blob with a given string (there are also similar methods to upload a byte array and a stream)
 - Append a given string to a blob (there are also similar methods to append a byte array and a stream)

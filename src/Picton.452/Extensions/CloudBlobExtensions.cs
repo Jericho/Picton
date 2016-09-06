@@ -39,7 +39,7 @@ namespace Picton
 						e.Response.Close();
 						if (attempts < maxLeaseAttempts - 1)
 						{
-							await Task.Delay(500);    // Make sure we don't attempt too quickly
+							await Task.Delay(500);    // Make sure we don't retry too quickly
 						}
 					}
 					else
