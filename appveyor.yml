@@ -6,9 +6,6 @@ init:
 build_script:
   - ps: .\build.ps1 -Target "AppVeyor"
 
-# Make sure we build when branch is tagged
-skip_tags: false
-
 # Tests
 test: off
 
@@ -26,14 +23,4 @@ cache:
 - src\packages -> src\**\packages.config
 - tools -> build.cake
 
-# Environment variables
-environment:
-  NUGET_API_KEY:
-    secure: TtNPR7FUOtryJtreq842P15PwOPdYKkGFjk3F7yfWCAjhMJx8l8Vx6b0FfKq7E+o
-  GITHUB_USERNAME:
-    secure: gHPYi00QLCs4JtO2P9vBJA==
-  GITHUB_PASSWORD:
-    secure: 5abKAwVOMrijmwyhs/r6F1HBLLkTx/7DlVTTfA+gkf8=
-  COVERALLS_REPO_TOKEN:
-    secure: ny+E/VcmQMxAYVtrEwAoqhKX2wI7aKJy2Os4YF32KWmvbIs0j9EyjJdEnFpJAMNx
 
