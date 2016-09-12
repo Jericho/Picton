@@ -370,6 +370,34 @@ namespace Picton.Managers.UnitTests
 		}
 
 		[TestMethod]
+		public void GetMessageAsync_when_queue_is_empty()
+		{
+			// Arrange
+			var queueName = "myqueue";
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
+			var mockBlobContainer = GetMockBlobContainer();
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+
+			mockQueue
+				.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult((CloudQueueMessage)null))
+				.Verifiable();
+
+			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var result = queueManager.GetMessageAsync().Result;
+
+			// Assert
+			mockQueue.Verify();
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			result.ShouldBeNull();
+		}
+
+		[TestMethod]
 		public void GetMessagesAsync()
 		{
 			// Arrange
