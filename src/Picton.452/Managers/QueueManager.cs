@@ -146,6 +146,12 @@ namespace Picton.Managers
 			var contentType = (Type)null;
 			var largeContentBlobName = (string)null;
 
+			// We get a null value when the queue is empty
+			if (cloudMessage == null)
+			{
+				return null;
+			}
+
 			// We don't know the type of the message but we can make educated guesses:
 			// 1) If the message was added to a queue by invoking QueueProvider.AddMessage, the type is MessageContentEnvelope
 			// 2) If the message exceeded the Azure Storage size limit, the type is MessageLargeContentEnvelope
