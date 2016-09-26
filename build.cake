@@ -216,9 +216,9 @@ Task("Run-Code-Coverage")
 		tool => { tool.VSTest(testAssemblyPath, vsTestSettings); },
 		new FilePath(codeCoverageDir + "coverage.xml"),
 		new OpenCoverSettings() { ReturnTargetCodeOffset = 0 }
-	        	.WithFilter(testCoverageFilter)
-        		.ExcludeByAttribute(testCoverageExcludeByAttribute)
-        		.ExcludeByFile(testCoverageExcludeByFile)
+			.WithFilter(testCoverageFilter)
+			.ExcludeByAttribute(testCoverageExcludeByAttribute)
+			.ExcludeByFile(testCoverageExcludeByFile)
 	);
 });
 
