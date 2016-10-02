@@ -11,7 +11,7 @@ namespace Picton.IntegrationTests
 	{
 		static void Main()
 		{
-			AzureStorageEmulatorManager.StartStorageEmulator();
+			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
 			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
