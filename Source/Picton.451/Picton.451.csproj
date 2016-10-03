@@ -78,6 +78,9 @@
     <Compile Include="..\Picton.452\CloudMessage.cs">
       <Link>CloudMessage.cs</Link>
     </Compile>
+    <Compile Include="..\Picton.452\Extensions\AssemblyExtensions.cs">
+      <Link>Extensions\AssemblyExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Picton.452\Extensions\CloudBlobExtensions.cs">
       <Link>Extensions\CloudBlobExtensions.cs</Link>
     </Compile>

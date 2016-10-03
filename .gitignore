@@ -24,7 +24,6 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
-tools
 
 # Visual Studio 2015 cache/options directory
 .vs/
@@ -114,6 +113,10 @@ _TeamCity*
 # DotCover is a Code Coverage Tool
 *.dotCover
 
+# Visual Studio code coverage results
+*.coverage
+*.coveragexml
+
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml
@@ -193,6 +196,7 @@ ClientBin/
 *~
 *.dbmdl
 *.dbproj.schemaview
+*.jfm
 *.pfx
 *.publishsettings
 node_modules/
@@ -256,15 +260,24 @@ paket-files/
 .idea/
 *.sln.iml
 
+# CodeRush
+.cr/
+
 # WinMerge
 *.bak
 
-# Code coverage data and reports
-CodeCoverageData/
-CodeCoverageReport/
-
 # Supercharger: http://supercharger.tools/
 *.scgdat
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Cake
+tools/
+
+### VisualStudio Patch ###
+build/
 
 
 # =========================

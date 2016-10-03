@@ -70,6 +70,7 @@
   <ItemGroup>
     <Compile Include="AzureEmulatorManager.cs" />
     <Compile Include="CloudMessage.cs" />
+    <Compile Include="Extensions\AssemblyExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\CloudBlobExtensions.cs" />
     <Compile Include="GlobalSuppressions.cs" />

@@ -91,6 +91,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Extensions\AssemblyExtensionsTests.cs" />
     <Compile Include="Managers\BlobManagerTests.cs" />
     <Compile Include="Managers\QueueManagerTests.cs" />
     <Compile Include="QueueClientTests.cs" />
