@@ -279,6 +279,9 @@ tools/
 ### VisualStudio Patch ###
 build/
 
+# Ignore changes to AssemblyInfo files because they get auto- updated during build process
+AssemblyInfo.cs
+
 
 # =========================
 # Operating System Files
