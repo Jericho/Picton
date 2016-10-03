@@ -11,21 +11,21 @@ Picton is a library intendent to make it easier to work with Azure storage.
 
 The main features in this library are:
 
-#### Blob extension metods:
+#### 1) Blob extension metods:
 The extension methods allow operations on blob while holding a lock (also known as a 'lease'). Specifically:
 
-- Lock a blob for a givenperiod of time with retries in case it is already locked by another proces
+- Lock a blob for a given period of time with retries in case it is already locked by another process
 - Extend an existing lease
 - Release an existing lease
-- Overwrite the content of a blob with a given string (there are also similar methods to upload a byte array and a stream)
-- Append a given string to a blob (there are also similar methods to append a byte array and a stream)
+- Overwrite the content of a blob with a given string (there are also similar methods to upload a byte array or a stream)
+- Append a given string to a blob (there are also similar methods to append a byte array or a stream)
 - Update the metadata associated with a blob
 - Download the content of a blob to a `string` (there is also a similar method to download the content to a `byte[]`)
 - Make a copy of a blob
 - Get a URI which can be used to gain access to a blob for a limid period of time
 
 
-#### Abstractions:
+#### 2) Abstractions:
 In release 7.0 of the Azure Storage library, Microsoft unsealed most classes and marked most methods as virtual which is quite significant because it allows mocking these classes when they are injected in one of your own classes. 
 However, there remains a few sealed classes and a few non-virtal methods. One example where a non-virtual method prevents mocking is [discussed here](https://github.com/Azure/azure-storage-net/issues/318) and one example where a sealed class makes mocking quite difficult is [discussed here](https://github.com/Azure/azure-storage-net/issues/335).
 I created abstractions for the classes in question in order to allow full mocking but I expect this problem to be resolved in a future release of the Azure Storage library which will make the the abstractions in the Picton library obsolete.
@@ -40,10 +40,14 @@ An upcoming release will also include the following interfaces:
 - IFileClient
 - ITableClient
 
-#### Managers
+#### 3) Managers
 The Blob and Queue managers are helpers that simplify common blob and queue related tasks. 
 For example, the QueueManager automatically serializes and stores a message to a temporary location if the message exceeds the maximum size allowed in an Azure queue.
 Another example: the Blob queue can automatically request a lock (AKA lease) before attempting to modify the content of a blob and it automatically releases the lock once the operation is completed.
+
+#### 4) Misc
+- AzureEmulatorManager alows starting the Azure Storage Emulator which you may need prior to executing integration testing
+
 
 ## Nuget
 
@@ -77,7 +81,7 @@ using Picton.Managers;   // This is only required if you want to use BlobManager
 ## Usage
 
 
-#### Blob extension metods:
+#### 1) Blob extension metods:
 Fist of all, some boilerplate code necessary for the code samples below:
 
 ```
@@ -108,7 +112,7 @@ var accessUri = await blob.GetSharedAccessSignatureUri(permission, duration).Con
 ```
 
 
-#### Abstractions
+#### 2) Abstractions
 Let's assume you have the following class:
 ```
 public class Foo
@@ -182,7 +186,7 @@ var myFoo2 = new Foo2(blobClient);
 ```
 
 
-#### Managers
+#### 3) Managers
 
 ```
 var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
@@ -200,4 +204,21 @@ foreach (var blob in blobManager.ListBlobs("test", false, false))
 
 await blobManager.DeleteBlobAsync("test - Copy of.txt", cancellationToken).ConfigureAwait(false);
 await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
+```
+
+#### 4) Misc
+
+```
+class Program
+{
+    static void Main()
+    {
+        AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
+
+        var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
+        var blobClient = cloudStorageAccount.CreateCloudBlobClient();
+        var container = blobClient.GetContainerReference("mycontainer");
+        await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+    }
+}
 ```
