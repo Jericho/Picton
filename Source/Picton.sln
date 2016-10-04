@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.UnitTests", "Picton.UnitTests\Picton.UnitTests.csproj", "{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.UnitTests.452", "Picton.UnitTests\Picton.UnitTests.452.csproj", "{0EF5C9CA-58C7-4236-A6F7-FDE74590BC5E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picton.452", "Picton.452\Picton.452.csproj", "{5CA5F125-7CDA-4385-8D1B-581079372DAE}"
 EndProject
