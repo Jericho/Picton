@@ -11,15 +11,22 @@ namespace Picton.IntegrationTests
 	{
 		static void Main()
 		{
+			// Make sure the Azure Storage emulator is started
 			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
 			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
 			var containerName = "mycontainer";
 
+			// Run the integration tests (they are dependant on the Azure Storage emulator)
 			CloudBlobExtensions(storageAccount, containerName, cancellationToken).Wait();
 			BlobManager(storageAccount, containerName, cancellationToken).Wait();
 
+			// Flush the console key buffer
+			while (Console.KeyAvailable) Console.ReadKey(true);
+
+			// Wait for user to press a key
+			Console.WriteLine("\r\nPress any key to exit...");
 			Console.ReadKey();
 		}
 
