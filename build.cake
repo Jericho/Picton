@@ -37,9 +37,10 @@ var nuGetApiKey = EnvironmentVariable("NUGET_API_KEY");
 var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
 var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
 
-var solutions = GetFiles("./Source/*.sln");
-var solutionPaths = solutions.Select(solution => solution.GetDirectory());
-var unitTestsPaths = GetDirectories("./Source/*.UnitTests");
+var solution = GetFiles("./Source/" + libraryName + ".sln").First();
+var solutionPath = solution.GetDirectory();
+
+var unitTestsPaths = GetDirectories("./Source/*.UnitTests.*");
 var outputDir = "./artifacts/";
 var codeCoverageDir = outputDir + "CodeCoverage/";
 var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
@@ -110,12 +111,9 @@ Task("Clean")
 	.Does(() =>
 {
 	// Clean solution directories.
-	foreach(var path in solutionPaths)
-	{
-		Information("Cleaning {0}", path);
-		CleanDirectories(path + "/*/bin/" + configuration);
-		CleanDirectories(path + "/*/obj/" + configuration);
-	}
+	Information("Cleaning {0}", solutionPath);
+	CleanDirectories(solutionPath + "/*/bin/" + configuration);
+	CleanDirectories(solutionPath + "/*/obj/" + configuration);
 
 	// Clean previous artifacts
 	Information("Cleaning {0}", outputDir);
@@ -131,38 +129,36 @@ Task("Restore-NuGet-Packages")
 	.Does(() =>
 {
 	// Restore all NuGet packages.
-	foreach(var solution in solutions)
-	{
-		var maxRetryCount = 5;
-		var toolTimeout = 1d;
+	var maxRetryCount = 5;
+	var toolTimeout = 1d;
 
-		Information("Restoring {0}...", solution);
+	Information("Restoring {0}...", solution);
 
-		Policy
-			.Handle<Exception>()
-			.Retry(maxRetryCount, (exception, retryCount, context) => {
-				if (retryCount == maxRetryCount)
-				{
-					throw exception;
-				}
-				else
-				{
-					Verbose("{0}", exception);
-					toolTimeout += 0.5;
-				}})
-			.Execute(()=> {
-				NuGetRestore(solution, new NuGetRestoreSettings {
-					Source = new List<string> {
-						"https://api.nuget.org/v3/index.json",
-						"https://www.myget.org/F/roslyn-nightly/api/v3/index.json"
-					},
-					ToolTimeout = TimeSpan.FromMinutes(toolTimeout)
-				});
+	Policy
+		.Handle<Exception>()
+		.Retry(maxRetryCount, (exception, retryCount, context) => {
+			if (retryCount == maxRetryCount)
+			{
+				throw exception;
+			}
+			else
+			{
+				Verbose("{0}", exception);
+				toolTimeout += 0.5;
+			}})
+		.Execute(()=> {
+			NuGetRestore(solution, new NuGetRestoreSettings {
+				Source = new List<string> {
+					"https://api.nuget.org/v3/index.json",
+					"https://www.myget.org/F/roslyn-nightly/api/v3/index.json"
+				},
+				ToolTimeout = TimeSpan.FromMinutes(toolTimeout)
 			});
-	}
+		});
 });
 
 Task("Update-Asembly-Version")
+	.WithCriteria(() => !isLocalBuild)
 	.Does(() =>
 {
 	GitVersion(new GitVersionSettings()
@@ -177,20 +173,17 @@ Task("Build")
 	.IsDependentOn("Update-Asembly-Version")
 	.Does(() =>
 {
-	// Build all solutions.
-	foreach(var solution in solutions)
-	{
-		Information("Building {0}", solution);
-		MSBuild(solution, new MSBuildSettings()
-			.SetPlatformTarget(PlatformTarget.MSIL)
-			.SetConfiguration(configuration)
-			.SetVerbosity(Verbosity.Minimal)
-			.SetNodeReuse(false)
-			.WithProperty("Windows", "True")
-			.WithProperty("TreatWarningsAsErrors", "True")
-			.WithTarget("Build")
-		);
-	}
+	// Build the solution
+	Information("Building {0}", solution);
+	MSBuild(solution, new MSBuildSettings()
+		.SetPlatformTarget(PlatformTarget.MSIL)
+		.SetConfiguration(configuration)
+		.SetVerbosity(Verbosity.Minimal)
+		.SetNodeReuse(false)
+		.WithProperty("Windows", "True")
+		.WithProperty("TreatWarningsAsErrors", "True")
+		.WithTarget("Build")
+	);
 });
 
 Task("Run-Unit-Tests")
@@ -208,7 +201,7 @@ Task("Run-Code-Coverage")
 	.IsDependentOn("Build")
 	.Does(() =>
 {
-	var testAssemblyPath = string.Format("./Source/{0}.UnitTests/bin/{1}/{0}.UnitTests.dll", libraryName, configuration);
+	var testAssemblyPath = string.Format("{2}/bin/{1}/{0}.UnitTests.dll", libraryName, configuration, unitTestsPaths.First());
 	var vsTestSettings = new VSTestSettings();
 	if (AppVeyor.IsRunningOnAppVeyor) vsTestSettings.ArgumentCustomization = args => args.Append("/logger:Appveyor");
 

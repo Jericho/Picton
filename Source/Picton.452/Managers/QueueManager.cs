@@ -2,7 +2,6 @@
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
-using Newtonsoft.Json;
 using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Wire;
 
 namespace Picton.Managers
 {
@@ -64,15 +64,16 @@ namespace Picton.Managers
 
 		public async Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var envelope = new MessageEnvelope
+			var serializer = new Serializer();
+			var data = (byte[])null;
+			using (var stream = new MemoryStream())
 			{
-				Payload = message,
-				PayloadType = message.GetType()
-			};
-			var serializedEnvelope = JsonConvert.SerializeObject(envelope);
+				serializer.Serialize(message, stream);
+				data = stream.ToArray();
+			}
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
-			if (serializedEnvelope.Length > MAX_MESSAGE_CONTENT_SIZE)
+			if (data.Length > MAX_MESSAGE_CONTENT_SIZE)
 			{
 				// The message is too large. Therefore we must save the content to blob storage and
 				// send a smaller message indicating where the actual message was saved
@@ -80,21 +81,25 @@ namespace Picton.Managers
 				// 1) Save the large message to blob storage
 				var blobName = "abc123";
 				var blob = _blobContainer.GetBlockBlobReference(blobName);
-				await blob.UploadTextAsync(serializedEnvelope, cancellationToken).ConfigureAwait(false);
+				await blob.UploadBytesAsync(data, null, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName
 				};
-				var serializedLargeEnvelope = JsonConvert.SerializeObject(largeEnvelope);
-				var cloudMessage = new CloudQueueMessage(serializedLargeEnvelope);
+				using (var stream = new MemoryStream())
+				{
+					serializer.Serialize(largeEnvelope, stream);
+					data = stream.ToArray();
+				}
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				var cloudMessage = new CloudQueueMessage(serializedEnvelope);
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 		}
@@ -152,54 +157,31 @@ namespace Picton.Managers
 				return null;
 			}
 
-			// We don't know the type of the message but we can make educated guesses:
-			// 1) If the message was added to a queue by invoking QueueProvider.AddMessage, the type is MessageContentEnvelope
-			// 2) If the message exceeded the Azure Storage size limit, the type is MessageLargeContentEnvelope
-			// 3) Otherwise, it was added to the queue using some other method (for example, using the Azure SDK or invoking the Azure REST API)
-			//		and therefore we treat the content as a string.
+			// Deserialize the content of the cloud message
 			try
 			{
-				var envelope = JsonConvert.DeserializeObject<MessageEnvelope>(cloudMessage.AsString);
-				content = envelope.Payload;
-				contentType = envelope.PayloadType;
-			}
-#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
-			catch
-			{
-			}
-#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
-
-			if (content == null)
-			{
-				try
-				{
-					var largeEnvelope = JsonConvert.DeserializeObject<LargeMessageEnvelope>(cloudMessage.AsString);
-					var blob = _blobContainer.GetBlobReference(largeEnvelope.BlobName);
-
-					using (var stream = new MemoryStream())
-					{
-						await blob.DownloadToStreamAsync(stream);
-						var serializer = new JsonSerializer();
-						using (var streamReader = new StreamReader(stream))
-						{
-							var envelope = (MessageEnvelope)serializer.Deserialize(streamReader, typeof(MessageEnvelope));
-							content = envelope.Payload;
-							contentType = envelope.PayloadType;
-							largeContentBlobName = largeEnvelope.BlobName;
-						}
-					}
-				}
-#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
-				catch
-				{
-				}
-#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
-			}
-
-			if (content == null)
+				content = Deserialize(cloudMessage.AsBytes);
+				contentType = content.GetType();
+			} catch
 			{
 				content = cloudMessage.AsString;
 				contentType = typeof(string);
+			}
+
+			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+			if (contentType == typeof(LargeMessageEnvelope))
+			{
+				var envelope = (LargeMessageEnvelope)content;
+				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
+
+				using (var stream = new MemoryStream())
+				{
+					var buffer = (byte[])null;
+					await blob.DownloadToByteArrayAsync(buffer, 0, null, null, null, cancellationToken).ConfigureAwait(false);
+					content = Deserialize(buffer);
+					contentType = content.GetType();
+					largeContentBlobName = envelope.BlobName;
+				}
 			}
 
 			var message = new CloudMessage(content, contentType)
@@ -273,6 +255,30 @@ namespace Picton.Managers
 		public Task UpdateMessageAsync(CloudQueueMessage message, TimeSpan visibilityTimeout, MessageUpdateFields updateFields, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return _queue.UpdateMessageAsync(message, visibilityTimeout, updateFields, options, operationContext, cancellationToken);
+		}
+
+		#endregion
+
+		#region PRIVATE METHODS
+
+		private object Deserialize(byte[] serializedContent)
+		{
+			var serializer = new Serializer();
+			using (var stream = new MemoryStream(serializedContent))
+			{
+				return serializer.Deserialize<object>(stream);
+			}
+
+		}
+
+		private byte[] Serialize<T>(T message)
+		{
+			var serializer = new Serializer();
+			using (var stream = new MemoryStream())
+			{
+				serializer.Serialize(message, stream);
+				return stream.ToArray();
+			}
 		}
 
 		#endregion

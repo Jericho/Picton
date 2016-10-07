@@ -11,15 +11,24 @@ namespace Picton.IntegrationTests
 	{
 		static void Main()
 		{
+			// Make sure the Azure Storage emulator is started
 			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
 			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
 			var containerName = "mycontainer";
+			var queueName = "myqueue";
 
+			// Run the integration tests (they are dependant on the Azure Storage emulator)
 			CloudBlobExtensions(storageAccount, containerName, cancellationToken).Wait();
 			BlobManager(storageAccount, containerName, cancellationToken).Wait();
+			QueueManager(storageAccount, queueName, cancellationToken).Wait();
 
+			// Flush the console key buffer
+			while (Console.KeyAvailable) Console.ReadKey(true);
+
+			// Wait for user to press a key
+			Console.WriteLine("\r\nPress any key to exit...");
 			Console.ReadKey();
 		}
 
@@ -78,6 +87,29 @@ namespace Picton.IntegrationTests
 			await blobManager.DeleteBlobAsync("test2 - Copy of.txt", cancellationToken).ConfigureAwait(false);
 
 			await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
+		}
+
+		private static async Task QueueManager(IStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
+		{
+			var sample = new SampleMessageType
+			{
+				StringProp = "abc123",
+				IntProp = 123,
+				GuidProp = Guid.NewGuid(),
+				DateProp = new DateTime(2016, 10, 6, 1, 2, 3, DateTimeKind.Utc)
+			};
+			var queueManager = new QueueManager(queueName, storageAccount);
+			await queueManager.AddMessageAsync(sample);
+			var message = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+
+			if (message.ContentType != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
+			var receivedMessage = (SampleMessageType)message.Content;
+			if (receivedMessage.StringProp != sample.StringProp) throw new Exception("Did not receive the expected message");
+			if (receivedMessage.IntProp != sample.IntProp) throw new Exception("Did not receive the expected message");
+			if (receivedMessage.GuidProp != sample.GuidProp) throw new Exception("Did not receive the expected message");
+			if (receivedMessage.DateProp != sample.DateProp) throw new Exception("Did not receive the expected message");
+
+			await queueManager.DeleteIfExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }
