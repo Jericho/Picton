@@ -11,7 +11,7 @@ Picton is a library intendent to make it easier to work with Azure storage.
 
 The main features in this library are:
 
-#### 1) Blob extension metods:
+#### 1) Extension metods:
 The extension methods allow operations on blob while holding a lock (also known as a 'lease'). Specifically:
 
 - Lock a blob for a given period of time with retries in case it is already locked by another process
@@ -54,12 +54,6 @@ Another example: the Blob queue can automatically request a lock (AKA lease) bef
 Picton is available as a Nuget package.
 
 [![NuGet Version](http://img.shields.io/nuget/v/Picton.svg)](https://www.nuget.org/packages/Picton/)
-
-
-## Release Notes
-
-+ **0.1**
-    - Initial release
 
 
 ## Installation
