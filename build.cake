@@ -257,7 +257,7 @@ Task("Create-NuGet-Package")
 		Symbols                 = false,
 		NoPackageAnalysis       = true,
 		Dependencies            = new [] {
-			new NuSpecDependency { Id = "Newtonsoft.Json", Version = "9.0.1" },
+			new NuSpecDependency { Id = "Wire", Version = "0.8.1" },
 			new NuSpecDependency { Id = "WindowsAzure.Storage", Version = "7.1.2" }
 		},
 		Files                   = new [] {
