@@ -14,6 +14,14 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers.UnitTests
 {
+	public class SampleMessageType
+	{
+		public string StringProp { get; set; }
+		public int IntProp { get; set; }
+		public Guid GuidProp { get; set; }
+		public DateTime DateProp { get; set; }
+	}
+
 	[TestClass]
 	public class QueueMangerTests
 	{
@@ -349,7 +357,7 @@ namespace Picton.Managers.UnitTests
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var cloudMessage = new CloudQueueMessage("Hello world");
-			var message = new CloudMessage("Hello world", typeof(string));
+			var message = new CloudMessage("Hello world");
 
 			mockQueue
 				.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -365,8 +373,8 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
+			result.Content.GetType().ShouldBe(message.Content.GetType());
 			result.Content.ShouldBe(message.Content);
-			result.ContentType.ShouldBe(message.ContentType);
 		}
 
 		[TestMethod]
@@ -689,6 +697,63 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
+		}
+
+		[TestMethod]
+		// This unit test verifies that a message based on a POCO class can be serialized/deserialized.
+		// This was not working in v1.3.0 and was fixed in v1.4.0
+		public void Add_and_get_POCO_message()
+		{
+			// Arrange
+			var queueName = "myqueue";
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
+			var mockBlobContainer = GetMockBlobContainer();
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+			var queuedMessage = (CloudQueueMessage)null;
+
+			var sampleMessage = new SampleMessageType
+			{
+				DateProp = new DateTime(2016, 10, 8, 1, 2, 3, DateTimeKind.Utc),
+				GuidProp = Guid.NewGuid(),
+				IntProp = 123,
+				StringProp = "Hello World"
+			};
+
+			mockQueue
+				.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Callback((CloudQueueMessage m, TimeSpan? ttl, TimeSpan? v, QueueRequestOptions o, OperationContext c, CancellationToken t) =>
+				{
+					queuedMessage = m;
+				})
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			mockQueue
+				.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(() => { return Task.FromResult(queuedMessage); })
+				.Verifiable();
+
+			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			queueManager.AddMessageAsync(sampleMessage).Wait();
+			var result = queueManager.GetMessageAsync().Result;
+
+			// Assert
+			mockQueue.Verify();
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+
+			result.ShouldNotBeNull();
+			result.Content.GetType().ShouldBe(typeof(SampleMessageType));
+
+			var content = (SampleMessageType)result.Content;
+			content.DateProp.ShouldBe(sampleMessage.DateProp);
+			content.GuidProp.ShouldBe(sampleMessage.GuidProp);
+			content.IntProp.ShouldBe(sampleMessage.IntProp);
+			content.StringProp.ShouldBe(sampleMessage.StringProp);
 		}
 
 		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName = "mycontainer")

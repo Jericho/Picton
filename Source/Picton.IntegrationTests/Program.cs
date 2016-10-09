@@ -102,7 +102,7 @@ namespace Picton.IntegrationTests
 			await queueManager.AddMessageAsync(sample);
 			var message = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
 
-			if (message.ContentType != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
+			if (message.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
 			var receivedMessage = (SampleMessageType)message.Content;
 			if (receivedMessage.StringProp != sample.StringProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.IntProp != sample.IntProp) throw new Exception("Did not receive the expected message");
