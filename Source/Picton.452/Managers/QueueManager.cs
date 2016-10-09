@@ -126,7 +126,7 @@ namespace Picton.Managers
 
 		public async Task DeleteMessageAsync(CloudMessage message, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (!string.IsNullOrEmpty(message.LargeContentBlobName))
+			if (message.IsLargeMessage)
 			{
 				var blob = _blobContainer.GetBlobReference(message.LargeContentBlobName);
 				await blob.DeleteAsync(cancellationToken);
@@ -146,10 +146,8 @@ namespace Picton.Managers
 
 		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			// Get the next mesage from the queue
 			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
-			var content = (object)null;
-			var contentType = (Type)null;
-			var largeContentBlobName = (string)null;
 
 			// We get a null value when the queue is empty
 			if (cloudMessage == null)
@@ -158,18 +156,19 @@ namespace Picton.Managers
 			}
 
 			// Deserialize the content of the cloud message
+			var content = (object)null;
+			var largeContentBlobName = (string)null;
 			try
 			{
 				content = Deserialize(cloudMessage.AsBytes);
-				contentType = content.GetType();
-			} catch
+			}
+			catch
 			{
 				content = cloudMessage.AsString;
-				contentType = typeof(string);
 			}
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-			if (contentType == typeof(LargeMessageEnvelope))
+			if (content.GetType() == typeof(LargeMessageEnvelope))
 			{
 				var envelope = (LargeMessageEnvelope)content;
 				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
@@ -179,12 +178,11 @@ namespace Picton.Managers
 					var buffer = (byte[])null;
 					await blob.DownloadToByteArrayAsync(buffer, 0, null, null, null, cancellationToken).ConfigureAwait(false);
 					content = Deserialize(buffer);
-					contentType = content.GetType();
 					largeContentBlobName = envelope.BlobName;
 				}
 			}
 
-			var message = new CloudMessage(content, contentType)
+			var message = new CloudMessage(content)
 			{
 				DequeueCount = cloudMessage.DequeueCount,
 				ExpirationTime = cloudMessage.ExpirationTime,

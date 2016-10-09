@@ -13,21 +13,16 @@ namespace Picton
 		public DateTimeOffset? NextVisibleTime { get; internal set; }
 		public string PopReceipt { get; internal set; }
 		public object Content { get; internal set; }
-		public Type ContentType { get; internal set; }
+		public bool IsLargeMessage { get { return !string.IsNullOrEmpty(this.LargeContentBlobName); } }
 		public string LargeContentBlobName { get; internal set; }
 
 		#endregion
 
 		#region CONSTRUCTOR
 
-		public CloudMessage(object content) : this(content, content.GetType())
-		{
-		}
-
-		public CloudMessage(object content, Type contentType)
+		public CloudMessage(object content)
 		{
 			this.Content = content;
-			this.ContentType = contentType;
 		}
 
 		#endregion
