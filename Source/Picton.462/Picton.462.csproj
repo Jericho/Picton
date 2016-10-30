@@ -97,6 +97,9 @@
     <Compile Include="..\Picton.452\Interfaces\IBlobClient.cs">
       <Link>Interfaces\IBlobClient.cs</Link>
     </Compile>
+    <Compile Include="..\Picton.452\Interfaces\IBlobManager.cs">
+      <Link>Interfaces\IBlobManager.cs</Link>
+    </Compile>
     <Compile Include="..\Picton.452\Interfaces\IQueueClient.cs">
       <Link>Interfaces\IQueueClient.cs</Link>
     </Compile>

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
-	public class BlobManager
+	public class BlobManager : IBlobManager
 	{
 		#region FIELDS
 

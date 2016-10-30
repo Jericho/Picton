@@ -82,6 +82,7 @@
     <Compile Include="Interfaces\ISystemClock.cs" />
     <Compile Include="LargeMessageEnvelope.cs" />
     <Compile Include="Managers\BlobManager.cs" />
+    <Compile Include="Interfaces\IBlobManager.cs" />
     <Compile Include="Managers\QueueManager.cs" />
     <Compile Include="BlobClient.cs" />
     <Compile Include="Interfaces\IBlobClient.cs" />
