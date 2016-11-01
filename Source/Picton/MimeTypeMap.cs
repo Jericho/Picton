@@ -697,7 +697,7 @@ namespace Picton
 				throw new ArgumentNullException(nameof(extension));
 			}
 
-			if (!extension.StartsWith(".", StringComparison.InvariantCultureIgnoreCase))
+			if (!extension.StartsWith(".", StringComparison.OrdinalIgnoreCase))
 			{
 				extension = "." + extension;
 			}
@@ -718,7 +718,7 @@ namespace Picton
 				throw new ArgumentNullException(nameof(mimeType));
 			}
 
-			if (mimeType.StartsWith(".", StringComparison.InvariantCultureIgnoreCase))
+			if (mimeType.StartsWith(".", StringComparison.OrdinalIgnoreCase))
 			{
 				throw new ArgumentException("Requested mime type is not valid: " + mimeType);
 			}

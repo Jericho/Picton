@@ -73,64 +73,61 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Picton.452\AzureEmulatorManager.cs">
+    <Compile Include="..\Picton\AzureEmulatorManager.cs">
       <Link>AzureEmulatorManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\BlobClient.cs">
+    <Compile Include="..\Picton\BlobClient.cs">
       <Link>BlobClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\CloudMessage.cs">
+    <Compile Include="..\Picton\CloudMessage.cs">
       <Link>CloudMessage.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Extensions\AssemblyExtensions.cs">
+    <Compile Include="..\Picton\Extensions\AssemblyExtensions.cs">
       <Link>Extensions\AssemblyExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Extensions\CloudBlobExtensions.cs">
+    <Compile Include="..\Picton\Extensions\CloudBlobExtensions.cs">
       <Link>Extensions\CloudBlobExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Extensions\StringExtensions.cs">
+    <Compile Include="..\Picton\Extensions\StringExtensions.cs">
       <Link>Extensions\StringExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\GlobalSuppressions.cs">
-      <Link>GlobalSuppressions.cs</Link>
-    </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IBlobClient.cs">
+    <Compile Include="..\Picton\Interfaces\IBlobClient.cs">
       <Link>Interfaces\IBlobClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IBlobManager.cs">
+    <Compile Include="..\Picton\Interfaces\IBlobManager.cs">
       <Link>Interfaces\IBlobManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IQueueClient.cs">
+    <Compile Include="..\Picton\Interfaces\IQueueClient.cs">
       <Link>Interfaces\IQueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IQueueManager.cs">
+    <Compile Include="..\Picton\Interfaces\IQueueManager.cs">
       <Link>Interfaces\IQueueManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\IStorageAccount.cs">
+    <Compile Include="..\Picton\Interfaces\IStorageAccount.cs">
       <Link>Interfaces\IStorageAccount.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Interfaces\ISystemClock.cs">
+    <Compile Include="..\Picton\Interfaces\ISystemClock.cs">
       <Link>Interfaces\ISystemClock.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\LargeMessageEnvelope.cs">
+    <Compile Include="..\Picton\LargeMessageEnvelope.cs">
       <Link>LargeMessageEnvelope.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Managers\BlobManager.cs">
+    <Compile Include="..\Picton\Managers\BlobManager.cs">
       <Link>Managers\BlobManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\Managers\QueueManager.cs">
+    <Compile Include="..\Picton\Managers\QueueManager.cs">
       <Link>Managers\QueueManager.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\MimeTypeMap.cs">
+    <Compile Include="..\Picton\MimeTypeMap.cs">
       <Link>MimeTypeMap.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\QueueClient.cs">
+    <Compile Include="..\Picton\QueueClient.cs">
       <Link>QueueClient.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\StorageAccount.cs">
+    <Compile Include="..\Picton\StorageAccount.cs">
       <Link>StorageAccount.cs</Link>
     </Compile>
-    <Compile Include="..\Picton.452\SystemClock.cs">
+    <Compile Include="..\Picton\SystemClock.cs">
       <Link>SystemClock.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
