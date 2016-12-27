@@ -19,7 +19,6 @@
 			"version": "1.0.0",
 			"type": "build"
 		},
-		"System.Net.Requests": "4.3.0",
 		"WindowsAzure.Storage": "8.0.0",
 		"Wire": "0.8.2"
 	},
