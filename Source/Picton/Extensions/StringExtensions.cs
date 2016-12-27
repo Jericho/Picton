@@ -13,7 +13,7 @@ namespace Picton
 		/// <param name="target"></param>
 		/// <param name="trimString"></param>
 		/// <returns></returns>
-		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
+		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
 		{
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
 
@@ -33,7 +33,7 @@ namespace Picton
 		/// <param name="target"></param>
 		/// <param name="trimString"></param>
 		/// <returns></returns>
-		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
+		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
 		{
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
 
@@ -60,7 +60,7 @@ namespace Picton
 		/// <remarks>From the .NET Extensions project: http://dnpextensions.codeplex.com/</remarks>
 		public static byte[] ToBytes(this string value, Encoding encoding = null)
 		{
-			return (encoding ?? Encoding.Default).GetBytes(value);
+			return (encoding ?? Encoding.UTF8).GetBytes(value);
 		}
 
 		#endregion

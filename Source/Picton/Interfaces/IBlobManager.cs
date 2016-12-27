@@ -18,8 +18,8 @@ namespace Picton.Interfaces
 		Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken));
 		Task<BlobProperties> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default(CancellationToken));
 		Task<ICloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken));
-		IEnumerable<IListBlobItem> ListBlobs(string folder, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = default(int?));
-		IEnumerable<CloudBlobDirectory> ListSubFolders(string folder);
+		Task<BlobResultSegment> ListBlobsAsync(string folder, bool includeSubFolders = false, bool includeMetadata = false, int maxResults = 1000, BlobContinuationToken continuationToken = null, CancellationToken cancellationToken = default(CancellationToken));
+		Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, CancellationToken cancellationToken = default(CancellationToken));
 		Task MoveBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken));
 		Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken));
 		Task UploadFileAsync(string blobName, string fileName, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken));

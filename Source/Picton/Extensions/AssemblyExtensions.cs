@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Linq;
 
 namespace Picton.Extensions
 {
@@ -8,12 +9,12 @@ namespace Picton.Extensions
 	{
 		#region PUBLIC EXTENSION METHODS
 
-		public static bool IsDebugConfiguration(this _Assembly assembly)
+		public static bool IsDebugConfiguration(this Assembly assembly)
 		{
 			return IsAssemblyConfiguration(assembly, "Debug");
 		}
 
-		public static bool IsReleaseConfiguration(this _Assembly assembly)
+		public static bool IsReleaseConfiguration(this Assembly assembly)
 		{
 			return IsAssemblyConfiguration(assembly, "Release");
 		}
@@ -22,30 +23,23 @@ namespace Picton.Extensions
 
 		#region PRIVATE METHODS
 
-		private static bool IsAssemblyConfiguration(_Assembly assembly, string configuration)
+		private static bool IsAssemblyConfiguration(Assembly assembly, string configuration)
 		{
 			// Get the 'AssemblyConfiguration' attributes
-			var attributes = assembly.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false);
+			var attributes = assembly.GetCustomAttributes<AssemblyConfigurationAttribute>();
 
 			// We expect only one attribute
-			if (attributes == null || attributes.Length == 0)
+			if (attributes == null || attributes.Count() == 0)
 			{
 				throw new Exception("Assembly does not contain the AssemblyConfiguration attribute.");
 			}
-			else if (attributes.Length > 1)
+			else if (attributes.Count() > 1)
 			{
 				throw new Exception("Assembly contains multiple AssemblyConfiguration attributes. There should only be one attribute.");
 			}
 
-			// Make sure the attribute is valid
-			var assemblyConfiguration = attributes[0] as AssemblyConfigurationAttribute;
-			if (assemblyConfiguration == null)
-			{
-				throw new Exception("AssemblyConfiguration attribute is invalid");
-			}
-
 			// Determine if the attribute matches the specified configuration
-			return assemblyConfiguration.Configuration.Equals(configuration, StringComparison.InvariantCultureIgnoreCase);
+			return attributes.First().Configuration.Equals(configuration, StringComparison.OrdinalIgnoreCase);
 		}
 
 		#endregion

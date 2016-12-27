@@ -1,14 +1,13 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Shouldly;
 using System;
 using System.Text;
+using Xunit;
 
 namespace Picton.Extensions.UnitTests
 {
-	[TestClass]
 	public class StringExtensionsTests
 	{
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void TrimStart_throws_if_trimString_is_null()
 		{
 			// Arrange
@@ -16,10 +15,10 @@ namespace Picton.Extensions.UnitTests
 			var trim = (string)null;
 
 			// Act
-			var result = source.TrimStart(trim);
+			Should.Throw<ArgumentNullException>(() => source.TrimStart(trim));
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimStart_no_match()
 		{
 			// Arrange
@@ -30,10 +29,10 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimStart(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimStart_one_match()
 		{
 			// Arrange
@@ -44,10 +43,10 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimStart(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimStart_multiple_matches()
 		{
 			// Arrange
@@ -58,11 +57,10 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimStart(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void TrimEnd_throws_if_trimString_is_null()
 		{
 			// Arrange
@@ -70,10 +68,10 @@ namespace Picton.Extensions.UnitTests
 			var trim = (string)null;
 
 			// Act
-			var result = source.TrimEnd(trim);
+			Should.Throw<ArgumentNullException>(() => source.TrimEnd(trim));
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimEnd_no_match()
 		{
 			// Arrange
@@ -84,10 +82,10 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimEnd(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimEnd_one_match()
 		{
 			// Arrange
@@ -98,10 +96,10 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimEnd(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
+		[Fact]
 		public void TrimEnd_multiple_matches()
 		{
 			// Arrange
@@ -112,21 +110,20 @@ namespace Picton.Extensions.UnitTests
 			var result = source.TrimEnd(trim);
 
 			// Asert
-			Assert.AreEqual("abc", result);
+			result.ShouldBe("abc");
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void ToBytes_null()
 		{
 			// Arrange
 			var source = (string)null;
 
 			// Act
-			var result = source.ToBytes();
+			Should.Throw<ArgumentNullException>(() => source.ToBytes());
 		}
 
-		[TestMethod]
+		[Fact]
 		public void ToBytes_UTF8()
 		{
 			// Arrange
@@ -137,7 +134,7 @@ namespace Picton.Extensions.UnitTests
 			var result = source.ToBytes(Encoding.UTF8);
 
 			// Assert
-			CollectionAssert.AreEqual(expected, result);
+			result.ShouldBe(expected);
 		}
 	}
 }

@@ -39,7 +39,7 @@ namespace Picton.IntegrationTests
 			await container.CreateIfNotExistsAsync().ConfigureAwait(false);
 
 			var blob1 = container.GetBlockBlobReference("test1.txt");
-			var leaseId1 = (await blob1.ExistsAsync(cancellationToken).ConfigureAwait(false) ? await blob1.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
+			var leaseId1 = (await blob1.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false) ? await blob1.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
 			await blob1.UploadTextAsync("Hello World", leaseId1, cancellationToken);
 			await blob1.UploadTextAsync("qwerty", leaseId1, cancellationToken);
 			await blob1.AppendTextAsync("azerty", leaseId1, cancellationToken);
@@ -48,7 +48,7 @@ namespace Picton.IntegrationTests
 			Console.WriteLine(content1);
 
 			var blob2 = container.GetPageBlobReference("test2.txt");
-			var leaseId2 = (await blob2.ExistsAsync(cancellationToken).ConfigureAwait(false) ? await blob2.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
+			var leaseId2 = (await blob2.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false) ? await blob2.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
 			await blob2.UploadTextAsync(new string('A', 512), leaseId2, cancellationToken).ConfigureAwait(false);
 			await blob2.UploadTextAsync(new string('B', 512), leaseId2, cancellationToken).ConfigureAwait(false);
 			await blob2.AppendTextAsync(new string('C', 512), leaseId2, cancellationToken).ConfigureAwait(false);
@@ -78,7 +78,8 @@ namespace Picton.IntegrationTests
 			await blobManager.AppendTextAsync("test4.txt", "\r\nqwerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 			await blobManager.AppendTextAsync("test4.txt", "\r\nazerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-			foreach (var blob in blobManager.ListBlobs("test1", false, false))
+			var resultSegment = await blobManager.ListBlobsAsync("test1", false, false);
+			foreach (var blob in resultSegment.Results)
 			{
 				Console.WriteLine(blob.Uri.AbsoluteUri);
 			}

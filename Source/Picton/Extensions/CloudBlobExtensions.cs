@@ -36,7 +36,6 @@ namespace Picton
 					// If the status code is 409 (HttpStatusCode.Conflict), it means the resource is already leased
 					if (e.Response != null && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.Conflict)
 					{
-						e.Response.Close();
 						if (attempts < maxLeaseAttempts - 1)
 						{
 							await Task.Delay(500);    // Make sure we don't retry too quickly
@@ -63,7 +62,7 @@ namespace Picton
 
 			var defaultLeaseTime = TimeSpan.FromSeconds(15);
 			var proposedLeaseId = (string)null; // Proposed lease id (leave it null for storage service to return you one).
-			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, cancellationToken).ConfigureAwait(false);
+			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 			return leaseId;
 		}
 
@@ -71,14 +70,14 @@ namespace Picton
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
-			return blob.ReleaseLeaseAsync(accessCondition, cancellationToken);
+			return blob.ReleaseLeaseAsync(accessCondition, null, null, cancellationToken);
 		}
 
 		public static Task RenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
-			return blob.RenewLeaseAsync(accessCondition, cancellationToken);
+			return blob.RenewLeaseAsync(accessCondition, null, null, cancellationToken);
 		}
 
 		public static async Task<bool> TryRenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
@@ -134,7 +133,7 @@ namespace Picton
 
 			stream.Position = 0; // Rewind the stream. IMPORTANT!
 
-			var blobExits = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			var blobExits = await blob.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 			var accessCondition = string.IsNullOrEmpty(leaseId) ? null : new AccessCondition { LeaseId = leaseId };
 
 			if (blob is CloudAppendBlob)
@@ -149,14 +148,14 @@ namespace Picton
 			}
 			else if (!blobExits)
 			{
-				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				var content = new MemoryStream();
-				await blob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.DownloadToStreamAsync(content, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
 				await stream.CopyToAsync(content).ConfigureAwait(false);
-				await blob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadFromStreamAsync(content, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -188,7 +187,7 @@ namespace Picton
 		{
 			using (var stream = new MemoryStream())
 			{
-				await blob.DownloadToStreamAsync(stream, cancellationToken).ConfigureAwait(false);
+				await blob.DownloadToStreamAsync(stream, null, null, null, cancellationToken).ConfigureAwait(false);
 				using (var reader = new StreamReader(stream, true))
 				{
 					stream.Position = 0;
@@ -201,7 +200,7 @@ namespace Picton
 		{
 			using (var ms = new MemoryStream())
 			{
-				await blob.DownloadToStreamAsync(ms, cancellationToken).ConfigureAwait(false);
+				await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
 				ms.Position = 0;
 				return ms.ToArray();
 			}
@@ -215,25 +214,25 @@ namespace Picton
 				while (copyState.Status == CopyStatus.Pending)
 					await Task.Delay(100).ConfigureAwait(false);
 				if (copyState.Status != CopyStatus.Success)
-					throw new ApplicationException($"CopyAsync failed: {copyState.Status}");
+					throw new Exception($"CopyAsync failed: {copyState.Status}");
 			};
 
 			if (blob is CloudBlockBlob)
 			{
 				var blockTarget = container.GetBlockBlobReference(destinationBlobName);
-				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, cancellationToken).ConfigureAwait(false);
+				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
 				await waitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
 			}
 			else if (blob is CloudPageBlob)
 			{
 				var pageTarget = container.GetPageBlobReference(destinationBlobName);
-				await pageTarget.StartCopyAsync((CloudPageBlob)blob, cancellationToken).ConfigureAwait(false);
+				await pageTarget.StartCopyAsync((CloudPageBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
 				await waitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
 			}
 			else
 			{
 				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
-				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, cancellationToken).ConfigureAwait(false);
+				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
 				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
 			}
 		}

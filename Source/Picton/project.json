@@ -29,7 +29,8 @@
 			},
 			"dependencies": {
 				"System.Collections.Specialized": "4.3.0",
-				"System.Diagnostics.Process": "4.3.0"
+				"System.Diagnostics.Process": "4.3.0",
+				"System.Net.Requests": "4.0.0"
 			},
 			"imports": [
 				"dnxcore50",

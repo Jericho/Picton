@@ -1,23 +1,22 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
+﻿using Moq;
 using Shouldly;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Xunit;
 
 namespace Picton.Extensions.UnitTests
 {
-	[TestClass]
 	public class AssemblyExtensionsTests
 	{
-		[TestMethod]
+		[Fact]
 		public void Configuration_attribute_is_debug()
 		{
 			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
+			var mockAssembly = new Mock<Assembly>(MockBehavior.Strict);
 			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[] { new AssemblyConfigurationAttribute("Debug") });
+				.Setup(a => a.GetCustomAttributes<AssemblyConfigurationAttribute>())
+				.Returns(new[] { new AssemblyConfigurationAttribute("Debug") });
 
 			// Act
 			var isDebug = mockAssembly.Object.IsDebugConfiguration();
@@ -28,14 +27,14 @@ namespace Picton.Extensions.UnitTests
 			isRelease.ShouldBeFalse();
 		}
 
-		[TestMethod]
+		[Fact]
 		public void Configuration_attribute_is_release()
 		{
 			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
+			var mockAssembly = new Mock<Assembly>(MockBehavior.Strict);
 			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[] { new AssemblyConfigurationAttribute("Release") });
+				.Setup(a => a.GetCustomAttributes<AssemblyConfigurationAttribute>())
+				.Returns(new[] { new AssemblyConfigurationAttribute("Release") });
 
 			// Act
 			var isDebug = mockAssembly.Object.IsDebugConfiguration();
@@ -46,14 +45,14 @@ namespace Picton.Extensions.UnitTests
 			isRelease.ShouldBeTrue();
 		}
 
-		[TestMethod]
+		[Fact]
 		public void Configuration_attribute_is_unknown()
 		{
 			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
+			var mockAssembly = new Mock<Assembly>(MockBehavior.Strict);
 			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[] { new AssemblyConfigurationAttribute("unknown_value") });
+				.Setup(a => a.GetCustomAttributes<AssemblyConfigurationAttribute>())
+				.Returns(new[] { new AssemblyConfigurationAttribute("unknown_value") });
 
 			// Act
 			var isDebug = mockAssembly.Object.IsDebugConfiguration();
@@ -64,50 +63,40 @@ namespace Picton.Extensions.UnitTests
 			isRelease.ShouldBeFalse();
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(Exception))]
-		public void Configuration_attribute_is_invalid()
-		{
-			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
-			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[] { "blablabla" });
-
-			// Act
-			var isDebug = mockAssembly.Object.IsDebugConfiguration();
-		}
-
-		[TestMethod]
-		[ExpectedException(typeof(Exception))]
+		[Fact]
 		public void Configuration_attribute_is_missing()
 		{
 			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
+			var mockAssembly = new Mock<Assembly>(MockBehavior.Strict);
 			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[] { });
+				.Setup(a => a.GetCustomAttributes<AssemblyConfigurationAttribute>())
+				.Returns(new AssemblyConfigurationAttribute[] { });
 
 			// Act
-			var isDebug = mockAssembly.Object.IsDebugConfiguration();
+			Should.Throw<Exception>(() =>
+			{
+				var isDebug = mockAssembly.Object.IsDebugConfiguration();
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(Exception))]
+		[Fact]
 		public void Configuration_attribute_is_specified_multiple_times()
 		{
 			// Arrange
-			var mockAssembly = new Mock<_Assembly>(MockBehavior.Strict);
+			var mockAssembly = new Mock<Assembly>(MockBehavior.Strict);
 			mockAssembly
-				.Setup(a => a.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), false))
-				.Returns(new object[]
+				.Setup(a => a.GetCustomAttributes<AssemblyConfigurationAttribute>())
+				.Returns(new[]
 				{
 					new AssemblyConfigurationAttribute("Debug"),
 					new AssemblyConfigurationAttribute("Debug")
 				});
 
 			// Act
-			var isDebug = mockAssembly.Object.IsDebugConfiguration();
+			Should.Throw<Exception>(() =>
+			{
+				var isDebug = mockAssembly.Object.IsDebugConfiguration();
+			});
 		}
 	}
 }

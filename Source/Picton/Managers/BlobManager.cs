@@ -19,7 +19,7 @@ namespace Picton.Managers
 
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _containerName;
-		private readonly IBlobClient _blobClient;
+		private readonly CloudBlobClient _blobClient;
 		private readonly CloudBlobContainer _blobContainer;
 
 		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
@@ -30,7 +30,9 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-		[ExcludeFromCodeCoverage]
+#if NETFULL
+		[ExcludeFromCodeCoverage] 
+#endif
 		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
 			this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
 		{ }
@@ -45,7 +47,7 @@ namespace Picton.Managers
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
-			_blobContainer.CreateIfNotExists(accessType, null, null);
+			_blobContainer.CreateIfNotExistsAsync(accessType, null, null).Wait();
 		}
 
 		#endregion
@@ -57,7 +59,7 @@ namespace Picton.Managers
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var source = _blobContainer.GetBlobReference(cleanBlobName);
 
-			if (!await source.ExistsAsync(cancellationToken).ConfigureAwait(false)) return null;
+			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return null;
 
 			if (source.BlobType == BlobType.BlockBlob)
 			{
@@ -77,10 +79,10 @@ namespace Picton.Managers
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = _blobContainer.GetBlobReference(cleanBlobName);
-			var exists = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			var exists = await blob.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 			if (!exists) return null;
 
-			await blob.DownloadToStreamAsync(outputStream, cancellationToken).ConfigureAwait(false);
+			await blob.DownloadToStreamAsync(outputStream, null, null, null, cancellationToken).ConfigureAwait(false);
 			return blob.Properties;
 		}
 
@@ -88,13 +90,13 @@ namespace Picton.Managers
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = _blobContainer.GetBlobReference(cleanBlobName);
-			var exists = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			var exists = await blob.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 			if (!exists) return null;
 
 			byte[] buffer;
 			using (var ms = new MemoryStream())
 			{
-				await blob.DownloadToStreamAsync(ms, cancellationToken).ConfigureAwait(false);
+				await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
 				buffer = ms.ToArray();
 			}
 
@@ -136,7 +138,11 @@ namespace Picton.Managers
 
 			if (metadata != null && metadata.Count > 0)
 			{
-				Array.ForEach(metadata.AllKeys, key => blob.Metadata[key] = metadata[key]);
+				foreach (var key in metadata.AllKeys)
+				{
+					blob.Metadata[key] = metadata[key];
+				}
+
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -196,7 +202,11 @@ namespace Picton.Managers
 
 			if (metadata != null && metadata.Count > 0)
 			{
-				Array.ForEach(metadata.AllKeys, key => blob.Metadata[key] = metadata[key]);
+				foreach (var key in metadata.AllKeys)
+				{
+					blob.Metadata[key] = metadata[key];
+				}
+
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -218,52 +228,52 @@ namespace Picton.Managers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
-			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
-			await blob.DeleteIfExistsAsync(cancellationToken).ConfigureAwait(false);
+			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false) as CloudBlob;
+			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var blobItems = ListBlobs(prefix, true, false);
-			if (blobItems != null)
+			var finished = false;
+			var continuationToken = (BlobContinuationToken)null;
+
+			do
 			{
-				foreach (var blockBlob in blobItems.OfType<CloudBlockBlob>())
+				var segment = await ListBlobsAsync(prefix, true, false, 500, continuationToken, cancellationToken);
+				if (segment != null)
 				{
-					await blockBlob.DeleteIfExistsAsync(cancellationToken);
+					foreach (var blobItem in segment.Results.OfType<CloudBlob>())
+					{
+						await blobItem.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
+					}
 				}
-				foreach (var pageBlob in blobItems.OfType<CloudPageBlob>())
-				{
-					await pageBlob.DeleteIfExistsAsync(cancellationToken);
-				}
-				foreach (var appendBlob in blobItems.OfType<CloudAppendBlob>())
-				{
-					await appendBlob.DeleteIfExistsAsync(cancellationToken);
-				}
-			}
+				continuationToken = segment.ContinuationToken;
+				finished = segment == null || !segment.Results.Any();
+			} while (!finished);
 		}
 
-		public IEnumerable<IListBlobItem> ListBlobs(string folder, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null)
+		public async Task<BlobResultSegment> ListBlobsAsync(string folder, bool includeSubFolders = false, bool includeMetadata = false, int maxResults = 1000, BlobContinuationToken continuationToken = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
 			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanFolder}";
 			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
 
-			if (maxResults.HasValue)
-			{
-				var segmentedResult = _blobClient.ListBlobsSegmentedAsync(blobPrefix, includeSubFolders, listingDetails, maxResults).Result;
-				return segmentedResult.Results;
-			}
-			else
-			{
-				return _blobClient.ListBlobs(blobPrefix, includeSubFolders, listingDetails);
-			}
+			return await _blobClient.ListBlobsSegmentedAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, continuationToken, null, null);
 		}
 
-		public IEnumerable<CloudBlobDirectory> ListSubFolders(string folder)
+		public async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
-			if (string.IsNullOrEmpty(cleanFolder)) return _blobContainer.ListBlobs().OfType<CloudBlobDirectory>();
-			else return _blobContainer.GetDirectoryReference(cleanFolder).ListBlobs().OfType<CloudBlobDirectory>();
+
+			var resultSegment = await _blobContainer
+				.GetDirectoryReference(cleanFolder)
+				.ListBlobsSegmentedAsync(false, BlobListingDetails.None, null, null, null, null, cancellationToken);
+
+			var subFolders = resultSegment
+				.Results
+				.OfType<CloudBlobDirectory>();
+
+			return subFolders;
 		}
 
 		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
@@ -288,7 +298,7 @@ namespace Picton.Managers
 			if (cleanSourceName == cleanDestinationName) return;
 
 			var source = _blobContainer.GetBlobReference(cleanSourceName);
-			if (!await source.ExistsAsync(cancellationToken).ConfigureAwait(false)) return;
+			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return;
 
 			var blob = await GetBlobReferenceAsync(cleanSourceName, cancellationToken).ConfigureAwait(false);
 			await blob.CopyAsync(cleanDestinationName, cancellationToken).ConfigureAwait(false);

@@ -1,12 +1,14 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace Picton.Interfaces
 {
 	public interface IStorageAccount
 	{
-		IBlobClient CreateCloudBlobClient();
+		CloudBlobClient CreateCloudBlobClient();
 		//IFileClient CreateCloudFileClient();
-		IQueueClient CreateCloudQueueClient();
+		CloudQueueClient CreateCloudQueueClient();
 		//ITableClient CreateCloudTableClient();
 		string GetSharedAccessSignature(SharedAccessAccountPolicy policy);
 		string ToString(bool exportSecrets);

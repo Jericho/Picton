@@ -1,20 +1,21 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Shouldly;
+﻿using Shouldly;
 using System;
+using Xunit;
 
 namespace Picton.UnitTests
 {
-	[TestClass]
 	public class MimeTypeMapTests
 	{
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void GetMimeType_throws_when_extension_is_null()
 		{
-			var mimeType = MimeTypeMap.GetMimeType(null);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var mimeType = MimeTypeMap.GetMimeType(null);
+			});
 		}
 
-		[TestMethod]
+		[Fact]
 		public void GetMimeType_with_known_extension()
 		{
 			// Arrange
@@ -27,7 +28,7 @@ namespace Picton.UnitTests
 			mimeType.ShouldBe(expected);
 		}
 
-		[TestMethod]
+		[Fact]
 		public void GetMimeType_with_malformed_extension()
 		{
 			// Arrange
@@ -40,7 +41,7 @@ namespace Picton.UnitTests
 			mimeType.ShouldBe(expected);
 		}
 
-		[TestMethod]
+		[Fact]
 		public void GetMimeType_with_unknown_extension()
 		{
 			// Arrange
@@ -53,21 +54,25 @@ namespace Picton.UnitTests
 			mimeType.ShouldBe(expected);
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void GetExtension_throws_when_mimeType_is_null()
 		{
-			var mimeType = MimeTypeMap.GetExtension(null);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var mimeType = MimeTypeMap.GetExtension(null);
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentException))]
+		[Fact]
 		public void GetExtension_throws_when_mimeType_is_malformed()
 		{
-			var mimeType = MimeTypeMap.GetExtension(".blablabla");
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var mimeType = MimeTypeMap.GetExtension(".blablabla");
+			});
 		}
 
-		[TestMethod]
+		[Fact]
 		public void GetExtension_with_known_mimeType()
 		{
 			// Arrange
@@ -80,11 +85,13 @@ namespace Picton.UnitTests
 			mimeType.ShouldBe(expected);
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentException))]
+		[Fact]
 		public void GetExtension_with_unknown_mimeType()
 		{
-			var mimeType = MimeTypeMap.GetExtension("blablabla");
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var mimeType = MimeTypeMap.GetExtension("blablabla");
+			});
 		}
 	}
 }

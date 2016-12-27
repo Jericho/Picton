@@ -1,58 +1,68 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
 using Picton.Interfaces;
+using Shouldly;
 using System;
+using Xunit;
 
 namespace Picton.Managers.UnitTests
 {
-	[TestClass]
 	public class BlobManagerTests
 	{
 		private static readonly string BLOB_STORAGE_URL = "http://bogus:10000/devstoreaccount1/";
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void Null_queueName_throws()
 		{
-			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
-			var blobManager = new BlobManager(null, storageAccount.Object);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var blobManager = new BlobManager(null, storageAccount.Object);
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void Empty_queueName_throws()
 		{
-			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
-			var blobManager = new BlobManager("", storageAccount.Object);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var blobManager = new BlobManager("", storageAccount.Object);
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void Blank_queueName_throws()
 		{
-			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
-			var blobManager = new BlobManager(" ", storageAccount.Object);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var blobManager = new BlobManager(" ", storageAccount.Object);
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void Null_IStorageAccount_throws()
 		{
-			var storageAccount = (IStorageAccount)null;
-			var blobManager = new BlobManager("mycontainer", storageAccount);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var storageAccount = (IStorageAccount)null;
+				var blobManager = new BlobManager("mycontainer", storageAccount);
+			});
 		}
 
-		[TestMethod]
-		[ExpectedException(typeof(ArgumentNullException))]
+		[Fact]
 		public void Null_storageAccount_throws()
 		{
-			var storageAccount = (IStorageAccount)null;
-			var blobManager = new BlobManager("mycontainer", storageAccount);
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var storageAccount = (IStorageAccount)null;
+				var blobManager = new BlobManager("mycontainer", storageAccount);
+			});
 		}
 
-		[TestMethod]
+		[Fact]
 		public void Initialization()
 		{
 			// Arrange
@@ -71,7 +81,7 @@ namespace Picton.Managers.UnitTests
 			mockBlobClient.Verify();
 		}
 
-		//[TestMethod]
+		//[Fact]
 		//public void GetBlobContentAsync_blob_does_not_exist()
 		//{
 		//	// Arrange
@@ -108,7 +118,7 @@ namespace Picton.Managers.UnitTests
 		//	mockBlob.Verify();
 		//}
 
-		//[TestMethod]
+		//[Fact]
 		//public void GetBlobContentAsync_blob_exists()
 		//{
 		//	// Arrange
@@ -149,15 +159,15 @@ namespace Picton.Managers.UnitTests
 			var mockContainerUri = new Uri(BLOB_STORAGE_URL + containerName);
 			var mockBlobContainer = new Mock<CloudBlobContainer>(MockBehavior.Strict, mockContainerUri);
 			mockBlobContainer
-				.Setup(c => c.CreateIfNotExists(It.IsAny<BlobContainerPublicAccessType>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>()))
-				.Returns(true)
+				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<BlobContainerPublicAccessType>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>()))
+				.ReturnsAsync(true)
 				.Verifiable();
 			return mockBlobContainer;
 		}
 
-		private static Mock<IBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
+		private static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
-			var mockBlobClient = new Mock<IBlobClient>(MockBehavior.Strict);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict);
 			mockBlobClient
 				.Setup(c => c.GetContainerReference(mockBlobContainer.Object.Name))
 				.Returns(mockBlobContainer.Object)
@@ -165,7 +175,7 @@ namespace Picton.Managers.UnitTests
 			return mockBlobClient;
 		}
 
-		private static Mock<IStorageAccount> GetMockStorageAccount(Mock<IBlobClient> mockBlobClient)
+		private static Mock<IStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient)
 		{
 			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
 			storageAccount

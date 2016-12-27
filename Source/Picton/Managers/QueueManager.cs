@@ -28,7 +28,9 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-		[ExcludeFromCodeCoverage]
+#if NETFULL
+		[ExcludeFromCodeCoverage] 
+#endif
 		/// <summary>
 		/// </summary>
 		/// <param name="queueName"></param>
@@ -93,13 +95,15 @@ namespace Picton.Managers
 					serializer.Serialize(largeEnvelope, stream);
 					data = stream.ToArray();
 				}
-				var cloudMessage = new CloudQueueMessage(data);
+				var cloudMessage = new CloudQueueMessage("");
+				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				var cloudMessage = new CloudQueueMessage(data);
+				var cloudMessage = new CloudQueueMessage("");
+				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 		}
@@ -129,7 +133,7 @@ namespace Picton.Managers
 			if (message.IsLargeMessage)
 			{
 				var blob = _blobContainer.GetBlobReference(message.LargeContentBlobName);
-				await blob.DeleteAsync(cancellationToken);
+				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
 			}
 			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, options, operationContext, cancellationToken);
 		}
@@ -212,8 +216,6 @@ namespace Picton.Managers
 			return _queue.GetPermissionsAsync(options, operationContext, cancellationToken);
 		}
 
-		// GetSharedAccessSignature is not virtual therefore we can't mock it.
-		[ExcludeFromCodeCoverage]
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
