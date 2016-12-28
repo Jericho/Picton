@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 
 namespace Picton.UnitTests
 {
+#if NETFULL
 	public class MockWebResponse : HttpWebResponse
 	{
 		public MockWebResponse(SerializationInfo serializationInfo, StreamingContext streamingContext)
@@ -12,4 +13,5 @@ namespace Picton.UnitTests
 		{
 		}
 	}
+#endif
 }

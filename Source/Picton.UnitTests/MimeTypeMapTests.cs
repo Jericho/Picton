@@ -66,7 +66,7 @@ namespace Picton.UnitTests
 		[Fact]
 		public void GetExtension_throws_when_mimeType_is_malformed()
 		{
-			Should.Throw<ArgumentNullException>(() =>
+			Should.Throw<ArgumentException>(() =>
 			{
 				var mimeType = MimeTypeMap.GetExtension(".blablabla");
 			});
@@ -88,7 +88,7 @@ namespace Picton.UnitTests
 		[Fact]
 		public void GetExtension_with_unknown_mimeType()
 		{
-			Should.Throw<ArgumentNullException>(() =>
+			Should.Throw<ArgumentException>(() =>
 			{
 				var mimeType = MimeTypeMap.GetExtension("blablabla");
 			});

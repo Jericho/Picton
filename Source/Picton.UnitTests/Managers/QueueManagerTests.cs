@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
@@ -786,7 +787,8 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict);
+			var blobStorageUri = new Uri(BLOB_STORAGE_URL);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, blobStorageUri);
 			mockBlobClient
 				.Setup(c => c.GetContainerReference(It.IsAny<string>()))
 				.Returns(mockBlobContainer.Object)
@@ -807,7 +809,9 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudQueueClient> GetMockQueueClient(Mock<CloudQueue> mockQueue)
 		{
-			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict);
+			var queueStorageUri = new Uri(QUEUE_STORAGE_URL);
+			var credentials = new StorageCredentials();
+			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, queueStorageUri, credentials);
 			mockQueueClient
 				.Setup(c => c.GetQueueReference(mockQueue.Object.Name))
 				.Returns(mockQueue.Object)

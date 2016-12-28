@@ -167,7 +167,8 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict);
+			var blobStorageUri = new Uri(BLOB_STORAGE_URL);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, blobStorageUri);
 			mockBlobClient
 				.Setup(c => c.GetContainerReference(mockBlobContainer.Object.Name))
 				.Returns(mockBlobContainer.Object)

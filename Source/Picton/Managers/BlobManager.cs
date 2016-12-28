@@ -54,7 +54,7 @@ namespace Picton.Managers
 
 		#region PUBLIC METHODS
 
-		public async Task<ICloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<CloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var source = _blobContainer.GetBlobReference(cleanBlobName);
@@ -146,7 +146,7 @@ namespace Picton.Managers
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
-			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
+			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(new AccessCondition() { LeaseId = leaseId }, null, null,  cancellationToken).ConfigureAwait(false);
 		}
 
 		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))

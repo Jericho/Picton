@@ -17,7 +17,7 @@ namespace Picton.Interfaces
 		Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken));
 		Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken));
 		Task<BlobProperties> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default(CancellationToken));
-		Task<ICloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken));
+		Task<CloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken));
 		Task<BlobResultSegment> ListBlobsAsync(string folder, bool includeSubFolders = false, bool includeMetadata = false, int maxResults = 1000, BlobContinuationToken continuationToken = null, CancellationToken cancellationToken = default(CancellationToken));
 		Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, CancellationToken cancellationToken = default(CancellationToken));
 		Task MoveBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken));

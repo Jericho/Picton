@@ -15,7 +15,7 @@ namespace Picton
 	{
 		#region PUBLIC EXTENSION METHODS
 
-		public static async Task<string> TryAcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> TryAcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
@@ -50,7 +50,7 @@ namespace Picton
 			return leaseId;
 		}
 
-		public static async Task<string> AcquireLeaseAsync(this ICloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> AcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			// From: https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
 			// The Lease Blob operation establishes and manages a lock on a blob for write and delete operations.
@@ -66,21 +66,21 @@ namespace Picton
 			return leaseId;
 		}
 
-		public static Task ReleaseLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task ReleaseLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
 			return blob.ReleaseLeaseAsync(accessCondition, null, null, cancellationToken);
 		}
 
-		public static Task RenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
 			return blob.RenewLeaseAsync(accessCondition, null, null, cancellationToken);
 		}
 
-		public static async Task<bool> TryRenewLeaseAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<bool> TryRenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			try
 			{
@@ -93,7 +93,7 @@ namespace Picton
 			}
 		}
 
-		public static async Task UploadStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task UploadStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -108,25 +108,31 @@ namespace Picton
 				await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
+			else if (blob is CloudBlockBlob)
+			{
+				var blockBlob = blob as CloudBlockBlob;
+				await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+			}
 			else
 			{
-				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				var pageBlob = blob as CloudPageBlob;
+				await pageBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
-		public static Task UploadBytesAsync(this ICloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task UploadBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var stream = new MemoryStream(buffer);
 			return blob.UploadStreamAsync(stream, leaseId, cancellationToken);
 		}
 
-		public static Task UploadTextAsync(this ICloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task UploadTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var buffer = Encoding.UTF8.GetBytes(content);
 			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
-		public static async Task AppendStreamAsync(this ICloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task AppendStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -142,36 +148,54 @@ namespace Picton
 				if (!blobExits)
 				{
 					await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
-					blobExits = true;
 				}
 				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
-			else if (!blobExits)
+			else if (blob is CloudBlockBlob)
 			{
-				await blob.UploadFromStreamAsync(stream, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
+				var blockBlob = blob as CloudBlockBlob;
+				if (!blobExits)
+				{
+					await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
+				else
+				{
+					var content = new MemoryStream();
+					await blockBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+					await stream.CopyToAsync(content).ConfigureAwait(false);
+					await blockBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
 			}
 			else
 			{
-				var content = new MemoryStream();
-				await blob.DownloadToStreamAsync(content, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
-				await stream.CopyToAsync(content).ConfigureAwait(false);
-				await blob.UploadFromStreamAsync(content, accessCondition, null, null, null, cancellationToken).ConfigureAwait(false);
+				var pageBlob = blob as CloudPageBlob;
+				if (!blobExits)
+				{
+					await pageBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
+				else
+				{
+					var content = new MemoryStream();
+					await pageBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+					await stream.CopyToAsync(content).ConfigureAwait(false);
+					await pageBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
 			}
 		}
 
-		public static Task AppendBytesAsync(this ICloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task AppendBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var stream = new MemoryStream(buffer);
 			return blob.AppendStreamAsync(stream, leaseId, cancellationToken);
 		}
 
-		public static Task AppendTextAsync(this ICloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task AppendTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var buffer = Encoding.UTF8.GetBytes(content);
 			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
-		public static Task SetMetadataAsync(this ICloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task SetMetadataAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -183,7 +207,7 @@ namespace Picton
 			return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 		}
 
-		public static async Task<string> DownloadTextAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> DownloadTextAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			using (var stream = new MemoryStream())
 			{
@@ -196,7 +220,7 @@ namespace Picton
 			}
 		}
 
-		public static async Task<byte[]> DownloadByteArrayAsync(this ICloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<byte[]> DownloadByteArrayAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			using (var ms = new MemoryStream())
 			{
@@ -206,7 +230,7 @@ namespace Picton
 			}
 		}
 
-		public static async Task CopyAsync(this ICloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var container = blob.Container;
 			Func<CopyState, Task> waitForCopyCompletion = async (copyState) =>
@@ -243,12 +267,12 @@ namespace Picton
 		/// <remarks>
 		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/
 		/// </remarks>
-		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, ISystemClock systemClock = null)
+		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, ISystemClock systemClock = null)
 		{
 			return GetSharedAccessSignatureUri(blob, permission, TimeSpan.FromMinutes(15), systemClock);
 		}
 
-		public static string GetSharedAccessSignatureUri(this ICloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
+		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
