@@ -12,16 +12,18 @@ namespace Picton
 	/// SDK version. 
 	/// 
 	/// For instance:
-	///		- emulator 2.0 was released with SDK 2.2 in September 2013
-	///		- emulator 3.0 was released with SDK 2.3 in May 2014
-	///		- emulator 3.3 was released with SDK 2.4 in August 2014
-	///		- emulator 3.4 was released with SDK 2.5 in November 2014
-	///		- emulator 4.0 was released with SDK 2.6 in May 2015
-	///		- emulator 4.1 was released with SDK 2.7 in August 2015
-	///		- emulator 4.2 was released with SDK 2.8 in November 2015
-	///		- emulator 4.3 was released with SDK 2.9 in April 2016
-	///		- emulator 4.4 was released with SDK 2.9.1 in May 2016
-	///		- emulator 4.5 was released with SDK 2.9.5 in August 2016
+	///	Storage Emulator:
+	///		- 2.0 was released with SDK 2.2 in September 2013
+	///		- 3.0 was released with SDK 2.3 in May 2014
+	///		- 3.3 was released with SDK 2.4 in August 2014
+	///		- 3.4 was released with SDK 2.5 in November 2014
+	///		- 4.0 was released with SDK 2.6 in May 2015
+	///		- 4.1 was released with SDK 2.7 in August 2015
+	///		- 4.2 was released with SDK 2.8 in November 2015
+	///		- 4.3 was released with SDK 2.9 in April 2016
+	///		- 4.4 was released with SDK 2.9.1 in May 2016
+	///		- 4.5 was released with SDK 2.9.5 in August 2016
+	///		- 4.6 was released with in November 2016 as a seperate download, not as part of SDK 2.9.6
 	/// </summary>
 	/// <remarks>Inspired by <seealso cref="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</seealso></remarks>
 	public static class AzureEmulatorManager
