@@ -11,8 +11,12 @@ namespace Picton.IntegrationTests
 	{
 		static void Main()
 		{
-			// Make sure the Azure Storage emulator is started
+			// Make sure the emulators are started
+			Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
 			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
+
+			Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
+			AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
 			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
