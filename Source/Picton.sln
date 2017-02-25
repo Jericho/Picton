@@ -21,7 +21,7 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.IntegrationTests", "
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.UnitTests", "Picton.UnitTests\Picton.UnitTests.xproj", "{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.IntegrationTests2", "Picton.IntegrationTests2\Picton.IntegrationTests2.xproj", "{7526F5BB-FF58-4B89-854F-88D71A25864D}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.IntegrationTests", "Picton.IntegrationTests\Picton.IntegrationTests.xproj", "{7526F5BB-FF58-4B89-854F-88D71A25864D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
