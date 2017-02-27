@@ -1,7 +1,9 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.File;
 using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.WindowsAzure.Storage.Table;
 using Picton.Interfaces;
 using System;
 
@@ -66,20 +68,20 @@ namespace Picton
 			return _cloudStorageAccount.CreateCloudBlobClient();
 		}
 
-		//public CloudFileClient CreateCloudFileClient()
-		//{
-		//	return _cloudStorageAccount.CreateCloudFileClient();
-		//}
+		public CloudFileClient CreateCloudFileClient()
+		{
+			return _cloudStorageAccount.CreateCloudFileClient();
+		}
 
 		public CloudQueueClient CreateCloudQueueClient()
 		{
 			return _cloudStorageAccount.CreateCloudQueueClient();
 		}
 
-		//public CloudTableClient CreateCloudTableClient()
-		//{
-		//	return _cloudStorageAccount.CreateCloudTableClient();
-		//}
+		public CloudTableClient CreateCloudTableClient()
+		{
+			return _cloudStorageAccount.CreateCloudTableClient();
+		}
 
 		public string GetSharedAccessSignature(SharedAccessAccountPolicy policy)
 		{
