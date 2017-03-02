@@ -24,7 +24,9 @@
 	"frameworks": {
 		"net452": {
 			"dependencies": {
-				"System.Diagnostics.Tools": "4.0.0"
+				"System.Diagnostics.Tools": "4.0.0",
+				"System.Net.Http": "4.0.0",
+				"System.Net.Requests": "4.0.0"
 			},
 			"buildOptions": {
 				"define": [ "NETFULL" ]
@@ -34,8 +36,11 @@
 			"imports": "dnxcore50",
 			"dependencies": {
 				"NETStandard.Library": "1.6.0",
+				"System.Collections.Specialized": "4.3.0",
 				"System.Diagnostics.Process": "4.1.0",
-				"System.Diagnostics.Tools": "4.0.1"
+				"System.Diagnostics.Tools": "4.0.1",
+				"System.Net.Http": "4.3.0",
+				"System.Net.Requests": "4.3.0"
 			},
 			"buildOptions": {
 				"define": [ "NETSTANDARD" ]

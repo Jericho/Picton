@@ -29,7 +29,7 @@ namespace Picton.Managers
 		#region CONSTRUCTORS
 
 #if NETFULL
-		[ExcludeFromCodeCoverage] 
+		[ExcludeFromCodeCoverage]
 #endif
 		/// <summary>
 		/// </summary>
@@ -95,6 +95,9 @@ namespace Picton.Managers
 					serializer.Serialize(largeEnvelope, stream);
 					data = stream.ToArray();
 				}
+				// Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+				// The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+				//var cloudMessage = new CloudQueueMessage(data);
 				var cloudMessage = new CloudQueueMessage("");
 				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
@@ -102,6 +105,9 @@ namespace Picton.Managers
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
+				// Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+				// The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+				//var cloudMessage = new CloudQueueMessage(data);
 				var cloudMessage = new CloudQueueMessage("");
 				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
@@ -216,6 +222,10 @@ namespace Picton.Managers
 			return _queue.GetPermissionsAsync(options, operationContext, cancellationToken);
 		}
 
+		// GetSharedAccessSignature is not virtual therefore we can't mock it.
+#if NETFULL
+		[ExcludeFromCodeCoverage]
+#endif
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);

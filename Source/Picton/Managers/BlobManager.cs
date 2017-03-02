@@ -31,7 +31,7 @@ namespace Picton.Managers
 		#region CONSTRUCTORS
 
 #if NETFULL
-		[ExcludeFromCodeCoverage] 
+		[ExcludeFromCodeCoverage]
 #endif
 		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
 			this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
@@ -47,7 +47,7 @@ namespace Picton.Managers
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
-			_blobContainer.CreateIfNotExistsAsync(accessType, null, null).Wait();
+			_blobContainer.CreateIfNotExistsAsync(accessType, null, null, CancellationToken.None).Wait();
 		}
 
 		#endregion
@@ -61,7 +61,11 @@ namespace Picton.Managers
 
 			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return null;
 
-			if (source.BlobType == BlobType.BlockBlob)
+			if (source.BlobType == BlobType.AppendBlob)
+			{
+				return _blobContainer.GetAppendBlobReference(cleanBlobName);
+			}
+			else if (source.BlobType == BlobType.BlockBlob)
 			{
 				return _blobContainer.GetBlockBlobReference(cleanBlobName);
 			}
@@ -71,7 +75,7 @@ namespace Picton.Managers
 			}
 			else
 			{
-				return _blobContainer.GetAppendBlobReference(cleanBlobName);
+				throw new Exception($"Unknow blob type: {source.BlobType}");
 			}
 		}
 
@@ -136,13 +140,12 @@ namespace Picton.Managers
 
 			await blob.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			if (metadata != null && metadata.Count > 0)
+			if (metadata != null)
 			{
 				foreach (var key in metadata.AllKeys)
 				{
 					blob.Metadata[key] = metadata[key];
 				}
-
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -200,13 +203,12 @@ namespace Picton.Managers
 
 			await blob.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			if (metadata != null && metadata.Count > 0)
+			if (metadata != null)
 			{
 				foreach (var key in metadata.AllKeys)
 				{
 					blob.Metadata[key] = metadata[key];
 				}
-
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -228,52 +230,44 @@ namespace Picton.Managers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
-			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false) as CloudBlob;
+			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var finished = false;
-			var continuationToken = (BlobContinuationToken)null;
-
-			do
+			var blobItems = await ListBlobsAsync(prefix, true, false).ConfigureAwait(false);
+			if (blobItems != null)
 			{
-				var segment = await ListBlobsAsync(prefix, true, false, 500, continuationToken, cancellationToken);
-				if (segment != null)
+				foreach (var appendBlob in blobItems.OfType<CloudAppendBlob>())
 				{
-					foreach (var blobItem in segment.Results.OfType<CloudBlob>())
-					{
-						await blobItem.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
-					}
+					await appendBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 				}
-				continuationToken = segment.ContinuationToken;
-				finished = segment == null || !segment.Results.Any();
-			} while (!finished);
+				foreach (var blockBlob in blobItems.OfType<CloudBlockBlob>())
+				{
+					await blockBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
+				}
+				foreach (var pageBlob in blobItems.OfType<CloudPageBlob>())
+				{
+					await pageBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
+				}
+			}
 		}
 
-		public async Task<BlobResultSegment> ListBlobsAsync(string folder, bool includeSubFolders = false, bool includeMetadata = false, int maxResults = 1000, BlobContinuationToken continuationToken = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<IListBlobItem>> ListBlobsAsync(string prefix, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var cleanFolder = SanitizeBlobName(folder, true);
-			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanFolder}";
+			var cleanPrefix = SanitizeBlobName(prefix, true);
+			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanPrefix}";
 			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
 
-			return await _blobClient.ListBlobsSegmentedAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, continuationToken, null, null);
+			return _blobContainer.ListBlobsAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, cancellationToken);
 		}
 
-		public async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
-
-			var resultSegment = await _blobContainer
-				.GetDirectoryReference(cleanFolder)
-				.ListBlobsSegmentedAsync(false, BlobListingDetails.None, null, null, null, null, cancellationToken);
-
-			var subFolders = resultSegment
-				.Results
-				.OfType<CloudBlobDirectory>();
-
-			return subFolders;
+			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
+			return _blobContainer.ListSubFoldersAsync(cleanFolder, listingDetails, maxResults, cancellationToken);
 		}
 
 		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))

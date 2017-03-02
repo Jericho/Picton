@@ -60,7 +60,11 @@ namespace Picton
 		/// <remarks>From the .NET Extensions project: http://dnpextensions.codeplex.com/</remarks>
 		public static byte[] ToBytes(this string value, Encoding encoding = null)
 		{
+#if NETFULL
+			return (encoding ?? Encoding.Default).GetBytes(value);
+#else
 			return (encoding ?? Encoding.UTF8).GetBytes(value);
+#endif
 		}
 
 		#endregion
