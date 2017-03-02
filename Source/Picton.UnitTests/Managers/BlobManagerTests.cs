@@ -91,7 +91,7 @@ namespace Picton.Managers.UnitTests
 		//	var storageAccount = GetMockStorageAccount(mockBlobClient);
 		//	var blobName = "myblob.txt";
 
-		//	var mockBlob = new Mock<ICloudBlob>(MockBehavior.Strict);
+		//	var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
 		//	mockBlob
 		//		.Setup(b => b.ExistsAsync(It.IsAny<CancellationToken>()))
 		//		.Returns(Task.FromResult(false))

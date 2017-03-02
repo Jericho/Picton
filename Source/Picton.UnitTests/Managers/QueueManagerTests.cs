@@ -461,9 +461,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = 0;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -484,9 +484,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -598,9 +598,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = 0;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -621,9 +621,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
 			});
 
