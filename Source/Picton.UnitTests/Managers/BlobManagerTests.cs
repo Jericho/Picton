@@ -4,6 +4,7 @@ using Moq;
 using Picton.Interfaces;
 using Shouldly;
 using System;
+using System.Threading;
 using Xunit;
 
 namespace Picton.Managers.UnitTests
@@ -71,10 +72,8 @@ namespace Picton.Managers.UnitTests
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient);
 
-
 			// Act
 			var blobManager = new BlobManager(containerName, storageAccount.Object);
-
 
 			// Assert
 			mockBlobContainer.Verify();
@@ -154,12 +153,12 @@ namespace Picton.Managers.UnitTests
 		//	mockBlob.Verify();
 		//}
 
-		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName)
+		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName = "mycontainer")
 		{
 			var mockContainerUri = new Uri(BLOB_STORAGE_URL + containerName);
 			var mockBlobContainer = new Mock<CloudBlobContainer>(MockBehavior.Strict, mockContainerUri);
 			mockBlobContainer
-				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<BlobContainerPublicAccessType>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>()))
+				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<BlobContainerPublicAccessType>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
 				.ReturnsAsync(true)
 				.Verifiable();
 			return mockBlobContainer;
@@ -167,10 +166,10 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
-			var blobStorageUri = new Uri(BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, blobStorageUri);
+			var mockBlobStorageUri = new Uri(BLOB_STORAGE_URL);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
 			mockBlobClient
-				.Setup(c => c.GetContainerReference(mockBlobContainer.Object.Name))
+				.Setup(c => c.GetContainerReference(It.IsAny<string>()))
 				.Returns(mockBlobContainer.Object)
 				.Verifiable();
 			return mockBlobClient;

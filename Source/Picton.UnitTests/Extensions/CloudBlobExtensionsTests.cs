@@ -18,7 +18,7 @@ namespace Picton.Extensions.UnitTests
 	public class CloudBlobExtensionsTests
 	{
 		private static readonly string BLOB_STORAGE_URL = "http://bogus:10000/devstoreaccount1/";
-		private static readonly Uri FAKE_BLOB_URI = new Uri(new Uri(BLOB_STORAGE_URL), "test.txt");
+		private static readonly string BLOB_ITEM_URL = $"{BLOB_STORAGE_URL}MyContainer/Blob.txt";
 
 		[Fact]
 		public void TryAcquireLeaseAsync_throws_when_blob_is_null()
@@ -34,7 +34,7 @@ namespace Picton.Extensions.UnitTests
 		{
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 				await mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 0).ConfigureAwait(false);
 			});
 		}
@@ -44,7 +44,7 @@ namespace Picton.Extensions.UnitTests
 		{
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 				await mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 11).ConfigureAwait(false);
 			});
 		}
@@ -57,7 +57,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var expected = "Hello World";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.ReturnsAsync(expected)
@@ -79,7 +79,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var exception = GetWebException("Already leased", HttpStatusCode.Conflict, true);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.ThrowsAsync(exception)
@@ -101,7 +101,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var exception = new Exception("An exception occured");
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.ThrowsAsync(exception)
@@ -143,7 +143,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var exception = GetWebException("Some error ocured", HttpStatusCode.BadRequest, false);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.ThrowsAsync(exception)
@@ -166,7 +166,7 @@ namespace Picton.Extensions.UnitTests
 			var maxRetries = 5;
 			var attempts = 0;
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, null, null, null, cancellationToken))
 				.Returns(Task.FromResult(expected))
@@ -198,7 +198,7 @@ namespace Picton.Extensions.UnitTests
 			var expected = "";
 			var maxRetries = 5;
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, null, null, null, cancellationToken))
 				.Returns(Task.FromResult(expected));
@@ -219,7 +219,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var expected = "Hello World";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.Returns(Task.FromResult(expected))
@@ -240,7 +240,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = TimeSpan.FromSeconds(10);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 
 			// Act
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
@@ -257,7 +257,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = TimeSpan.FromSeconds(30);
 			var expected = "Hello World";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, null, null, null, cancellationToken))
 				.Returns(Task.FromResult(expected))
@@ -308,7 +308,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = "abc123";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ReleaseLeaseAsync(It.IsAny<AccessCondition>(), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -342,7 +342,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = "abc123";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.RenewLeaseAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -362,7 +362,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = "abc123";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.RenewLeaseAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -383,7 +383,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = "abc123";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.RenewLeaseAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), null, null, cancellationToken))
 				.Throws(new Exception("Something went wrong"))
@@ -439,7 +439,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), null, It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -461,7 +461,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -533,6 +533,48 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = (string)null;
 
+			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			await mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[Fact]
+		public async Task UploadStreamAsync_to_CloudPageBlob_with_lease()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			await mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[Fact]
+		public void SetMetadataAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+
 			// Act
 			Should.ThrowAsync<ArgumentNullException>(async () =>
 			{
@@ -547,7 +589,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = (string)null;
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.SetMetadataAsync(It.IsAny<AccessCondition>(), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -567,7 +609,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var leaseId = "abc123";
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.SetMetadataAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -587,7 +629,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 
 			// Act
-			Should.ThrowAsync<NullReferenceException>(async () =>
+			Should.ThrowAsync<ArgumentNullException>(async () =>
 			{
 				await ((CloudBlob)null).DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			});
@@ -600,14 +642,14 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var expected = "Hello World";
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Callback((Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
 				{
 					var buffer = expected.ToBytes();
-					s.Write(buffer, 0, buffer.Length);
+					await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 				})
 				.Verifiable();
 
@@ -626,7 +668,7 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var content = "Hello World";
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), null, It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -681,7 +723,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -711,7 +753,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -741,7 +783,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(false))
@@ -848,7 +890,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseId = (string)null;
 			var buffer = "Hello World".ToBytes();
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -877,7 +919,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseId = (string)null;
 			var content = "Hello World";
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -905,14 +947,14 @@ namespace Picton.Extensions.UnitTests
 			var cancellationToken = CancellationToken.None;
 			var expected = "Hello World";
 
-			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Callback((Stream s, AccessCondition ac, BlobRequestOptions bro, OperationContext oc, CancellationToken ct) =>
 				{
 					var buffer = expected.ToBytes();
-					s.Write(buffer, 0, buffer.Length);
+					await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 				})
 				.Verifiable();
 
@@ -984,7 +1026,7 @@ namespace Picton.Extensions.UnitTests
 			var startSharingTime = systemClock.UtcNow.AddMinutes(-5);
 			var stopSharingTime = systemClock.UtcNow.Add(defaultDuration);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.GetSharedAccessSignature(It.Is<SharedAccessBlobPolicy>(p =>
 					p.SharedAccessStartTime == startSharingTime &&
