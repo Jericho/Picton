@@ -8,7 +8,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -122,7 +121,7 @@ namespace Picton.Extensions.UnitTests
 			var leaseTime = (TimeSpan?)null;
 			var exception = GetWebException("Some error ocured", HttpStatusCode.BadRequest);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
 				.ThrowsAsync(exception)
@@ -483,7 +482,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.CreateOrReplaceAsync(null, It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -509,33 +508,13 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.CreateOrReplaceAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 			mockBlob
 				.Setup(c => c.AppendFromStreamAsync(It.IsAny<Stream>(), It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
-				.Returns(Task.FromResult(true))
-				.Verifiable();
-
-			// Act
-			await mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-
-			// Assert
-			mockBlob.Verify();
-		}
-
-		[Fact]
-		public void SetMetadataAsync_throws_when_blob_is_null()
-		{
-			// Arrange
-			var cancellationToken = CancellationToken.None;
-			var leaseId = (string)null;
-
-			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
-			mockBlob
-				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
@@ -646,7 +625,7 @@ namespace Picton.Extensions.UnitTests
 			mockBlob
 				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
-				.Callback((Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
+				.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
 				{
 					var buffer = expected.ToBytes();
 					await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
@@ -809,7 +788,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -835,7 +814,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -861,7 +840,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(false))
@@ -951,7 +930,7 @@ namespace Picton.Extensions.UnitTests
 			mockBlob
 				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
-				.Callback((Stream s, AccessCondition ac, BlobRequestOptions bro, OperationContext oc, CancellationToken ct) =>
+				.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions bro, OperationContext oc, CancellationToken ct) =>
 				{
 					var buffer = expected.ToBytes();
 					await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);

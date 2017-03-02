@@ -65,5 +65,4 @@ namespace Picton.UnitTests
 			_content = content;
 		}
 	}
-#endif
 }
