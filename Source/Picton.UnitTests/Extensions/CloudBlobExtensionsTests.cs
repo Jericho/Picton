@@ -76,7 +76,7 @@ namespace Picton.Extensions.UnitTests
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = (TimeSpan?)null;
-			var exception = GetWebException("Already leased", HttpStatusCode.Conflict, true);
+			var exception = new StorageException(new RequestResult() { HttpStatusCode = 409 }, "Already leased", new Exception("???"));
 
 			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
@@ -114,78 +114,26 @@ namespace Picton.Extensions.UnitTests
 		}
 
 		[Fact]
-		public void TryAcquireLeaseAsync_fail_with_response()
-		{
-			// Arrange
-			var cancellationToken = CancellationToken.None;
-			var leaseTime = (TimeSpan?)null;
-			var exception = GetWebException("Some error ocured", HttpStatusCode.BadRequest);
-
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
-			mockBlob
-				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
-				.ThrowsAsync(exception)
-				.Verifiable();
-
-			// Act
-			Should.ThrowAsync<WebException>(async () =>
-			{
-				await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken).ConfigureAwait(false);
-			});
-		}
-
-		[Fact]
-		public void TryAcquireLeaseAsync_fail_without_response()
-		{
-			// Arrange
-			var cancellationToken = CancellationToken.None;
-			var leaseTime = (TimeSpan?)null;
-			var exception = GetWebException("Some error ocured", HttpStatusCode.BadRequest, false);
-
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
-			mockBlob
-				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
-				.ThrowsAsync(exception)
-				.Verifiable();
-
-			// Act
-			Should.ThrowAsync<WebException>(async () =>
-			{
-				await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken).ConfigureAwait(false);
-			});
-		}
-
-		[Fact]
 		public async Task TryAcquireLeaseAsync_with_retries()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = TimeSpan.FromSeconds(15);
-			var expected = "Hello World";
 			var maxRetries = 5;
-			var attempts = 0;
 
 			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(leaseTime, (string)null, null, null, null, cancellationToken))
-				.Returns(Task.FromResult(expected))
-				.Callback(() =>
-				{
-					attempts++;
-					if (attempts < maxRetries)
-					{
-						var exception = GetWebException("Already leased", HttpStatusCode.Conflict, true);
-						throw exception;
-					}
-				}
-			);
+				.ThrowsAsync(new StorageException(new RequestResult() { HttpStatusCode = 409 }, "Already leased", new Exception("???")));
 
 			// Act
-			var result = await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken).ConfigureAwait(false);
+			await Should.ThrowAsync<StorageException>(async () =>
+			{
+				var result = await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken).ConfigureAwait(false);
+			});
 
 			// Assert
 			mockBlob.Verify(c => c.AcquireLeaseAsync(It.IsAny<TimeSpan?>(), It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()), Times.Exactly(maxRetries));
-			result.ShouldBe(expected);
 		}
 
 		[Fact]
@@ -220,7 +168,7 @@ namespace Picton.Extensions.UnitTests
 
 			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
-				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
+				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), null, null, null, null, cancellationToken))
 				.Returns(Task.FromResult(expected))
 				.Verifiable();
 
@@ -482,7 +430,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.CreateOrReplaceAsync(null, It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -508,7 +456,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.CreateOrReplaceAsync(It.Is<AccessCondition>(ac => ac.LeaseId == leaseId), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -788,7 +736,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -814,7 +762,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(true))
@@ -840,7 +788,7 @@ namespace Picton.Extensions.UnitTests
 			var streamContent = "Hello World".ToBytes();
 			var stream = new MemoryStream(streamContent);
 
-			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, BLOB_ITEM_URL);
+			var mockBlob = new Mock<CloudAppendBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
 				.Returns(Task.FromResult(false))
@@ -1023,22 +971,5 @@ namespace Picton.Extensions.UnitTests
 			mockBlob.Verify();
 		}
 		*/
-
-		private static WebException GetWebException(string description, HttpStatusCode statusCode, bool includeResponse = true)
-		{
-			var wr = (WebResponse)null;
-			if (includeResponse)
-			{
-				var message = new HttpResponseMessage(statusCode);
-				var requestUri = new Uri(BLOB_STORAGE_URL);
-				var cookieContainer = new CookieContainer();
-				var constructor = typeof(HttpWebResponse).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0];
-				var response = (HttpWebResponse)constructor.Invoke(new object[] { message, requestUri, cookieContainer });
-				wr = response;
-			}
-
-			var inner = new Exception(description);
-			return new WebException("This request failed", inner, WebExceptionStatus.ProtocolError, wr);
-		}
 	}
 }

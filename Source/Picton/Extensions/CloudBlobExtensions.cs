@@ -33,12 +33,9 @@ namespace Picton
 				catch (StorageException e)
 				{
 					// If the status code is 409 (HttpStatusCode.Conflict), it means the resource is already leased
-					if (e.RequestInformation?.HttpStatusCode == 409)
+					if (e.RequestInformation?.HttpStatusCode == 409 && attempts < maxLeaseAttempts - 1)
 					{
-						if (attempts < maxLeaseAttempts - 1)
-						{
-							await Task.Delay(500);    // Make sure we don't retry too quickly
-						}
+						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
 					}
 					else
 					{
@@ -63,6 +60,8 @@ namespace Picton
 			var proposedLeaseId = (string)null; // Proposed lease id (leave it null for storage service to return you one).
 			var blobDoesNotExist = false;
 			var leaseId = (string)null;
+
+			leaseTime = leaseTime.HasValue ? leaseTime : defaultLeaseTime;
 
 			try
 			{
