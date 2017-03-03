@@ -76,12 +76,11 @@ namespace Picton.Extensions.UnitTests
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = (TimeSpan?)null;
-			var exception = new StorageException(new RequestResult() { HttpStatusCode = 409 }, "Already leased", new Exception("???"));
 
 			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 			mockBlob
 				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
-				.ThrowsAsync(exception)
+				.ThrowsAsync(new StorageException(new RequestResult() { HttpStatusCode = 409 }, "Already leased", new Exception("???")))
 				.Verifiable();
 
 			// Act
@@ -127,13 +126,11 @@ namespace Picton.Extensions.UnitTests
 				.ThrowsAsync(new StorageException(new RequestResult() { HttpStatusCode = 409 }, "Already leased", new Exception("???")));
 
 			// Act
-			await Should.ThrowAsync<StorageException>(async () =>
-			{
-				var result = await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken).ConfigureAwait(false);
-			});
+			var result = await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, maxRetries, cancellationToken).ConfigureAwait(false);
 
 			// Assert
 			mockBlob.Verify(c => c.AcquireLeaseAsync(It.IsAny<TimeSpan?>(), It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()), Times.Exactly(maxRetries));
+			result.ShouldBeNull();
 		}
 
 		[Fact]

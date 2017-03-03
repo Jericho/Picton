@@ -33,9 +33,12 @@ namespace Picton
 				catch (StorageException e)
 				{
 					// If the status code is 409 (HttpStatusCode.Conflict), it means the resource is already leased
-					if (e.RequestInformation?.HttpStatusCode == 409 && attempts < maxLeaseAttempts - 1)
+					if (e.RequestInformation?.HttpStatusCode == 409)
 					{
-						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
+						if (attempts < maxLeaseAttempts - 1)
+						{
+							await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
+						}
 					}
 					else
 					{
