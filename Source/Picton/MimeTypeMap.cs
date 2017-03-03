@@ -11,6 +11,48 @@ namespace Picton
 	{
 		private static readonly Lazy<IDictionary<string, string>> _mappings = new Lazy<IDictionary<string, string>>(BuildMappings);
 
+		public static string GetMimeType(string extension)
+		{
+			if (extension == null)
+			{
+				throw new ArgumentNullException(nameof(extension));
+			}
+
+			if (!extension.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+			{
+				extension = "." + extension;
+			}
+
+			string mimeType;
+			if (!_mappings.Value.TryGetValue(extension, out mimeType))
+			{
+				mimeType = "application/octet-stream";
+			}
+
+			return mimeType;
+		}
+
+		public static string GetExtension(string mimeType)
+		{
+			if (mimeType == null)
+			{
+				throw new ArgumentNullException(nameof(mimeType));
+			}
+
+			if (mimeType.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+			{
+				throw new ArgumentException("Requested mime type is not valid: " + mimeType);
+			}
+
+			string extension;
+			if (_mappings.Value.TryGetValue(mimeType, out extension))
+			{
+				return extension;
+			}
+
+			throw new ArgumentException("Requested mime type is not registered: " + mimeType);
+		}
+
 		private static IDictionary<string, string> BuildMappings()
 		{
 			var mappings = new Dictionary<string, string>(StringComparer.CurrentCultureIgnoreCase)
@@ -20,19 +62,18 @@ namespace Picton
 				 * extension -> mime type
 				 * and
 				 * mime type -> extension
-				 * 
+				 *
 				 * any mime types on left side not pre-loaded on right side, are added automatically
 				 * some mime types can map to multiple extensions, so to get a deterministic mapping,
 				 * add those to the dictionary specifcially
-				 * 
-				 * combination of values from Windows 7 Registry and 
+				 *
+				 * combination of values from Windows 7 Registry and
 				 * from C:\Windows\System32\inetsrv\config\applicationHost.config
 				 * some added, including .7z and .dat
-				 * 
+				 *
 				 * Some added based on http://www.iana.org/assignments/media-types/media-types.xhtml
 				 * which lists mime types, but not extensions
 				 */
-				
 				{ ".323", "text/h323" },
 				{ ".3g2", "video/3gpp2" },
 				{ ".3gp", "video/3gpp" },
@@ -627,7 +668,6 @@ namespace Picton
 				{ ".xwd", "image/x-xwindowdump" },
 				{ ".z", "application/x-compress" },
 				{ ".zip", "application/zip" },
-
 				{ "application/fsharp-script", ".fsx" },
 				{ "application/msaccess", ".adp" },
 				{ "application/msword", ".doc" },
@@ -688,48 +728,6 @@ namespace Picton
 			}
 
 			return mappings;
-		}
-
-		public static string GetMimeType(string extension)
-		{
-			if (extension == null)
-			{
-				throw new ArgumentNullException(nameof(extension));
-			}
-
-			if (!extension.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-			{
-				extension = "." + extension;
-			}
-
-			string mimeType;
-			if (!_mappings.Value.TryGetValue(extension, out mimeType))
-			{
-				mimeType = "application/octet-stream";
-			}
-
-			return mimeType;
-		}
-
-		public static string GetExtension(string mimeType)
-		{
-			if (mimeType == null)
-			{
-				throw new ArgumentNullException(nameof(mimeType));
-			}
-
-			if (mimeType.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-			{
-				throw new ArgumentException("Requested mime type is not valid: " + mimeType);
-			}
-
-			string extension;
-			if (_mappings.Value.TryGetValue(mimeType, out extension))
-			{
-				return extension;
-			}
-
-			throw new ArgumentException("Requested mime type is not registered: " + mimeType);
 		}
 	}
 }

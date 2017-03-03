@@ -461,9 +461,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = 0;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -484,9 +484,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -598,9 +598,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = 0;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -621,9 +621,9 @@ namespace Picton.Managers.UnitTests
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			Should.Throw<ArgumentOutOfRangeException>(() =>
 			{
-				var queueManager = new QueueManager(queueName, storageAccount.Object);
 				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
 			});
 
@@ -787,8 +787,8 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
-			var blobStorageUri = new Uri(BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, blobStorageUri);
+			var mockBlobStorageUri = new Uri(BLOB_STORAGE_URL);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
 			mockBlobClient
 				.Setup(c => c.GetContainerReference(It.IsAny<string>()))
 				.Returns(mockBlobContainer.Object)
@@ -809,9 +809,9 @@ namespace Picton.Managers.UnitTests
 
 		private static Mock<CloudQueueClient> GetMockQueueClient(Mock<CloudQueue> mockQueue)
 		{
-			var queueStorageUri = new Uri(QUEUE_STORAGE_URL);
-			var credentials = new StorageCredentials();
-			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, queueStorageUri, credentials);
+			var mockQueueStorageUri = new Uri(QUEUE_STORAGE_URL);
+			var mockCredentials = new StorageCredentials("mySasToken");
+			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, mockQueueStorageUri, mockCredentials);
 			mockQueueClient
 				.Setup(c => c.GetQueueReference(mockQueue.Object.Name))
 				.Returns(mockQueue.Object)

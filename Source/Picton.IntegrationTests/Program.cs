@@ -78,8 +78,8 @@ namespace Picton.IntegrationTests
 			await blobManager.AppendTextAsync("test4.txt", "\r\nqwerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 			await blobManager.AppendTextAsync("test4.txt", "\r\nazerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-			var resultSegment = await blobManager.ListBlobsAsync("test1", false, false);
-			foreach (var blob in resultSegment.Results)
+			var blobs = await blobManager.ListBlobsAsync("test1", false, false, null, cancellationToken).ConfigureAwait(false);
+			foreach (var blob in blobs)
 			{
 				Console.WriteLine(blob.Uri.AbsoluteUri);
 			}

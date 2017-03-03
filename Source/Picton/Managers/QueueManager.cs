@@ -17,26 +17,27 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
+		private const string DateFormatInBlobName = "yyyy-MM-dd-HH-mm-ss-ffff";
+		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
+
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
-		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
-		private const string DateFormatInBlobName = "yyyy-MM-dd-HH-mm-ss-ffff";
 
 		#endregion
 
 		#region CONSTRUCTORS
 
-#if NETFULL
-		[ExcludeFromCodeCoverage] 
-#endif
 		/// <summary>
 		/// </summary>
 		/// <param name="queueName"></param>
 		/// <param name="cloudStorageAccount"></param>
-		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount) :
-			this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
+#if NETFULL
+		[ExcludeFromCodeCoverage]
+#endif
+		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
+			: this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
 		{
 		}
 
@@ -95,14 +96,25 @@ namespace Picton.Managers
 					serializer.Serialize(largeEnvelope, stream);
 					data = stream.ToArray();
 				}
-				var cloudMessage = new CloudQueueMessage("");
+
+				/*
+					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+					The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+				var cloudMessage = new CloudQueueMessage(data);
+				*/
+				var cloudMessage = new CloudQueueMessage(string.Empty);
 				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				var cloudMessage = new CloudQueueMessage("");
+				/*
+					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+					The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+				var cloudMessage = new CloudQueueMessage(data);
+				*/
+				var cloudMessage = new CloudQueueMessage(string.Empty);
 				cloudMessage.SetMessageContent(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
@@ -135,6 +147,7 @@ namespace Picton.Managers
 				var blob = _blobContainer.GetBlobReference(message.LargeContentBlobName);
 				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
 			}
+
 			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, options, operationContext, cancellationToken);
 		}
 
@@ -205,10 +218,6 @@ namespace Picton.Managers
 			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be less than or equal to {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
 
 			return _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken);
-
-			//var cloudMessages = await _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken);
-			//var messages = cloudMessages.Select(cloudMessage => _serializer.Deserialize(cloudMessage.AsBytes) as IMessage);
-			//return messages;
 		}
 
 		public Task<QueuePermissions> GetPermissionsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -216,6 +225,10 @@ namespace Picton.Managers
 			return _queue.GetPermissionsAsync(options, operationContext, cancellationToken);
 		}
 
+		// GetSharedAccessSignature is not virtual therefore we can't mock it.
+#if NETFULL
+		[ExcludeFromCodeCoverage]
+#endif
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
@@ -224,10 +237,6 @@ namespace Picton.Managers
 		public Task<CloudQueueMessage> PeekMessageAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return _queue.PeekMessageAsync(options, operationContext, cancellationToken);
-
-			//var cloudMessage = await _queue.PeekMessageAsync(options, operationContext, cancellationToken);
-			//var message = _serializer.Deserialize(cloudMessage.AsBytes);
-			//return message as IMessage;
 		}
 
 		public Task<IEnumerable<CloudQueueMessage>> PeekMessagesAsync(int messageCount, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -236,10 +245,6 @@ namespace Picton.Managers
 			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be less than or equal to {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
 
 			return _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken);
-
-			//var cloudMessages = await _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken);
-			//var messages = cloudMessages.Select(cloudMessage => _serializer.Deserialize(cloudMessage.AsBytes) as IMessage);
-			//return messages;
 		}
 
 		public Task SetMetadataAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -268,7 +273,6 @@ namespace Picton.Managers
 			{
 				return serializer.Deserialize<object>(stream);
 			}
-
 		}
 
 		private byte[] Serialize<T>(T message)

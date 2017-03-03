@@ -3,49 +3,54 @@
 		"emitEntryPoint": false,
 		"xmlDoc": true,
 		"platform": "anycpu",
+		"additionalArguments": [
+			"/ruleset:../Picton.ruleset",
+			"/additionalfile:../stylecop.json"
+		],
 		"compile": {
 		}
 	},
 	"configurations": {
 		"Release": {
 			"buildOptions": {
-				"warningsAsErrors": true
+				"warningsAsErrors": false
 			}
 		}
 	},
 	"dependencies": {
-		"NETStandard.Library": "1.6.0",
 		"StyleCop.Analyzers": {
-			"version": "1.0.0",
+			"version": "1.1.0-beta001",
 			"type": "build"
 		},
-		"WindowsAzure.Storage": "8.0.0",
 		"Wire": "0.8.2"
 	},
 	"frameworks": {
-		"netstandard1.6": {
-			"buildOptions": {
-				"define": [ "NETSTANDARD" ]
-			},
-			"dependencies": {
-				"System.Collections.Specialized": "4.3.0",
-				"System.Diagnostics.Process": "4.3.0",
-				"System.Net.Requests": "4.0.0"
-			},
-			"imports": [
-				"dnxcore50",
-				"portable-net451+win8"
-			]
-		},
 		"net452": {
+			"dependencies": {
+				"System.Diagnostics.Tools": "4.0.0",
+				"System.Net.Http": "4.0.0",
+				"System.Net.Requests": "4.0.0",
+				"WindowsAzure.Storage": "8.0.0"
+			},
 			"buildOptions": {
 				"define": [ "NETFULL" ]
-			},
+			}
+		},
+		"netstandard1.6": {
+			"imports": "dnxcore50",
 			"dependencies": {
+				"NETStandard.Library": "1.6.1",
+				"System.Collections.Specialized": "4.3.0",
+				"System.Diagnostics.Process": "4.3.0",
+				"System.Diagnostics.Tools": "4.3.0",
+				"System.Net.Http": "4.3.1",
+				"System.Net.Requests": "4.3.0",
+				"WindowsAzure.Storage": "8.1.1"
 			},
-			"frameworkAssemblies": {
+			"buildOptions": {
+				"define": [ "NETSTANDARD" ]
 			}
 		}
 	},
-	"version": "1.5.0-*"
+	"version": "1.0.0"
 }

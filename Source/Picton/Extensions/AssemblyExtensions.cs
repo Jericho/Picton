@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Linq;
+using System.Reflection;
 
 namespace Picton.Extensions
 {
@@ -29,7 +28,7 @@ namespace Picton.Extensions
 			var attributes = assembly.GetCustomAttributes<AssemblyConfigurationAttribute>();
 
 			// We expect only one attribute
-			if (attributes == null || attributes.Count() == 0)
+			if (attributes == null || !attributes.Any())
 			{
 				throw new Exception("Assembly does not contain the AssemblyConfiguration attribute.");
 			}
@@ -39,7 +38,8 @@ namespace Picton.Extensions
 			}
 
 			// Determine if the attribute matches the specified configuration
-			return attributes.First().Configuration.Equals(configuration, StringComparison.OrdinalIgnoreCase);
+			var assemblyConfiguration = attributes.First().Configuration;
+			return assemblyConfiguration.Equals(configuration, StringComparison.OrdinalIgnoreCase);
 		}
 
 		#endregion

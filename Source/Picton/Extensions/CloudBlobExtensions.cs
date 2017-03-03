@@ -4,7 +4,6 @@ using Picton.Interfaces;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,14 +30,14 @@ namespace Picton
 					leaseId = await blob.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
 					if (!string.IsNullOrEmpty(leaseId)) break;
 				}
-				catch (WebException e)
+				catch (StorageException e)
 				{
 					// If the status code is 409 (HttpStatusCode.Conflict), it means the resource is already leased
-					if (e.Response != null && ((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.Conflict)
+					if (e.RequestInformation?.HttpStatusCode == 409)
 					{
 						if (attempts < maxLeaseAttempts - 1)
 						{
-							await Task.Delay(500);    // Make sure we don't retry too quickly
+							await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
 						}
 					}
 					else
@@ -47,6 +46,7 @@ namespace Picton
 					}
 				}
 			}
+
 			return leaseId;
 		}
 
@@ -54,7 +54,7 @@ namespace Picton
 		{
 			// From: https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
 			// The Lease Blob operation establishes and manages a lock on a blob for write and delete operations.
-			// The lock duration can be 15 to 60 seconds, or can be infinite. 
+			// The lock duration can be 15 to 60 seconds, or can be infinite.
 			if (leaseTime.HasValue && (leaseTime.Value < TimeSpan.FromSeconds(15) | leaseTime.Value > TimeSpan.FromSeconds(60)))
 			{
 				throw new ArgumentOutOfRangeException(nameof(leaseTime), string.Format("{0} must be between 15 and 60 seconds", nameof(leaseTime)));
@@ -62,7 +62,42 @@ namespace Picton
 
 			var defaultLeaseTime = TimeSpan.FromSeconds(15);
 			var proposedLeaseId = (string)null; // Proposed lease id (leave it null for storage service to return you one).
-			var leaseId = await blob.AcquireLeaseAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
+			var blobDoesNotExist = false;
+			var leaseId = (string)null;
+
+			leaseTime = leaseTime.HasValue ? leaseTime : defaultLeaseTime;
+
+			try
+			{
+				// Optimistically try to acquire the lease. The blob may not yet
+				// exist. If it doesn't we handle the 404, create it, and retry below
+				leaseId = await blob.AcquireLeaseAsync(leaseTime, proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
+			}
+			catch (StorageException exception)
+			{
+				if (exception.RequestInformation != null)
+				{
+					if (exception.RequestInformation.HttpStatusCode == 404)
+					{
+						blobDoesNotExist = true;
+					}
+					else
+					{
+						throw;
+					}
+				}
+				else
+				{
+					throw;
+				}
+			}
+
+			if (blobDoesNotExist)
+			{
+				await blob.UploadTextAsync(string.Empty, null, cancellationToken);
+				leaseId = await blob.AcquireLeaseAsync(leaseTime, proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
+			}
+
 			return leaseId;
 		}
 
@@ -73,6 +108,22 @@ namespace Picton
 			return blob.ReleaseLeaseAsync(accessCondition, null, null, cancellationToken);
 		}
 
+		/// <summary>
+		/// Renews the lease asynchronously.
+		/// </summary>
+		/// <param name="blob">The BLOB.</param>
+		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		/// <exception cref="System.ArgumentNullException">blob</exception>
+		/// <remarks>
+		/// Starting in version 2012-02-12, some behaviors of the Lease Blob operation differ from
+		/// previous versions. For example, in previous versions of the Lease Blob operation you
+		/// could renew a lease after releasing it. Starting in version 2012-02-12, this lease
+		/// request will fail, while calls using older versions of Lease Blob still succeed. See
+		/// the Changes to Lease Blob introduced in version 2012-02-12 section under Remarks for a
+		/// list of changes to the behavior of this operation.
+		/// </remarks>
 		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
@@ -113,10 +164,14 @@ namespace Picton
 				var blockBlob = blob as CloudBlockBlob;
 				await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
-			else
+			else if (blob is CloudPageBlob)
 			{
 				var pageBlob = blob as CloudPageBlob;
 				await pageBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+			}
+			else
+			{
+				throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 			}
 		}
 
@@ -149,37 +204,42 @@ namespace Picton
 				{
 					await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
+
 				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
 			else if (blob is CloudBlockBlob)
 			{
 				var blockBlob = blob as CloudBlockBlob;
-				if (!blobExits)
-				{
-					await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
-				}
-				else
+				if (blobExits)
 				{
 					var content = new MemoryStream();
 					await blockBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
 					await blockBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
+				else
+				{
+					await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
 			}
-			else
+			else if (blob is CloudPageBlob)
 			{
 				var pageBlob = blob as CloudPageBlob;
-				if (!blobExits)
-				{
-					await pageBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
-				}
-				else
+				if (blobExits)
 				{
 					var content = new MemoryStream();
 					await pageBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
 					await pageBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
+				else
+				{
+					await pageBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
+				}
+			}
+			else
+			{
+				throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 			}
 		}
 
@@ -204,6 +264,7 @@ namespace Picton
 			{
 				accessCondition.LeaseId = leaseId;
 			}
+
 			return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 		}
 
@@ -241,7 +302,13 @@ namespace Picton
 					throw new Exception($"CopyAsync failed: {copyState.Status}");
 			};
 
-			if (blob is CloudBlockBlob)
+			if (blob is CloudAppendBlob)
+			{
+				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
+				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
+				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
+			}
+			else if (blob is CloudBlockBlob)
 			{
 				var blockTarget = container.GetBlockBlobReference(destinationBlobName);
 				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
@@ -255,9 +322,7 @@ namespace Picton
 			}
 			else
 			{
-				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
-				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
+				throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 			}
 		}
 

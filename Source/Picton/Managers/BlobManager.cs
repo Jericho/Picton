@@ -17,24 +17,24 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
+		private const string PATH_SEPARATOR = "/";
+		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
+		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
+
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
 		private readonly CloudBlobContainer _blobContainer;
-
-		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
-		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
-		private const string PATH_SEPARATOR = "/";
 
 		#endregion
 
 		#region CONSTRUCTORS
 
 #if NETFULL
-		[ExcludeFromCodeCoverage] 
+		[ExcludeFromCodeCoverage]
 #endif
-		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
-			this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
+		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+			: this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
 		{ }
 
 		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
@@ -47,7 +47,7 @@ namespace Picton.Managers
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
-			_blobContainer.CreateIfNotExistsAsync(accessType, null, null).Wait();
+			_blobContainer.CreateIfNotExistsAsync(accessType, null, null, CancellationToken.None).Wait();
 		}
 
 		#endregion
@@ -61,17 +61,16 @@ namespace Picton.Managers
 
 			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return null;
 
-			if (source.BlobType == BlobType.BlockBlob)
+			switch (source.BlobType)
 			{
-				return _blobContainer.GetBlockBlobReference(cleanBlobName);
-			}
-			else if (source.BlobType == BlobType.PageBlob)
-			{
-				return _blobContainer.GetPageBlobReference(cleanBlobName);
-			}
-			else
-			{
-				return _blobContainer.GetAppendBlobReference(cleanBlobName);
+				case BlobType.AppendBlob:
+					return _blobContainer.GetAppendBlobReference(cleanBlobName);
+				case BlobType.BlockBlob:
+					return _blobContainer.GetBlockBlobReference(cleanBlobName);
+				case BlobType.PageBlob:
+					return _blobContainer.GetPageBlobReference(cleanBlobName);
+				default:
+					throw new Exception($"Unknow blob type: {source.BlobType}");
 			}
 		}
 
@@ -108,7 +107,7 @@ namespace Picton.Managers
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 
-			var leaseId = "";
+			var leaseId = string.Empty;
 			if (acquireLease && blob != null)
 			{
 				maxLeaseAttempts = Math.Max(maxLeaseAttempts, 1);   // At least one attempt
@@ -136,7 +135,7 @@ namespace Picton.Managers
 
 			await blob.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			if (metadata != null && metadata.Count > 0)
+			if (metadata != null)
 			{
 				foreach (var key in metadata.AllKeys)
 				{
@@ -172,7 +171,7 @@ namespace Picton.Managers
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 
-			var leaseId = "";
+			var leaseId = string.Empty;
 			if (acquireLease && blob != null)
 			{
 				maxLeaseAttempts = Math.Max(maxLeaseAttempts, 1);   // At least one attempt
@@ -200,7 +199,7 @@ namespace Picton.Managers
 
 			await blob.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			if (metadata != null && metadata.Count > 0)
+			if (metadata != null)
 			{
 				foreach (var key in metadata.AllKeys)
 				{
@@ -228,52 +227,46 @@ namespace Picton.Managers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
-			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false) as CloudBlob;
+			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var finished = false;
-			var continuationToken = (BlobContinuationToken)null;
-
-			do
+			var blobItems = await ListBlobsAsync(prefix, true, false).ConfigureAwait(false);
+			if (blobItems != null)
 			{
-				var segment = await ListBlobsAsync(prefix, true, false, 500, continuationToken, cancellationToken);
-				if (segment != null)
+				foreach (var appendBlob in blobItems.OfType<CloudAppendBlob>())
 				{
-					foreach (var blobItem in segment.Results.OfType<CloudBlob>())
-					{
-						await blobItem.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
-					}
+					await appendBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 				}
-				continuationToken = segment.ContinuationToken;
-				finished = segment == null || !segment.Results.Any();
-			} while (!finished);
+
+				foreach (var blockBlob in blobItems.OfType<CloudBlockBlob>())
+				{
+					await blockBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
+				}
+
+				foreach (var pageBlob in blobItems.OfType<CloudPageBlob>())
+				{
+					await pageBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
+				}
+			}
 		}
 
-		public async Task<BlobResultSegment> ListBlobsAsync(string folder, bool includeSubFolders = false, bool includeMetadata = false, int maxResults = 1000, BlobContinuationToken continuationToken = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<IListBlobItem>> ListBlobsAsync(string prefix, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var cleanFolder = SanitizeBlobName(folder, true);
-			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanFolder}";
-			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
+			var cleanPrefix = SanitizeBlobName(prefix, true);
+			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanPrefix}";
+			var listingDetails = includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None;
 
-			return await _blobClient.ListBlobsSegmentedAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, continuationToken, null, null);
+			return _blobContainer.ListBlobsAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, cancellationToken);
 		}
 
-		public async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
-
-			var resultSegment = await _blobContainer
-				.GetDirectoryReference(cleanFolder)
-				.ListBlobsSegmentedAsync(false, BlobListingDetails.None, null, null, null, null, cancellationToken);
-
-			var subFolders = resultSegment
-				.Results
-				.OfType<CloudBlobDirectory>();
-
-			return subFolders;
+			var listingDetails = includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None;
+			return _blobContainer.ListSubFoldersAsync(cleanFolder, listingDetails, maxResults, cancellationToken);
 		}
 
 		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
@@ -309,10 +302,10 @@ namespace Picton.Managers
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)
 		{
 			blobName = blobName?
-				.Replace(@"\", PATH_SEPARATOR)  // Azure uses forward slash as the path segment seperator
-				.Replace(" ", "_")              // Azure supports spaces but it leads to problems in URLs
-				.Replace("#", "_")              // Azure supports the # character but it leads to problems in URLs
-				.Replace("'", "_")              // Azure supports quotes but it leads to problems in URLs
+				.Replace(@"\", PATH_SEPARATOR) // Azure uses forward slash as the path segment seperator
+				.Replace(" ", "_") // Azure supports spaces but it leads to problems in URLs
+				.Replace("#", "_") // Azure supports the # character but it leads to problems in URLs
+				.Replace("'", "_") // Azure supports quotes but it leads to problems in URLs
 				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
 				.TrimStart($"{PATH_SEPARATOR}{_containerName}")
 				.TrimStart(PATH_SEPARATOR);

@@ -59,7 +59,7 @@ namespace Picton.UnitTests
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var mimeType = MimeTypeMap.GetExtension(null);
+				var extension = MimeTypeMap.GetExtension(null);
 			});
 		}
 
@@ -68,7 +68,7 @@ namespace Picton.UnitTests
 		{
 			Should.Throw<ArgumentException>(() =>
 			{
-				var mimeType = MimeTypeMap.GetExtension(".blablabla");
+				var extension = MimeTypeMap.GetExtension(".blablabla");
 			});
 		}
 
@@ -90,7 +90,7 @@ namespace Picton.UnitTests
 		{
 			Should.Throw<ArgumentException>(() =>
 			{
-				var mimeType = MimeTypeMap.GetExtension("blablabla");
+				var extension = MimeTypeMap.GetExtension("blablabla");
 			});
 		}
 	}
