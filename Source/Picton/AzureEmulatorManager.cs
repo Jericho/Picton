@@ -84,7 +84,7 @@ namespace Picton
 			_storageEmulatorVersions.Add(new EmulatorVersionInfo(3, new[] { "WAStorageEmulator", "WASTOR~1" }, @"C:\Program Files (x86)\Microsoft SDKs\Windows Azure\Storage Emulator\WAStorageEmulator.exe", "start", "stop"));
 			_storageEmulatorVersions.Add(new EmulatorVersionInfo(4, new[] { "AzureStorageEmulator" }, @"C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe", "start", "stop"));
 
-			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(1, new[] { "DocumentDB.Emulator" }, @"C:\Program Files\DocumentDB Emulator\DocumentDB.Emulator.exe", "", "stop"));
+			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(1, new[] { "DocumentDB.Emulator" }, @"C:\Program Files\DocumentDB Emulator\DocumentDB.Emulator.exe", "", "/shutdown"));
 		}
 
 		#endregion
@@ -118,7 +118,7 @@ namespace Picton
 			// The DocumentDb emulator process never seems to complete (I don't know why), therefore we must set a reasonable wait timeout
 			var waitTimeout = TimeSpan.FromSeconds(20);
 
-			EnsureEmulatorIsStarted(_documentDbEmulatorVersions, false, waitTimeout);
+			EnsureEmulatorIsStarted(_documentDbEmulatorVersions, true, waitTimeout);
 		}
 
 		/// <summary>
@@ -148,6 +148,7 @@ namespace Picton
 					{
 						count += Process.GetProcessesByName(processName).Length;
 					}
+
 					if (count == 0) StartProcess(emulatorVersion.ExecutablePath, emulatorVersion.StartParameters, elevated, waitTimeout);
 					found = true;
 					break;
@@ -175,6 +176,7 @@ namespace Picton
 					{
 						count += Process.GetProcessesByName(processName).Length;
 					}
+
 					if (count > 0) StartProcess(emulatorVersion.ExecutablePath, emulatorVersion.StopParameters, elevated, TimeSpan.Zero);
 				}
 			}
@@ -188,7 +190,7 @@ namespace Picton
 				WindowStyle = ProcessWindowStyle.Hidden,
 #endif
 				UseShellExecute = false,
-				CreateNoWindow = true,
+				//CreateNoWindow = true,
 				Arguments = arguments,
 				FileName = fileName
 			};
@@ -202,7 +204,7 @@ namespace Picton
 #endif
 			var exitCode = 0;
 
-			using (var proc = new Process { StartInfo = start })
+			using (var proc = new Process { EnableRaisingEvents = true, StartInfo = start })
 			{
 				proc.Start();
 
