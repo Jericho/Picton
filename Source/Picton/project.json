@@ -1,7 +1,7 @@
 {
 	"buildOptions": {
 		"emitEntryPoint": false,
-		"xmlDoc": false,
+		"xmlDoc": true,
 		"platform": "anycpu",
 		"additionalArguments": [
 			"/ruleset:../Picton.ruleset",
@@ -13,7 +13,7 @@
 	"configurations": {
 		"Release": {
 			"buildOptions": {
-				"warningsAsErrors": true
+				"warningsAsErrors": false
 			}
 		}
 	},
@@ -52,5 +52,5 @@
 			}
 		}
 	},
-	"version": "1.5.0-drop-old-frameworks.1"
+	"version": "1.0.0"
 }
