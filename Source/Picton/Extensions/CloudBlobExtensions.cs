@@ -46,6 +46,7 @@ namespace Picton
 					}
 				}
 			}
+
 			return leaseId;
 		}
 
@@ -53,7 +54,7 @@ namespace Picton
 		{
 			// From: https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
 			// The Lease Blob operation establishes and manages a lock on a blob for write and delete operations.
-			// The lock duration can be 15 to 60 seconds, or can be infinite. 
+			// The lock duration can be 15 to 60 seconds, or can be infinite.
 			if (leaseTime.HasValue && (leaseTime.Value < TimeSpan.FromSeconds(15) | leaseTime.Value > TimeSpan.FromSeconds(60)))
 			{
 				throw new ArgumentOutOfRangeException(nameof(leaseTime), string.Format("{0} must be between 15 and 60 seconds", nameof(leaseTime)));
@@ -121,7 +122,7 @@ namespace Picton
 		/// could renew a lease after releasing it. Starting in version 2012-02-12, this lease
 		/// request will fail, while calls using older versions of Lease Blob still succeed. See
 		/// the Changes to Lease Blob introduced in version 2012-02-12 section under Remarks for a
-		/// list of changes to the behavior of this operation. 
+		/// list of changes to the behavior of this operation.
 		/// </remarks>
 		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
@@ -203,6 +204,7 @@ namespace Picton
 				{
 					await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
+
 				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
 			}
 			else if (blob is CloudBlockBlob)
@@ -219,7 +221,6 @@ namespace Picton
 				{
 					await blockBlob.UploadFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
-
 			}
 			else if (blob is CloudPageBlob)
 			{
@@ -263,6 +264,7 @@ namespace Picton
 			{
 				accessCondition.LeaseId = leaseId;
 			}
+
 			return blob.SetMetadataAsync(accessCondition, null, null, cancellationToken);
 		}
 

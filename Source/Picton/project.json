@@ -1,23 +1,27 @@
 {
-	"title": "Picton",
-	"version": "1.0.0-*",
-	"description": "The Picton library for Azure",
-	"authors": [ "jericho" ],
-	"packOptions": {
-		"owners": [ "jericho" ],
-		"summary": "Among other things it contains extension methods and abstrations for StorageAccount, BlobClient, QueueClient, etc.",
-		"projectUrl": "https://github.com/Jericho/Picton",
-		"licenseUrl": "http://jericho.mit-license.org",
-		"iconUrl": "https://github.com/identicons/jericho.png",
-		"requireLicenseAcceptance": false,
-		"tags": [ "Picton", "Azure" ],
-		"repository": {
-			"type": "git",
-			"url": "https://github.com/Jericho/Picton"
+	"buildOptions": {
+		"emitEntryPoint": false,
+		"xmlDoc": false,
+		"platform": "anycpu",
+		"additionalArguments": [
+			"/ruleset:../Picton.ruleset",
+			"/additionalfile:../stylecop.json"
+		],
+		"compile": {
 		}
 	},
-
+	"configurations": {
+		"Release": {
+			"buildOptions": {
+				"warningsAsErrors": true
+			}
+		}
+	},
 	"dependencies": {
+		"StyleCop.Analyzers": {
+			"version": "1.1.0-beta001",
+			"type": "build"
+		},
 		"Wire": "0.8.2"
 	},
 	"frameworks": {
@@ -47,5 +51,6 @@
 				"define": [ "NETSTANDARD" ]
 			}
 		}
-	}
+	},
+	"version": "1.5.0-drop-old-frameworks.1"
 }

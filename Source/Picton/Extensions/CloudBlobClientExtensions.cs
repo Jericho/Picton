@@ -9,7 +9,7 @@ namespace Picton
 	{
 		#region PUBLIC EXTENSION METHODS
 
-		public static async Task<IEnumerable<CloudBlobContainer>> ListContainersAsync(this CloudBlobClient blobClient, string prefix = null, ContainerListingDetails listingDetails = ContainerListingDetails.Metadata, int ? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<IEnumerable<CloudBlobContainer>> ListContainersAsync(this CloudBlobClient blobClient, string prefix = null, ContainerListingDetails listingDetails = ContainerListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var containers = new List<CloudBlobContainer>();

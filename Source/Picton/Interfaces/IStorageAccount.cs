@@ -9,10 +9,15 @@ namespace Picton.Interfaces
 	public interface IStorageAccount
 	{
 		CloudBlobClient CreateCloudBlobClient();
+
 		CloudFileClient CreateCloudFileClient();
+
 		CloudQueueClient CreateCloudQueueClient();
+
 		CloudTableClient CreateCloudTableClient();
+
 		string GetSharedAccessSignature(SharedAccessAccountPolicy policy);
+
 		string ToString(bool exportSecrets);
 	}
 }

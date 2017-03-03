@@ -17,14 +17,14 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
+		private const string PATH_SEPARATOR = "/";
+		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
+		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
+
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
 		private readonly CloudBlobContainer _blobContainer;
-
-		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
-		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
-		private const string PATH_SEPARATOR = "/";
 
 		#endregion
 
@@ -33,8 +33,8 @@ namespace Picton.Managers
 #if NETFULL
 		[ExcludeFromCodeCoverage]
 #endif
-		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off) :
-			this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
+		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+			: this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
 		{ }
 
 		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
@@ -61,21 +61,16 @@ namespace Picton.Managers
 
 			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return null;
 
-			if (source.BlobType == BlobType.AppendBlob)
+			switch (source.BlobType)
 			{
-				return _blobContainer.GetAppendBlobReference(cleanBlobName);
-			}
-			else if (source.BlobType == BlobType.BlockBlob)
-			{
-				return _blobContainer.GetBlockBlobReference(cleanBlobName);
-			}
-			else if (source.BlobType == BlobType.PageBlob)
-			{
-				return _blobContainer.GetPageBlobReference(cleanBlobName);
-			}
-			else
-			{
-				throw new Exception($"Unknow blob type: {source.BlobType}");
+				case BlobType.AppendBlob:
+					return _blobContainer.GetAppendBlobReference(cleanBlobName);
+				case BlobType.BlockBlob:
+					return _blobContainer.GetBlockBlobReference(cleanBlobName);
+				case BlobType.PageBlob:
+					return _blobContainer.GetPageBlobReference(cleanBlobName);
+				default:
+					throw new Exception($"Unknow blob type: {source.BlobType}");
 			}
 		}
 
@@ -112,7 +107,7 @@ namespace Picton.Managers
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 
-			var leaseId = "";
+			var leaseId = string.Empty;
 			if (acquireLease && blob != null)
 			{
 				maxLeaseAttempts = Math.Max(maxLeaseAttempts, 1);   // At least one attempt
@@ -146,6 +141,7 @@ namespace Picton.Managers
 				{
 					blob.Metadata[key] = metadata[key];
 				}
+
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -175,7 +171,7 @@ namespace Picton.Managers
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
 
-			var leaseId = "";
+			var leaseId = string.Empty;
 			if (acquireLease && blob != null)
 			{
 				maxLeaseAttempts = Math.Max(maxLeaseAttempts, 1);   // At least one attempt
@@ -209,6 +205,7 @@ namespace Picton.Managers
 				{
 					blob.Metadata[key] = metadata[key];
 				}
+
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
@@ -243,10 +240,12 @@ namespace Picton.Managers
 				{
 					await appendBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 				}
+
 				foreach (var blockBlob in blobItems.OfType<CloudBlockBlob>())
 				{
 					await blockBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 				}
+
 				foreach (var pageBlob in blobItems.OfType<CloudPageBlob>())
 				{
 					await pageBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
@@ -258,7 +257,7 @@ namespace Picton.Managers
 		{
 			var cleanPrefix = SanitizeBlobName(prefix, true);
 			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanPrefix}";
-			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
+			var listingDetails = includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None;
 
 			return _blobContainer.ListBlobsAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, cancellationToken);
 		}
@@ -266,7 +265,7 @@ namespace Picton.Managers
 		public Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
-			var listingDetails = (includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None);
+			var listingDetails = includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None;
 			return _blobContainer.ListSubFoldersAsync(cleanFolder, listingDetails, maxResults, cancellationToken);
 		}
 
@@ -303,10 +302,10 @@ namespace Picton.Managers
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)
 		{
 			blobName = blobName?
-				.Replace(@"\", PATH_SEPARATOR)  // Azure uses forward slash as the path segment seperator
-				.Replace(" ", "_")              // Azure supports spaces but it leads to problems in URLs
-				.Replace("#", "_")              // Azure supports the # character but it leads to problems in URLs
-				.Replace("'", "_")              // Azure supports quotes but it leads to problems in URLs
+				.Replace(@"\", PATH_SEPARATOR) // Azure uses forward slash as the path segment seperator
+				.Replace(" ", "_") // Azure supports spaces but it leads to problems in URLs
+				.Replace("#", "_") // Azure supports the # character but it leads to problems in URLs
+				.Replace("'", "_") // Azure supports quotes but it leads to problems in URLs
 				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
 				.TrimStart($"{PATH_SEPARATOR}{_containerName}")
 				.TrimStart(PATH_SEPARATOR);

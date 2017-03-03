@@ -26,7 +26,6 @@ namespace Picton
 			return result;
 		}
 
-
 		/// <summary>
 		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
 		/// </summary>
