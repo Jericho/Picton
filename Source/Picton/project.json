@@ -28,9 +28,9 @@
 		"net452": {
 			"dependencies": {
 				"System.Diagnostics.Tools": "4.0.0",
-				"System.Net.Http": "4.0.0",
+				"System.Net.Http": "4.3.2",
 				"System.Net.Requests": "4.0.0",
-				"WindowsAzure.Storage": "8.0.0"
+				"WindowsAzure.Storage": "8.1.4"
 			},
 			"buildOptions": {
 				"define": [ "NETFULL" ]
@@ -43,9 +43,9 @@
 				"System.Collections.Specialized": "4.3.0",
 				"System.Diagnostics.Process": "4.3.0",
 				"System.Diagnostics.Tools": "4.3.0",
-				"System.Net.Http": "4.3.1",
+				"System.Net.Http": "4.3.2",
 				"System.Net.Requests": "4.3.0",
-				"WindowsAzure.Storage": "8.1.1"
+				"WindowsAzure.Storage": "8.1.4"
 			},
 			"buildOptions": {
 				"define": [ "NETSTANDARD" ]

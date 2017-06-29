@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 
 namespace Picton
 {
@@ -24,6 +26,8 @@ namespace Picton
 	/// - 4.4 was released with SDK 2.9.1 in May 2016
 	/// - 4.5 was released with SDK 2.9.5 in August 2016
 	/// - 4.6 was released with in November 2016 as a seperate download, not as part of SDK 2.9.6
+	/// - ??? was released with SDK 3.0.0 in March 2017
+	/// - 5.1 was released with SDK 3.0.1 in May 2017
 	/// </summary>
 	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a></remarks>
 	public static class AzureEmulatorManager
@@ -50,20 +54,27 @@ namespace Picton
 			/// <summary>
 			/// The parameters expected by the emulator when starting
 			/// </summary>
-			public string Parameters { get; private set; }
+			public string StartParameters { get; private set; }
 
-			public EmulatorVersionInfo(int version, IEnumerable<string> processNames, string executablePath, string parameters)
+			/// <summary>
+			/// The parameters expected by the emulator when stoping
+			/// </summary>
+			public string StopParameters { get; private set; }
+
+			public EmulatorVersionInfo(int version, IEnumerable<string> processNames, string executablePath, string startParameters, string stopParameters)
 			{
 				Version = version;
 				ProcessNames = processNames.ToArray();
 				ExecutablePath = executablePath;
-				Parameters = parameters;
+				StartParameters = startParameters;
+				StopParameters = stopParameters;
 			}
 		}
 
 		#region FIELDS
 
-		private static IList<EmulatorVersionInfo> _emulatorVersions = new List<EmulatorVersionInfo>();
+		private static IList<EmulatorVersionInfo> _storageEmulatorVersions = new List<EmulatorVersionInfo>();
+		private static IList<EmulatorVersionInfo> _documentDbEmulatorVersions = new List<EmulatorVersionInfo>();
 
 		#endregion
 
@@ -71,9 +82,12 @@ namespace Picton
 
 		static AzureEmulatorManager()
 		{
-			_emulatorVersions.Add(new EmulatorVersionInfo(2, new[] { "DSService" }, @"C:\Program Files\Microsoft SDKs\Windows Azure\Emulator\csrun.exe", "/devstore:start"));
-			_emulatorVersions.Add(new EmulatorVersionInfo(3, new[] { "WAStorageEmulator", "WASTOR~1" }, @"C:\Program Files (x86)\Microsoft SDKs\Windows Azure\Storage Emulator\WAStorageEmulator.exe", "start"));
-			_emulatorVersions.Add(new EmulatorVersionInfo(4, new[] { "AzureStorageEmulator" }, @"C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe", "start"));
+			_storageEmulatorVersions.Add(new EmulatorVersionInfo(2, new[] { "DSService" }, @"C:\Program Files\Microsoft SDKs\Windows Azure\Emulator\csrun.exe", "/devstore:start", "/devstore:stop"));
+			_storageEmulatorVersions.Add(new EmulatorVersionInfo(3, new[] { "WAStorageEmulator", "WASTOR~1" }, @"C:\Program Files (x86)\Microsoft SDKs\Windows Azure\Storage Emulator\WAStorageEmulator.exe", "start", "stop"));
+			_storageEmulatorVersions.Add(new EmulatorVersionInfo(4, new[] { "AzureStorageEmulator" }, @"C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe", "start", "stop"));
+
+			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(0, new[] { "DocumentDB.Emulator" }, @"C:\Program Files\DocumentDB Emulator\DocumentDB.Emulator.exe", "", "/shutdown"));
+			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(1, new[] { "DocumentDB.GatewayService" }, @"C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe", "", "/shutdown"));
 		}
 
 		#endregion
@@ -85,11 +99,50 @@ namespace Picton
 		/// </summary>
 		public static void EnsureStorageEmulatorIsStarted()
 		{
+			// The storage emulator process completes quickly therefore no need to set a wait timeout
+			var waitTimeout = TimeSpan.Zero;
+
+			EnsureEmulatorIsStarted(_storageEmulatorVersions, false, waitTimeout);
+		}
+
+		/// <summary>
+		/// Stop the storage emulator if running
+		/// </summary>
+		public static void StopStorageEmulator()
+		{
+			EnsureEmulatorIsStoped(_storageEmulatorVersions, false);
+		}
+
+		/// <summary>
+		/// Start the most recent version of the DocumentDb emulator if not already started.
+		/// </summary>
+		public static void EnsureDocumentDbEmulatorIsStarted()
+		{
+			// The DocumentDb emulator process never seems to complete (I don't know why), therefore we must set a reasonable wait timeout
+			var waitTimeout = TimeSpan.FromSeconds(20);
+
+			EnsureEmulatorIsStarted(_documentDbEmulatorVersions, true, waitTimeout);
+		}
+
+		/// <summary>
+		/// Stop the DocumentDb emulator if running
+		/// </summary>
+		public static void StopDocumentDbEmulator()
+		{
+			EnsureEmulatorIsStoped(_documentDbEmulatorVersions, true);
+		}
+
+		#endregion
+
+		#region PRIVATE METHODS
+
+		private static void EnsureEmulatorIsStarted(IEnumerable<EmulatorVersionInfo> emulatorVersions, bool elevated, TimeSpan waitTimeout)
+		{
 			var found = false;
 
 			// Ordering emulators in reverse order is important.
 			// We want to ensure we start the most recent version, even if an older version is available
-			foreach (var emulatorVersion in _emulatorVersions.OrderByDescending(x => x.Version))
+			foreach (var emulatorVersion in emulatorVersions.OrderByDescending(x => x.Version))
 			{
 				if (File.Exists(emulatorVersion.ExecutablePath))
 				{
@@ -99,7 +152,7 @@ namespace Picton
 						count += Process.GetProcessesByName(processName).Length;
 					}
 
-					if (count == 0) StartStorageEmulator(emulatorVersion.Parameters, emulatorVersion.ExecutablePath);
+					if (count == 0) LaunchProcess(emulatorVersion.ExecutablePath, emulatorVersion.StartParameters, elevated, waitTimeout);
 					found = true;
 					break;
 				}
@@ -107,36 +160,69 @@ namespace Picton
 
 			if (!found)
 			{
-				throw new FileNotFoundException("Unable to find the Azure emulator on this computer");
+				throw new FileNotFoundException("Unable to find the emulator on this computer");
 			}
 		}
 
 		/// <summary>
 		/// Stop the storage emulator if running
 		/// </summary>
-		public static void StopStorageEmulator()
+		private static void EnsureEmulatorIsStoped(IEnumerable<EmulatorVersionInfo> emulatorVersions, bool elevated)
 		{
-			foreach (var processName in _emulatorVersions.SelectMany(x => x.ProcessNames))
+			// Looping through all versions of the emulator to make sure we stop any version that might be running
+			foreach (var emulatorVersion in emulatorVersions)
 			{
-				var process = Process.GetProcessesByName(processName).FirstOrDefault();
-				if (process != null) process.Kill();
+				if (File.Exists(emulatorVersion.ExecutablePath))
+				{
+					var count = 0;
+					foreach (var processName in emulatorVersion.ProcessNames)
+					{
+						count += Process.GetProcessesByName(processName).Length;
+					}
+
+					if (count > 0) LaunchProcess(emulatorVersion.ExecutablePath, emulatorVersion.StopParameters, elevated, TimeSpan.Zero);
+				}
 			}
 		}
 
-		#endregion
-
-		#region PRIVATE METHODS
-
-		private static void StartStorageEmulator(string argument, string fileName)
+		private static void LaunchProcess(string fileName, string arguments, bool elevated, TimeSpan waitTimeout)
 		{
 			var start = new ProcessStartInfo
 			{
+#if NETFULL
+				WindowStyle = ProcessWindowStyle.Hidden,
+#endif
 				UseShellExecute = false,
-				CreateNoWindow = true,
-				Arguments = argument,
+				//CreateNoWindow = true,
+				Arguments = arguments,
 				FileName = fileName
 			};
-			var exitCode = ExecuteProcess(start);
+
+#if NETFULL
+			if (elevated)
+			{
+				start.Verb = "runas";
+				start.UseShellExecute = true;
+			}
+#endif
+			var exitCode = 0;
+
+			using (var proc = new Process { EnableRaisingEvents = true, StartInfo = start })
+			{
+				proc.Start();
+
+				if (waitTimeout == TimeSpan.Zero)
+				{
+					proc.WaitForExit();
+					exitCode = proc.ExitCode;
+				}
+				else
+				{
+					var completed = proc.WaitForExit((int)waitTimeout.TotalMilliseconds);
+					if (completed) exitCode = proc.ExitCode;
+				}
+			}
+
 			if (exitCode != 0)
 			{
 				var message = string.Format(
@@ -146,19 +232,6 @@ namespace Picton
 					start.Arguments);
 				throw new InvalidOperationException(message);
 			}
-		}
-
-		private static int ExecuteProcess(ProcessStartInfo start)
-		{
-			int exitCode;
-			using (var proc = new Process { StartInfo = start })
-			{
-				proc.Start();
-				proc.WaitForExit();
-				exitCode = proc.ExitCode;
-			}
-
-			return exitCode;
 		}
 
 		#endregion
