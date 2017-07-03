@@ -35,11 +35,11 @@
 		</dependencies>
 	</metadata>
 	<files>
-		<file src="StrongGrid/bin/Release/net452/Picton.dll" target="lib/net452" />
-		<file src="StrongGrid/bin/Release/net452/Picton.pdb" target="lib/net452" />
-		<file src="StrongGrid/bin/Release/net452/Picton.xml" target="lib/net452" />
-		<file src="StrongGrid/bin/Release/netstandard1.6/Picton.dll" target="lib/netstandard1.6" />
-		<file src="StrongGrid/bin/Release/netstandard1.6/Picton.pdb" target="lib/netstandard1.6" />
-		<file src="StrongGrid/bin/Release/netstandard1.6/Picton.xml" target="lib/netstandard1.6" />
+		<file src="Picton/bin/Release/net452/Picton.dll" target="lib/net452" />
+		<file src="Picton/bin/Release/net452/Picton.pdb" target="lib/net452" />
+		<file src="Picton/bin/Release/net452/Picton.xml" target="lib/net452" />
+		<file src="Picton/bin/Release/netstandard1.6/Picton.dll" target="lib/netstandard1.6" />
+		<file src="Picton/bin/Release/netstandard1.6/Picton.pdb" target="lib/netstandard1.6" />
+		<file src="Picton/bin/Release/netstandard1.6/Picton.xml" target="lib/netstandard1.6" />
 	</files>
 </package>
