@@ -231,7 +231,7 @@ namespace Picton.Managers
 			return _queue.SetPermissionsAsync(permissions, options, operationContext, cancellationToken);
 		}
 
-		/*	For the time being, we don't support updating the content of a message due to complexity
+		/* For the time being, we don't support updating the content of a message due to complexity
 			In order to support updating content we need to consider the following scenarios
 				1) Previous content was smaller than max size and we are updating with content that is also smaller than max size. This is a trivial scenario. We simply need to update the content in the Azure queue.
 				2) Previous content exceeded max size and we are updating with content that also exceeds max size. This is also a trivial scenario. We simply need to update the content in the blob.
