@@ -33,8 +33,8 @@ namespace Picton
 				}
 				while (!IsFairRoll(randomNumber[0], numberSides));
 			}
-						
-			// Return the random number mod the number of sides. 
+
+			// Return the random number mod the number of sides.
 			// The possible values are zero-based, so we add one.
 			return (byte)((randomNumber[0] % numberSides) + 1);
 		}

@@ -145,7 +145,7 @@ namespace Picton.Managers
 				await blob.SetMetadataAsync(leaseId, cancellationToken);
 			}
 
-			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(new AccessCondition() { LeaseId = leaseId }, null, null,  cancellationToken).ConfigureAwait(false);
+			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(new AccessCondition() { LeaseId = leaseId }, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
