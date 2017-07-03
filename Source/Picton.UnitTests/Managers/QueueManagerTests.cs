@@ -691,7 +691,7 @@ namespace Picton.Managers.UnitTests
 		}
 
 		[Fact]
-		public void UpdateMessageAsync()
+		public void UpdateMessageVisibilityTimeoutAsync()
 		{
 			// Arrange
 			var queueName = "myqueue";
@@ -701,18 +701,17 @@ namespace Picton.Managers.UnitTests
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var permissions = new QueuePermissions();
-			var message = new CloudQueueMessage("Hello world");
+			var message = new CloudMessage("Hello world");
 			var visibilityTimeout = TimeSpan.FromSeconds(2);
-			var updateFields = MessageUpdateFields.Visibility;
 
 			mockQueue
-				.Setup(c => c.UpdateMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan>(), It.IsAny<MessageUpdateFields>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Setup(c => c.UpdateMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan>(), MessageUpdateFields.Visibility, It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			queueManager.UpdateMessageAsync(message, visibilityTimeout, updateFields).Wait();
+			queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).Wait();
 
 			// Assert
 			mockQueue.Verify();
