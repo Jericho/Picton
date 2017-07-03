@@ -535,11 +535,12 @@ namespace Picton.Managers.UnitTests
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-			var message = new CloudQueueMessage("Hello world");
+			var cloudMessage = new CloudQueueMessage("Hello world");
+			var message = new CloudMessage("Hello world");
 
 			mockQueue
 				.Setup(c => c.PeekMessageAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(message))
+				.Returns(Task.FromResult(cloudMessage))
 				.Verifiable();
 
 			// Act
@@ -551,7 +552,8 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(message);
+			result.Content.GetType().ShouldBe(message.Content.GetType());
+			result.Content.ShouldBe(message.Content);
 		}
 
 		[Fact]
@@ -564,7 +566,7 @@ namespace Picton.Managers.UnitTests
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-			var messages = new[]
+			var cloudMessages = new[]
 			{
 				new CloudQueueMessage("Message 1"),
 				new CloudQueueMessage("Message 2")
@@ -572,7 +574,7 @@ namespace Picton.Managers.UnitTests
 
 			mockQueue
 				.Setup(c => c.PeekMessagesAsync(It.IsAny<int>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)messages))
+				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)cloudMessages))
 				.Verifiable();
 
 			// Act
@@ -584,7 +586,7 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(messages);
+			result.Length.ShouldBe(cloudMessages.Length);
 		}
 
 		[Fact]
@@ -601,9 +603,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert
@@ -624,9 +626,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert

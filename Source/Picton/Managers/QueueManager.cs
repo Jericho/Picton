@@ -198,17 +198,27 @@ namespace Picton.Managers
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
 		}
 
-		public Task<CloudQueueMessage> PeekMessageAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<CloudMessage> PeekMessageAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return _queue.PeekMessageAsync(options, operationContext, cancellationToken);
+			// Peek at the next message in the queue
+			var cloudMessage = await _queue.PeekMessageAsync(options, operationContext, cancellationToken).ConfigureAwait(false);
+
+			// Convert the Azure SDK message into a Picton message
+			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
+
+			return message;
 		}
 
-		public Task<IEnumerable<CloudQueueMessage>> PeekMessagesAsync(int messageCount, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<IEnumerable<CloudMessage>> PeekMessagesAsync(int messageCount, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
-			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be less than or equal to {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
+			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greather than {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
 
-			return _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken);
+			// Peek at the messages from the queue
+			var cloudMessages = await _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken).ConfigureAwait(false);
+
+			// Convert the Azure SDK messages into Picton messages
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task SetMetadataAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
