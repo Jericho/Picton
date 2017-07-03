@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Wire;
@@ -165,60 +166,22 @@ namespace Picton.Managers
 			// Get the next message from the queue
 			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
-			// We get a null value when the queue is empty
-			if (cloudMessage == null)
-			{
-				return null;
-			}
+			// Convert the Azure SDK message into a Picton message
+			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
 
-			// Deserialize the content of the cloud message
-			var content = (object)null;
-			try
-			{
-				content = Deserialize(cloudMessage.AsBytes);
-			}
-			catch
-			{
-				content = cloudMessage.AsString;
-			}
-
-			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-			var largeContentBlobName = (string)null;
-			if (content.GetType() == typeof(LargeMessageEnvelope))
-			{
-				var envelope = (LargeMessageEnvelope)content;
-				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
-
-				byte[] buffer;
-				using (var ms = new MemoryStream())
-				{
-					await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
-					buffer = ms.ToArray();
-				}
-
-				content = Deserialize(buffer);
-				largeContentBlobName = envelope.BlobName;
-			}
-
-			var message = new CloudMessage(content)
-			{
-				DequeueCount = cloudMessage.DequeueCount,
-				ExpirationTime = cloudMessage.ExpirationTime,
-				Id = cloudMessage.Id,
-				InsertionTime = cloudMessage.InsertionTime,
-				LargeContentBlobName = largeContentBlobName,
-				NextVisibleTime = cloudMessage.NextVisibleTime,
-				PopReceipt = cloudMessage.PopReceipt
-			};
 			return message;
 		}
 
-		public Task<IEnumerable<CloudQueueMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
-			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be less than or equal to {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
+			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
 
-			return _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken);
+			// Get the messages from the queue
+			var cloudMessages = await _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
+
+			// Convert the Azure SDK messages into Picton messages
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task<QueuePermissions> GetPermissionsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -284,6 +247,56 @@ namespace Picton.Managers
 				serializer.Serialize(message, stream);
 				return stream.ToArray();
 			}
+		}
+
+		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
+		{
+			// We get a null value when the queue is empty
+			if (cloudMessage == null)
+			{
+				return null;
+			}
+
+			// Deserialize the content of the cloud message
+			var content = (object)null;
+			try
+			{
+				content = Deserialize(cloudMessage.AsBytes);
+			}
+			catch
+			{
+				content = cloudMessage.AsString;
+			}
+
+			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+			var largeContentBlobName = (string)null;
+			if (content.GetType() == typeof(LargeMessageEnvelope))
+			{
+				var envelope = (LargeMessageEnvelope)content;
+				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
+
+				byte[] buffer;
+				using (var ms = new MemoryStream())
+				{
+					await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
+					buffer = ms.ToArray();
+				}
+
+				content = Deserialize(buffer);
+				largeContentBlobName = envelope.BlobName;
+			}
+
+			var message = new CloudMessage(content)
+			{
+				DequeueCount = cloudMessage.DequeueCount,
+				ExpirationTime = cloudMessage.ExpirationTime,
+				Id = cloudMessage.Id,
+				InsertionTime = cloudMessage.InsertionTime,
+				LargeContentBlobName = largeContentBlobName,
+				NextVisibleTime = cloudMessage.NextVisibleTime,
+				PopReceipt = cloudMessage.PopReceipt
+			};
+			return message;
 		}
 
 		#endregion
