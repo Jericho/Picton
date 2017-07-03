@@ -86,6 +86,11 @@ Setup(context =>
 		isTagged
 	);
 
+	Information("Myget Info:\r\n\tApi Url: {0}\r\n\tApi Key: {1}",
+		myGetApiUrl,
+		string.IsNullOrEmpty(myGetApiKey) ? "[NULL]" : new string('*', myGetApiKey.Length)
+	);
+
 	Information("Nuget Info:\r\n\tApi Url: {0}\r\n\tApi Key: {1}",
 		nuGetApiUrl,
 		string.IsNullOrEmpty(nuGetApiKey) ? "[NULL]" : new string('*', nuGetApiKey.Length)
