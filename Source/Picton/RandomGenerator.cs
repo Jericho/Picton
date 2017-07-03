@@ -6,8 +6,6 @@ namespace Picton
 {
 	public static class RandomGenerator
 	{
-		private const string AllowableCharacters = "abcdefghijklmnopqrstuvwxyz0123456789";
-
 		#region PUBLIC METHODS
 
 		/// <summary>
@@ -41,10 +39,47 @@ namespace Picton
 			return (byte)((randomNumber[0] % numberSides) + 1);
 		}
 
-		public static string GenerateString(int length)
+		public static string GenerateString(int length, string allowableCharacters = "abcdefghijklmnopqrstuvwxyz0123456789")
 		{
-			var bytes = (from position in Enumerable.Range(1, length) select RollDice(36)).ToArray();
-			return new string(bytes.Select(x => AllowableCharacters[x - 1]).ToArray());
+			using (var random = RandomNumberGenerator.Create())
+			{
+				var data = new byte[length];
+
+				// If allowableCharacters.Length isn't a power of 2 then there
+				// is a bias if we simply use the modulus operator. The first
+				// characters of chars will be more probable than the last ones.
+
+				// buffer used if we encounter an unusable random byte. We will
+				// regenerate it in this buffer
+				byte[] smallBuffer = null;
+
+				// Maximum random number that can be used without introducing a bias
+				int maxRandom = byte.MaxValue - ((byte.MaxValue + 1) % allowableCharacters.Length);
+
+				random.GetBytes(data);
+
+				var result = new char[length];
+
+				for (int i = 0; i < length; i++)
+				{
+					byte v = data[i];
+
+					while (v > maxRandom)
+					{
+						if (smallBuffer == null)
+						{
+							smallBuffer = new byte[1];
+						}
+
+						random.GetBytes(smallBuffer);
+						v = smallBuffer[0];
+					}
+
+					result[i] = allowableCharacters[v % allowableCharacters.Length];
+				}
+
+				return new string(result);
+			}
 		}
 
 		public static byte[] GenerateSalt(int length)
