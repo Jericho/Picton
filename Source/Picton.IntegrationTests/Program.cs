@@ -24,9 +24,14 @@ namespace Picton.IntegrationTests
 			var queueName = "myqueue";
 
 			// Run the integration tests (they are dependant on the Azure Storage emulator)
-			CloudBlobExtensions(storageAccount, containerName, cancellationToken).Wait();
-			BlobManager(storageAccount, containerName, cancellationToken).Wait();
-			QueueManager(storageAccount, queueName, cancellationToken).Wait();
+			Console.WriteLine("Running blob extension methods tests...");
+			RunCloudBlobExtensionsTests(storageAccount, containerName, cancellationToken).Wait();
+
+			Console.WriteLine("Running blob manager tests...");
+			RunBlobManagerTests(storageAccount, containerName, cancellationToken).Wait();
+
+			Console.WriteLine("Running queue manager tests...");
+			RunQueueManagerTests(storageAccount, queueName, cancellationToken).Wait();
 
 			// Flush the console key buffer
 			while (Console.KeyAvailable) Console.ReadKey(true);
@@ -36,7 +41,7 @@ namespace Picton.IntegrationTests
 			Console.ReadKey();
 		}
 
-		private static async Task CloudBlobExtensions(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunCloudBlobExtensionsTests(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
 		{
 			var blobClient = storageAccount.CreateCloudBlobClient();
 			var container = blobClient.GetContainerReference(containerName);
@@ -71,7 +76,7 @@ namespace Picton.IntegrationTests
 			//Console.WriteLine(content3);
 		}
 
-		private static async Task BlobManager(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunBlobManagerTests(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
 		{
 			var blobManager = new BlobManager(containerName, storageAccount);
 
@@ -94,8 +99,14 @@ namespace Picton.IntegrationTests
 			await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
 		}
 
-		private static async Task QueueManager(IStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
+		private static async Task RunQueueManagerTests(IStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
 		{
+			var queueManager = new QueueManager(queueName, storageAccount);
+
+			// Delete queue potentially created by prior testing attempts
+			await queueManager.DeleteIfExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
+
+			// Send and receive a simple message
 			var sample = new SampleMessageType
 			{
 				StringProp = "abc123",
@@ -103,17 +114,30 @@ namespace Picton.IntegrationTests
 				GuidProp = Guid.NewGuid(),
 				DateProp = new DateTime(2016, 10, 6, 1, 2, 3, DateTimeKind.Utc)
 			};
-			var queueManager = new QueueManager(queueName, storageAccount);
 			await queueManager.AddMessageAsync(sample);
-			var message = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
-
-			if (message.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
-			var receivedMessage = (SampleMessageType)message.Content;
+			var message1 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			if (message1.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
+			var receivedMessage = (SampleMessageType)message1.Content;
 			if (receivedMessage.StringProp != sample.StringProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.IntProp != sample.IntProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.GuidProp != sample.GuidProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.DateProp != sample.DateProp) throw new Exception("Did not receive the expected message");
+			await queueManager.DeleteMessageAsync(message1).ConfigureAwait(false);
 
+			// Send a message that exceeds the max size allowed in Azure queues
+			int characterCount = 100000;
+			var largeSample = new SampleMessageType
+			{
+				StringProp = new string('x', characterCount)
+			};
+			await queueManager.AddMessageAsync(largeSample);
+			var message2 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			if (message2.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
+			var largeMessage = (SampleMessageType)message2.Content;
+			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
+			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
+
+			// Delete the queue
 			await queueManager.DeleteIfExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 		}
 	}

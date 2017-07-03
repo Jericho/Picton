@@ -17,7 +17,6 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
-		private const string DateFormatInBlobName = "yyyy-MM-dd-HH-mm-ss-ffff";
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 
 		private readonly IStorageAccount _storageAccount;
@@ -82,7 +81,7 @@ namespace Picton.Managers
 				// send a smaller message indicating where the actual message was saved
 
 				// 1) Save the large message to blob storage
-				var blobName = "abc123";
+				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd")}-{RandomGenerator.GenerateString(32)}";
 				var blob = _blobContainer.GetBlockBlobReference(blobName);
 				await blob.UploadBytesAsync(data, null, cancellationToken).ConfigureAwait(false);
 
@@ -99,7 +98,7 @@ namespace Picton.Managers
 
 				/*
 					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
 				var cloudMessage = new CloudQueueMessage(data);
 				*/
 				var cloudMessage = new CloudQueueMessage(string.Empty);
@@ -111,7 +110,7 @@ namespace Picton.Managers
 				// The size of this message is within the range allowed by Azure Storage queues
 				/*
 					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetContent' method with the byte array
+					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
 				var cloudMessage = new CloudQueueMessage(data);
 				*/
 				var cloudMessage = new CloudQueueMessage(string.Empty);
@@ -163,7 +162,7 @@ namespace Picton.Managers
 
 		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			// Get the next mesage from the queue
+			// Get the next message from the queue
 			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// We get a null value when the queue is empty
@@ -174,7 +173,6 @@ namespace Picton.Managers
 
 			// Deserialize the content of the cloud message
 			var content = (object)null;
-			var largeContentBlobName = (string)null;
 			try
 			{
 				content = Deserialize(cloudMessage.AsBytes);
@@ -185,18 +183,21 @@ namespace Picton.Managers
 			}
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+			var largeContentBlobName = (string)null;
 			if (content.GetType() == typeof(LargeMessageEnvelope))
 			{
 				var envelope = (LargeMessageEnvelope)content;
 				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
 
-				using (var stream = new MemoryStream())
+				byte[] buffer;
+				using (var ms = new MemoryStream())
 				{
-					var buffer = (byte[])null;
-					await blob.DownloadToByteArrayAsync(buffer, 0, null, null, null, cancellationToken).ConfigureAwait(false);
-					content = Deserialize(buffer);
-					largeContentBlobName = envelope.BlobName;
+					await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
+					buffer = ms.ToArray();
 				}
+
+				content = Deserialize(buffer);
+				largeContentBlobName = envelope.BlobName;
 			}
 
 			var message = new CloudMessage(content)
