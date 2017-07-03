@@ -25,7 +25,7 @@ var configuration = Argument<string>("configuration", "Release");
 var libraryName = "Picton";
 var gitHubRepo = "Picton";
 
-var testCoverageFilter = "+[Picton]* -[Picton]Picton.Properties.* -[StrongGrid]StrongGrid.Logging.*";
+var testCoverageFilter = "+[Picton]* -[Picton]Picton.Properties.* -[Picton]Picton.Logging.*";
 var testCoverageExcludeByAttribute = "*.ExcludeFromCodeCoverage*";
 var testCoverageExcludeByFile = "*/*Designer.cs;*/*AssemblyInfo.cs";
 

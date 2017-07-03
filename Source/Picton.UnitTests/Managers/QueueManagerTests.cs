@@ -8,6 +8,7 @@ using Picton.Interfaces;
 using Shouldly;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -126,44 +127,45 @@ namespace Picton.Managers.UnitTests
 			mockBlobClient.Verify();
 		}
 
-		//[Fact]
-		//public void AddMessageAsync_large_message()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = GetMockQueue(queueName);
-		//	var mockQueueClient = GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = GetMockBlobContainer();
-		//	var mockBlobClient = GetMockBlobClient(mockBlobContainer);
-		//	var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+		[Fact]
+		public void AddMessageAsync_large_message()
+		{
+			// Arrange
+			var queueName = "myqueue";
+			var mockBlobItemUri = new Uri(BLOB_STORAGE_URL + "test.txt");
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
+			var mockBlobContainer = GetMockBlobContainer();
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
-		//	var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict);
-		//	mockBlobItem
-		//		.Setup(b => b.UploadTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobItemUri);
+			mockBlobItem
+				.Setup(b => b.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlockBlobReference(It.IsAny<string>()))
-		//		.Returns(mockBlobItem.Object)
-		//		.Verifiable();
+			mockBlobContainer
+				.Setup(c => c.GetBlockBlobReference(It.IsAny<string>()))
+				.Returns(mockBlobItem.Object)
+				.Verifiable();
 
-		//	mockQueue
-		//		.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockQueue
+				.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
 
-		//	// Act
-		//	var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
-		//	var queueManager = new QueueManager(queueName, storageAccount.Object);
-		//	queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
+			// Act
+			var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Assert
+			mockQueue.Verify();
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+		}
 
 		[Fact]
 		public void ClearAsync()
@@ -425,7 +427,7 @@ namespace Picton.Managers.UnitTests
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-			var messages = new[]
+			var cloudMessages = new[]
 			{
 				new CloudQueueMessage("Message 1"),
 				new CloudQueueMessage("Message 2")
@@ -433,7 +435,7 @@ namespace Picton.Managers.UnitTests
 
 			mockQueue
 				.Setup(c => c.GetMessagesAsync(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)messages))
+				.ReturnsAsync((IEnumerable<CloudQueueMessage>)cloudMessages)
 				.Verifiable();
 
 			// Act
@@ -445,7 +447,7 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(messages);
+			result.Length.ShouldBe(cloudMessages.Length);
 		}
 
 		[Fact]
@@ -462,9 +464,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert
@@ -485,9 +487,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.GetMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert
@@ -533,11 +535,12 @@ namespace Picton.Managers.UnitTests
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-			var message = new CloudQueueMessage("Hello world");
+			var cloudMessage = new CloudQueueMessage("Hello world");
+			var message = new CloudMessage("Hello world");
 
 			mockQueue
 				.Setup(c => c.PeekMessageAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(message))
+				.Returns(Task.FromResult(cloudMessage))
 				.Verifiable();
 
 			// Act
@@ -549,7 +552,8 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(message);
+			result.Content.GetType().ShouldBe(message.Content.GetType());
+			result.Content.ShouldBe(message.Content);
 		}
 
 		[Fact]
@@ -562,7 +566,7 @@ namespace Picton.Managers.UnitTests
 			var mockBlobContainer = GetMockBlobContainer();
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-			var messages = new[]
+			var cloudMessages = new[]
 			{
 				new CloudQueueMessage("Message 1"),
 				new CloudQueueMessage("Message 2")
@@ -570,7 +574,7 @@ namespace Picton.Managers.UnitTests
 
 			mockQueue
 				.Setup(c => c.PeekMessagesAsync(It.IsAny<int>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)messages))
+				.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)cloudMessages))
 				.Verifiable();
 
 			// Act
@@ -582,7 +586,7 @@ namespace Picton.Managers.UnitTests
 			mockQueueClient.Verify();
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(messages);
+			result.Length.ShouldBe(cloudMessages.Length);
 		}
 
 		[Fact]
@@ -599,9 +603,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert
@@ -622,9 +626,9 @@ namespace Picton.Managers.UnitTests
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			Should.Throw<ArgumentOutOfRangeException>(() =>
+			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
-				var result = queueManager.PeekMessagesAsync(messageCount).Result.ToArray();
+				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
 			});
 
 			// Assert
@@ -687,7 +691,7 @@ namespace Picton.Managers.UnitTests
 		}
 
 		[Fact]
-		public void UpdateMessageAsync()
+		public void UpdateMessageVisibilityTimeoutAsync()
 		{
 			// Arrange
 			var queueName = "myqueue";
@@ -697,18 +701,17 @@ namespace Picton.Managers.UnitTests
 			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
 			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var permissions = new QueuePermissions();
-			var message = new CloudQueueMessage("Hello world");
+			var message = new CloudMessage("Hello world");
 			var visibilityTimeout = TimeSpan.FromSeconds(2);
-			var updateFields = MessageUpdateFields.Visibility;
 
 			mockQueue
-				.Setup(c => c.UpdateMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan>(), It.IsAny<MessageUpdateFields>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Setup(c => c.UpdateMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan>(), MessageUpdateFields.Visibility, It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
 				.Returns(Task.FromResult(true))
 				.Verifiable();
 
 			// Act
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			queueManager.UpdateMessageAsync(message, visibilityTimeout, updateFields).Wait();
+			queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).Wait();
 
 			// Assert
 			mockQueue.Verify();
