@@ -1,0 +1,32 @@
+﻿{
+	"buildOptions": {
+		"emitEntryPoint": true
+	},
+	"dependencies": {
+		"Picton": { "target": "project" }
+	},
+	"frameworks": {
+		/*
+		"netcoreapp1.0": {
+			"buildOptions": {
+				"define": [ "NETCORE" ]
+			},
+			"Microsoft.NETCore.App": {
+				"type": "platform",
+				"version": "1.0.1"
+			},
+			"imports": [
+				"dnxcore50"
+			]
+		},
+		*/
+		"net462": {
+			"dependencies": {
+			},
+			"buildOptions": {
+				"define": [ "NETFULL" ]
+			}
+		}
+	},
+	"version": "1.0.0-*"
+}

@@ -1,0 +1,49 @@
+{
+	"buildOptions": {
+		"emitEntryPoint": false,
+		"xmlDoc": true,
+		"platform": "anycpu",
+		"additionalArguments": [
+			"/ruleset:../Picton.ruleset",
+			"/additionalfile:../stylecop.json"
+		],
+		"compile": {
+		}
+	},
+	"configurations": {
+		"Release": {
+			"buildOptions": {
+				"warningsAsErrors": false
+			}
+		}
+	},
+	"dependencies": {
+		"StyleCop.Analyzers": {
+			"type": "build",
+			"version": "1.1.0-beta004"
+		},
+		"WindowsAzure.Storage": "8.1.4",
+		"Wire": "0.8.2"
+	},
+	"frameworks": {
+		"net452": {
+			"dependencies": {
+			},
+			"buildOptions": {
+				"define": [ "NETFULL" ]
+			}
+		},
+		"netstandard1.6": {
+			"imports": "dnxcore50",
+			"dependencies": {
+				"NETStandard.Library": "1.6.1",
+				"System.Collections.Specialized": "4.3.0",
+				"System.Diagnostics.Process": "4.3.0"
+			},
+			"buildOptions": {
+				"define": [ "NETSTANDARD" ]
+			}
+		}
+	},
+	"version": "1.0.0"
+}
