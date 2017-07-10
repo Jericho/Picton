@@ -15,6 +15,8 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <Version>$(SemVer)</Version>
+    <DebugType>full</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
