@@ -39,11 +39,10 @@ var gitHubUserName = EnvironmentVariable("GITHUB_USERNAME");
 var gitHubPassword = EnvironmentVariable("GITHUB_PASSWORD");
 
 var sourceFolder = "./Source/";
-var unitTestsProject = sourceFolder + libraryName + ".UnitTests/" + libraryName + ".UnitTests.csproj";
 
 var outputDir = "./artifacts/";
 var codeCoverageDir = outputDir + "CodeCoverage/";
-var unitTestingDir = outputDir + "UnitTesting/";
+var unitTestsProject = sourceFolder + libraryName + ".UnitTests/" + libraryName + ".UnitTests.csproj";
 
 var versionInfo = GitVersion(new GitVersionSettings() { OutputType = GitVersionOutput.Json });
 var milestone = string.Concat("v", versionInfo.MajorMinorPatch);
