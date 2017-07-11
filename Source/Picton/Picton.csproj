@@ -17,6 +17,7 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <Version>$(SemVer)</Version>
     <DebugType>full</DebugType>
+    <CodeAnalysisRuleSet>$(SolutionDir)\Picton.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
     </PackageReference>
     <PackageReference Include="WindowsAzure.Storage" Version="8.1.4" />
     <PackageReference Include="Wire" Version="0.8.2" />
+    <AdditionalFiles Include="$(SolutionDir)\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
