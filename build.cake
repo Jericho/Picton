@@ -162,6 +162,7 @@ Task("Run-Unit-Tests")
 {
 	DotNetCoreTest(unitTestsProject, new DotNetCoreTestSettings
 	{
+		NoBuild = true,
 		Configuration = configuration
 	});
 });
