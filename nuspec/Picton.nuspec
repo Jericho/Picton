@@ -18,15 +18,15 @@
 		<releaseNotes></releaseNotes>
 		<dependencies>
 			<group targetFramework="net452">
+				<dependency id="MessagePack" version="1.4.2" />
 				<dependency id="WindowsAzure.Storage" version="8.1.4" />
-				<dependency id="Wire" version="0.8.2" />
 			</group>
 			<group targetFramework=".NETStandard1.6">
+				<dependency id="MessagePack" version="1.4.2" />
 				<dependency id="NETStandard.Library" version="1.6.1" />
-				<dependency id="WindowsAzure.Storage" version="8.1.4" />
-				<dependency id="Wire" version="0.8.2" />
 				<dependency id="System.Collections.Specialized" version="4.3.0" />
 				<dependency id="System.Diagnostics.Process" version="4.3.0" />
+				<dependency id="WindowsAzure.Storage" version="8.1.4" />
 			</group>
 		</dependencies>
 	</metadata>
