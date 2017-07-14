@@ -21,7 +21,7 @@
 				<dependency id="WindowsAzure.Storage" version="8.1.4" />
 				<dependency id="Wire" version="0.8.2" />
 			</group>
-			<group targetFramework=".NETStandard1.3">
+			<group targetFramework=".NETStandard1.6">
 				<dependency id="NETStandard.Library" version="1.6.1" />
 				<dependency id="WindowsAzure.Storage" version="8.1.4" />
 				<dependency id="Wire" version="0.8.2" />

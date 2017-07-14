@@ -35,29 +35,29 @@ namespace Picton
 		private class EmulatorVersionInfo
 		{
 			/// <summary>
-			/// The emulator version
+			/// Gets the emulator version
 			/// </summary>
 			public int Version { get; private set; }
 
 			/// <summary>
-			/// Array containing the various possible process names for a given version of the emulator.
+			/// Gets the array containing the various possible process names for a given version of the emulator.
 			/// The process name is not always the same on different platforms. For instance, "WAStorageEmulator" is named "WASTOR~1" on Windows 8.
 			/// That's why we need an array of strings to store the various names rather than a simple string
 			/// </summary>
 			public string[] ProcessNames { get; private set; }
 
 			/// <summary>
-			///  The path where the emulator executable is located
+			/// Gets the path where the emulator executable is located
 			/// </summary>
 			public string ExecutablePath { get; private set; }
 
 			/// <summary>
-			/// The parameters expected by the emulator when starting
+			/// Gets the parameters expected by the emulator when starting
 			/// </summary>
 			public string StartParameters { get; private set; }
 
 			/// <summary>
-			/// The parameters expected by the emulator when stoping
+			/// Gets the parameters expected by the emulator when stoping
 			/// </summary>
 			public string StopParameters { get; private set; }
 

@@ -103,8 +103,8 @@ namespace Picton.IntegrationTests
 		{
 			var queueManager = new QueueManager(queueName, storageAccount);
 
-			// Delete queue potentially created by prior testing attempts
-			await queueManager.DeleteIfExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
+			// Make sure the queue is empty
+			await queueManager.ClearAsync(null, null, cancellationToken).ConfigureAwait(false);
 
 			// Send and receive a simple message
 			var sample = new SampleMessageType
@@ -136,9 +136,6 @@ namespace Picton.IntegrationTests
 			var largeMessage = (SampleMessageType)message2.Content;
 			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
 			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
-
-			// Delete the queue
-			await queueManager.DeleteIfExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }
