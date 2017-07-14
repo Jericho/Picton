@@ -122,7 +122,7 @@ Task("AppVeyor-Build_Number")
 		UpdateAssemblyInfo = false,
 		OutputType = GitVersionOutput.BuildServer
 	});
-}
+});
 
 Task("Clean")
 	.IsDependentOn("AppVeyor-Build_Number")
