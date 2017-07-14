@@ -5,12 +5,8 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Picton")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Picton")]
-[assembly: AssemblyCopyright("Copyright © 2016")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+[assembly: AssemblyCopyright("Copyright © Jeremie Desautels")]
 
 // Make it easy to distinguish Debug and Release builds;
 #if DEBUG
