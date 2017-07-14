@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using MessagePack;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
@@ -10,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Wire;
 
 namespace Picton.Managers
 {
@@ -67,13 +67,7 @@ namespace Picton.Managers
 
 		public async Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var serializer = new Serializer();
-			var data = (byte[])null;
-			using (var stream = new MemoryStream())
-			{
-				serializer.Serialize(message, stream);
-				data = stream.ToArray();
-			}
+			var data = Serialize(message);
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
 			if (data.Length > MAX_MESSAGE_CONTENT_SIZE)
@@ -91,16 +85,11 @@ namespace Picton.Managers
 				{
 					BlobName = blobName
 				};
-				using (var stream = new MemoryStream())
-				{
-					serializer.Serialize(largeEnvelope, stream);
-					data = stream.ToArray();
-				}
+				data = Serialize(largeEnvelope);
 
 				/*
-					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
 					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				var cloudMessage = new CloudQueueMessage(data);
 				*/
 				var cloudMessage = new CloudQueueMessage(string.Empty);
 				cloudMessage.SetMessageContent(data);
@@ -110,9 +99,8 @@ namespace Picton.Managers
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
 				/*
-					Weird issue: the C# compiler throws "CS1503  Argument 1: cannot convert from 'byte[]' to 'string'" when initializing a new message with a byte array.
+					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
 					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				var cloudMessage = new CloudQueueMessage(data);
 				*/
 				var cloudMessage = new CloudQueueMessage(string.Empty);
 				cloudMessage.SetMessageContent(data);
@@ -259,21 +247,12 @@ namespace Picton.Managers
 
 		private object Deserialize(byte[] serializedContent)
 		{
-			var serializer = new Serializer();
-			using (var stream = new MemoryStream(serializedContent))
-			{
-				return serializer.Deserialize<object>(stream);
-			}
+			return MessagePackSerializer.Typeless.Deserialize(serializedContent);
 		}
 
 		private byte[] Serialize<T>(T message)
 		{
-			var serializer = new Serializer();
-			using (var stream = new MemoryStream())
-			{
-				serializer.Serialize(message, stream);
-				return stream.ToArray();
-			}
+			return MessagePackSerializer.Typeless.Serialize(message);
 		}
 
 		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
@@ -288,11 +267,11 @@ namespace Picton.Managers
 			var content = (object)null;
 			try
 			{
-				content = Deserialize(cloudMessage.AsBytes);
+				content = cloudMessage.AsString;
 			}
 			catch
 			{
-				content = cloudMessage.AsString;
+				content = Deserialize(cloudMessage.AsBytes);
 			}
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob

@@ -1,13 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1C27358F-3DB6-4F3B-8FD0-7D82EE691688}"
 	ProjectSection(SolutionItems) = preProject
 		..\appveyor.yml = ..\appveyor.yml
 		..\build.cake = ..\build.cake
 		..\nuspec\Picton.nuspec = ..\nuspec\Picton.nuspec
+		Picton.ruleset = Picton.ruleset
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
@@ -15,11 +16,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{0C6E47
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{6C9EB647-4B1E-406C-9638-B73755D6DD5B}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton", "Picton\Picton.xproj", "{8607EEA2-D4BA-4D26-9BAE-9AE465025485}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Picton", "Picton\Picton.csproj", "{8607EEA2-D4BA-4D26-9BAE-9AE465025485}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.IntegrationTests", "Picton.IntegrationTests\Picton.IntegrationTests.xproj", "{C23B65C7-343A-4A34-B889-CEB294124B34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Picton.IntegrationTests", "Picton.IntegrationTests\Picton.IntegrationTests.csproj", "{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Picton.UnitTests", "Picton.UnitTests\Picton.UnitTests.xproj", "{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Picton.UnitTests", "Picton.UnitTests\Picton.UnitTests.csproj", "{9F606E32-32E3-4503-82F2-4CEC02D4A7FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,21 +32,21 @@ Global
 		{8607EEA2-D4BA-4D26-9BAE-9AE465025485}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8607EEA2-D4BA-4D26-9BAE-9AE465025485}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8607EEA2-D4BA-4D26-9BAE-9AE465025485}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C23B65C7-343A-4A34-B889-CEB294124B34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C23B65C7-343A-4A34-B889-CEB294124B34}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C23B65C7-343A-4A34-B889-CEB294124B34}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C23B65C7-343A-4A34-B889-CEB294124B34}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8607EEA2-D4BA-4D26-9BAE-9AE465025485} = {0C6E479D-E557-456D-9F5A-E2E447A694CD}
-		{C23B65C7-343A-4A34-B889-CEB294124B34} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
-		{E2639AEA-5006-410D-9D4A-58DDD9F3F1E1} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
+		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
+		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
 	EndGlobalSection
 EndGlobal
