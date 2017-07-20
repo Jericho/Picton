@@ -247,12 +247,13 @@ namespace Picton.Managers
 
 		private object Deserialize(byte[] serializedContent)
 		{
-			return MessagePackSerializer.Typeless.Deserialize(serializedContent);
+			return LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
 		}
 
 		private byte[] Serialize<T>(T message)
 		{
-			return MessagePackSerializer.Typeless.Serialize(message);
+			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
+			return LZ4MessagePackSerializer.Typeless.Serialize(message);
 		}
 
 		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)

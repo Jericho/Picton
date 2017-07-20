@@ -128,6 +128,34 @@ namespace Picton.Managers.UnitTests
 		}
 
 		[Fact]
+		public void AddMessageAsync_large_message_is_compressed()
+		{
+			// Arrange
+			var queueName = "myqueue";
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
+			var mockBlobContainer = GetMockBlobContainer();
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+
+			mockQueue
+				.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			var largeContentWillBeCompressed = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			queueManager.AddMessageAsync(largeContentWillBeCompressed).Wait();
+
+			// Assert
+			mockQueue.Verify();
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+		}
+
+		[Fact]
 		public void AddMessageAsync_large_message()
 		{
 			// Arrange
@@ -156,7 +184,7 @@ namespace Picton.Managers.UnitTests
 				.Verifiable();
 
 			// Act
-			var excessivelyLargeContent = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
+			var excessivelyLargeContent = RandomGenerator.GenerateString((int)CloudQueueMessage.MaxMessageSize * 2);
 			var queueManager = new QueueManager(queueName, storageAccount.Object);
 			queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
 
