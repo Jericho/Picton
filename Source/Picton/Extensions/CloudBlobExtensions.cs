@@ -4,7 +4,6 @@ using Picton.Interfaces;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -183,7 +182,7 @@ namespace Picton
 
 		public static Task UploadTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var buffer = Encoding.UTF8.GetBytes(content);
+			var buffer = content.ToBytes();
 			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
@@ -251,7 +250,7 @@ namespace Picton
 
 		public static Task AppendTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var buffer = Encoding.UTF8.GetBytes(content);
+			var buffer = content.ToBytes();
 			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
