@@ -27,19 +27,12 @@ The extension methods allow operations on blob while holding a lock (also known 
 
 
 #### 2) Abstractions:
-In release 7.0 of the Azure Storage library, Microsoft unsealed most classes and marked most methods as virtual which is quite significant because it allows mocking these classes when they are injected in one of your own classes. 
-However, there remains a few sealed classes and a few non-virtal methods. One example where a non-virtual method prevents mocking is [discussed here](https://github.com/Azure/azure-storage-net/issues/318) and one example where a sealed class makes mocking quite difficult is [discussed here](https://github.com/Azure/azure-storage-net/issues/335).
-I created abstractions for the classes in question in order to allow full mocking but I expect this problem to be resolved in a future release of the Azure Storage library which will make the the abstractions in the Picton library obsolete.
-Specificaly, the library contains the following interfaces:
-
-- IBlobClient
-- IQueueClient
-- IStorageAccount
-
-An upcoming release will also include the following interfaces:
-
-- IFileClient
-- ITableClient
+Early versions of the Picton library contained several interfaces to overcome the fact that most classed in the Azure Storage library where sealed and/or their methods where not marked as virtual and therefore not "mockable".
+In [release 7.0 of the Azure Storage library](https://github.com/Azure/azure-storage-net/releases/tag/v7.0.0), Microsoft unsealed most classes and marked most methods as virtual which is quite significant because it allows mocking these classes when they are injected in one of your own classes. 
+The Azure Storage library was further improved in [version 8.0](https://github.com/Azure/azure-storage-net/releases/tag/v8.0.0) to update the `Get*Reference` methods with the "virtual" qualifier.
+This means that, as of version 8.0, almost all classes and methods of the Azure Storage library can be mocked.
+However, there is one notable exception: the `StorageAccount` class is still sealed which means that we cannot mock its methods such as `CreateCloudQueueClient`, `CreateCloudBlobClient', etc.
+That's why the Picton library contains a `IStorageAccount` interface. I have opened an [issue on Github](https://github.com/Azure/azure-storage-net/issues/514) and hopefully this class will be unsealed in an upcoming release of the Azure Storage library and this interface will no longer be necessary.
 
 #### 3) Managers
 The Blob and Queue managers are helpers that simplify common blob and queue related tasks. 
@@ -121,27 +114,8 @@ public class Foo
 ```
 This seems reasonable since the dependency is injected and presumably can be mocked for unit testing. Unfortunately, CloudStorageAccount is `sealed` and cannot be mocked.
 
-Here's another example to illustrate the problem:
-```
-public class Foo
-{
-    private readonly CloudBlobClient _cloudBlobClient;
-    public Foo(CloudBlobClient cloudBlobClient)
-    {
-        _cloudBlobClient = cloudBlobClient;
-    }
-    public void Bar()
-    {
-        var container = _cloudBlobClient.GetContainerReference("mycontainer");
-        ... more code ...
-    } 
-}
-```
-In Azure Storage SDK v7.0, the CloudBlobClient class was unsealed which means that we can inject a mock blob client but the `GetContainerReference` method is not marked as `virtual` and therefore cannot be mocked.
+Picton solves this problems by including an interface and a concrete implementation of the StorageAccount class. This means that you can rewrite the above example like so:
 
-Picton solves these problems by including interfaces and concrete implementations of the StorageAccount and BlobClient classes. This means that you can rewrite the two above examples like so:
-
-`Example 1:`
 ```
 public class Foo1
 {
@@ -153,22 +127,6 @@ public class Foo1
 }
 ```
 
-`Example 2:`
-```
-public class Foo2
-{
-    private readonly IBlobClient _blobClient;
-    public Foo(IBlobClient blobClient)
-    {
-        _blobClient = blobClient;
-    }
-    public void Bar()
-    {
-        var container = _blobClient.GetContainerReference("mycontainer");
-        ... more code ...
-    } 
-}
-```
 You can use your favorite mocking tool to inject a mocked instance of IStorageAccount and IBlobClient in your unit tests and also you can pass a concrete instance like so:
 ```
 var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
