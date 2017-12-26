@@ -76,7 +76,7 @@ namespace Picton.Managers
 
 				// 1) Save the large message to blob storage
 				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd")}-{RandomGenerator.GenerateString(32)}";
-				var blob = _blobContainer.GetBlockBlobReference(blobName);
+				var blob = _blobContainer.GetBlobReference(blobName);
 				await blob.UploadBytesAsync(data, null, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
