@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Picton.Extensions.UnitTests
+namespace Picton.UnitTests.Extensions
 {
 	public class StringExtensionsTests
 	{

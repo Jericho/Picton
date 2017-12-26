@@ -6,6 +6,7 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Moq;
 using Picton.Interfaces;
+using Picton.Managers;
 using Shouldly;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Picton.Managers.UnitTests
+namespace Picton.UnitTests.Managers
 {
 	internal class SampleMessageType
 	{
