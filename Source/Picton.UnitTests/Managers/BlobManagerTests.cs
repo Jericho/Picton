@@ -2,12 +2,16 @@
 using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
 using Picton.Interfaces;
+using Picton.Managers;
 using Shouldly;
 using System;
+using System.IO;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Picton.Managers.UnitTests
+namespace Picton.UnitTests.Managers
 {
 	public class BlobManagerTests
 	{
@@ -80,78 +84,83 @@ namespace Picton.Managers.UnitTests
 			mockBlobClient.Verify();
 		}
 
-		//[Fact]
-		//public void GetBlobContentAsync_blob_does_not_exist()
-		//{
-		//	// Arrange
-		//	var containerName = "mycontainer";
-		//	var mockBlobContainer = GetMockBlobContainer(containerName);
-		//	var mockBlobClient = GetMockBlobClient(mockBlobContainer);
-		//	var storageAccount = GetMockStorageAccount(mockBlobClient);
-		//	var blobName = "myblob.txt";
+		[Fact]
+		public void GetBlobContentAsync_blob_does_not_exist()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var mockBlobContainer = GetMockBlobContainer(containerName);
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient);
+			var blobName = "myblob.txt";
+			var mockBlobUri = new Uri(BLOB_STORAGE_URL + blobName);
 
-		//	var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
-		//	mockBlob
-		//		.Setup(b => b.ExistsAsync(It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(false))
-		//		.Verifiable();
-		//	mockBlob
-		//		.Setup(b => b.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(false))
-		//		.Verifiable();
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobUri);
+			mockBlob
+				.Setup(b => b.ExistsAsync(It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync(false)
+				.Verifiable();
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlockBlobReference(blobName))
-		//		.Returns(Task.FromResult(mockBlob.Object))
-		//		.Verifiable();
+			mockBlobContainer
+				.Setup(c => c.GetBlobReference(blobName))
+				.Returns(mockBlob.Object)
+				.Verifiable();
 
-		//	// Act
-		//	var blobManager = new BlobManager(containerName, storageAccount.Object);
-		//	var result = blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
-		//	result.Wait();
-		//	var content = Encoding.UTF8.GetString(result.Result);
+			// Act
+			var blobManager = new BlobManager(containerName, storageAccount.Object);
+			var result = blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
+			result.Wait();
+			var content = result.Result;
 
-		//	// Assert
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	mockBlob.Verify();
-		//}
+			// Assert
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			mockBlob.Verify();
+			content.ShouldBeNull();
+		}
 
-		//[Fact]
-		//public void GetBlobContentAsync_blob_exists()
-		//{
-		//	// Arrange
-		//	var containerName = "mycontainer";
-		//	var mockBlobContainer = GetMockBlobContainer(containerName);
-		//	var mockBlobClient = GetMockBlobClient(mockBlobContainer);
-		//	var storageAccount = GetMockStorageAccount(mockBlobClient);
-		//	var blobName = "myblob.txt";
+		[Fact]
+		public void GetBlobContentAsync_blob_exists()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var mockBlobContainer = GetMockBlobContainer(containerName);
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient);
+			var blobName = "myblob.txt";
+			var mockBlobUri = new Uri(BLOB_STORAGE_URL + blobName);
+			var expected = "Hello World!";
 
-		//	var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict);
-		//	mockBlob
-		//		.Setup(b => b.ExistsAsync(It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
-		//	mockBlob
-		//		.Setup(b => b.DownloadToStreamAsync(outputStream, It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobUri);
+			mockBlob
+				.Setup(b => b.ExistsAsync(It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync(true)
+				.Verifiable();
+			mockBlob
+				.Setup(b => b.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(true))
+				.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
+				{
+					var buffer = expected.ToBytes();
+					await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+				})
+				.Verifiable();
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlockBlobReference(blobName))
-		//		.Returns(mockBlob.Object)
-		//		.Verifiable();
+			mockBlobContainer
+				.Setup(c => c.GetBlobReference(blobName))
+				.Returns(mockBlob.Object)
+				.Verifiable();
 
-		//	// Act
-		//	var blobManager = new BlobManager(containerName, storageAccount.Object);
-		//	var result = blobManager.GetBlobContentAsync(blobName);
-		//	result.Wait();
+			// Act
+			var blobManager = new BlobManager(containerName, storageAccount.Object);
+			var result = Encoding.UTF8.GetString(blobManager.GetBlobContentAsync(blobName).Result);
 
-		//	// Assert
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	mockBlob.Verify();
-		//}
+			// Assert
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			mockBlob.Verify();
+			result.ShouldBe(expected);
+		}
 
 		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName = "mycontainer")
 		{

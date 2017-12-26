@@ -4,7 +4,6 @@ using Picton.Interfaces;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -183,7 +182,7 @@ namespace Picton
 
 		public static Task UploadTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var buffer = Encoding.UTF8.GetBytes(content);
+			var buffer = content.ToBytes();
 			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
@@ -215,6 +214,7 @@ namespace Picton
 					var content = new MemoryStream();
 					await blockBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
+					content.Position = 0; // Rewind the stream. IMPORTANT!
 					await blockBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
 				else
@@ -230,6 +230,7 @@ namespace Picton
 					var content = new MemoryStream();
 					await pageBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
+					content.Position = 0; // Rewind the stream. IMPORTANT!
 					await pageBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
 				else
@@ -251,7 +252,7 @@ namespace Picton
 
 		public static Task AppendTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var buffer = Encoding.UTF8.GetBytes(content);
+			var buffer = content.ToBytes();
 			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
 		}
 
@@ -294,31 +295,31 @@ namespace Picton
 		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var container = blob.Container;
-			Func<CopyState, Task> waitForCopyCompletion = async (copyState) =>
+			async Task WaitForCopyCompletion(CopyState copyState)
 			{
 				while (copyState.Status == CopyStatus.Pending)
 					await Task.Delay(100).ConfigureAwait(false);
 				if (copyState.Status != CopyStatus.Success)
 					throw new Exception($"CopyAsync failed: {copyState.Status}");
-			};
+			}
 
 			if (blob is CloudAppendBlob)
 			{
 				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
 				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
 			}
 			else if (blob is CloudBlockBlob)
 			{
 				var blockTarget = container.GetBlockBlobReference(destinationBlobName);
 				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
 			}
 			else if (blob is CloudPageBlob)
 			{
 				var pageTarget = container.GetPageBlobReference(destinationBlobName);
 				await pageTarget.StartCopyAsync((CloudPageBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
 			}
 			else
 			{
@@ -329,24 +330,24 @@ namespace Picton
 		/// <summary>
 		/// Creates a Shared Access Signature URI for the blob.
 		/// </summary>
+		/// <param name="blob">The blob to be shared</param>
+		/// <param name="permissions">The permissions granted to the shared access signature</param>
+		/// <param name="duration">The period of time the shared access signature is valid for. If this parameter is omited, it defaults to 15 minutes.</param>
+		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
+		/// <returns>The URI</returns>
 		/// <remarks>
 		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/
 		/// </remarks>
-		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, ISystemClock systemClock = null)
-		{
-			return GetSharedAccessSignatureUri(blob, permission, TimeSpan.FromMinutes(15), systemClock);
-		}
-
-		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
+		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var now = (systemClock ?? SystemClock.Instance).UtcNow;
 			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
 			{
-				Permissions = permission,
+				Permissions = permissions,
 				SharedAccessStartTime = now.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
-				SharedAccessExpiryTime = now.Add(duration)
+				SharedAccessExpiryTime = now.Add(duration.GetValueOrDefault(TimeSpan.FromMinutes(15)))
 			});
 			return string.Format(CultureInfo.InvariantCulture, "{0}{1}", blob.Uri, sas);
 		}

@@ -47,17 +47,16 @@ namespace Picton.Managers
 		/// <param name="queueName"></param>
 		public QueueManager(string queueName, IStorageAccount storageAccount)
 		{
-			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
-			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
-
-			_storageAccount = storageAccount;
-			_queueName = queueName;
+			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
 			_queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
 			_blobContainer = storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
 
-			var tasks = new List<Task>();
-			tasks.Add(_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None));
-			tasks.Add(_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None));
+			var tasks = new List<Task>()
+			{
+				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
+				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
+			};
 			Task.WaitAll(tasks.ToArray());
 		}
 
@@ -77,7 +76,7 @@ namespace Picton.Managers
 
 				// 1) Save the large message to blob storage
 				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd")}-{RandomGenerator.GenerateString(32)}";
-				var blob = _blobContainer.GetBlockBlobReference(blobName);
+				var blob = _blobContainer.GetBlobReference(blobName);
 				await blob.UploadBytesAsync(data, null, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
@@ -247,12 +246,13 @@ namespace Picton.Managers
 
 		private object Deserialize(byte[] serializedContent)
 		{
-			return MessagePackSerializer.Typeless.Deserialize(serializedContent);
+			return LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
 		}
 
 		private byte[] Serialize<T>(T message)
 		{
-			return MessagePackSerializer.Typeless.Serialize(message);
+			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
+			return LZ4MessagePackSerializer.Typeless.Serialize(message);
 		}
 
 		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)

@@ -1,18 +1,14 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
-using Picton.UnitTests;
 using Shouldly;
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Picton.Extensions.UnitTests
+namespace Picton.UnitTests.Extensions
 {
 	public class CloudBlobExtensionsTests
 	{
