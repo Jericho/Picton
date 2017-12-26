@@ -224,7 +224,7 @@ namespace Picton.Managers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
-			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
+			var blob = _blobContainer.GetBlobReference(cleanBlobName);
 			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
