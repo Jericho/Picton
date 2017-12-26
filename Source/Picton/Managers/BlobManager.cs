@@ -39,11 +39,8 @@ namespace Picton.Managers
 
 		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
-			if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentNullException(nameof(containerName));
-			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
-
-			_storageAccount = storageAccount;
-			_containerName = containerName;
+			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
@@ -227,7 +224,7 @@ namespace Picton.Managers
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
-			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
+			var blob = _blobContainer.GetBlobReference(cleanBlobName);
 			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
@@ -290,13 +287,12 @@ namespace Picton.Managers
 
 			if (cleanSourceName == cleanDestinationName) return;
 
-			var source = _blobContainer.GetBlobReference(cleanSourceName);
-			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return;
-
 			var blob = await GetBlobReferenceAsync(cleanSourceName, cancellationToken).ConfigureAwait(false);
+			if (blob == null) return;
+
 			await blob.CopyAsync(cleanDestinationName, cancellationToken).ConfigureAwait(false);
 
-			if (deleteSourceAfterCopy) await source.DeleteAsync().ConfigureAwait(false);
+			if (deleteSourceAfterCopy) await blob.DeleteAsync().ConfigureAwait(false);
 		}
 
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)

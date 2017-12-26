@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 
 namespace Picton
 {
@@ -25,9 +23,11 @@ namespace Picton
 	/// - 4.3 was released with SDK 2.9 in April 2016
 	/// - 4.4 was released with SDK 2.9.1 in May 2016
 	/// - 4.5 was released with SDK 2.9.5 in August 2016
-	/// - 4.6 was released with in November 2016 as a seperate download, not as part of SDK 2.9.6
-	/// - ??? was released with SDK 3.0.0 in March 2017
+	/// - 4.6 was released with in November 2016 as a separate download, not as part of SDK 2.9.6
+	/// - 5.0 was released with SDK 3.0.0 in March 2017
 	/// - 5.1 was released with SDK 3.0.1 in May 2017
+	/// - 5.2 was released ???
+	/// - 5.3 was released in December 2017 as a separate download
 	/// </summary>
 	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a></remarks>
 	public static class AzureEmulatorManager
@@ -86,8 +86,8 @@ namespace Picton
 			_storageEmulatorVersions.Add(new EmulatorVersionInfo(3, new[] { "WAStorageEmulator", "WASTOR~1" }, @"C:\Program Files (x86)\Microsoft SDKs\Windows Azure\Storage Emulator\WAStorageEmulator.exe", "start", "stop"));
 			_storageEmulatorVersions.Add(new EmulatorVersionInfo(4, new[] { "AzureStorageEmulator" }, @"C:\Program Files (x86)\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe", "start", "stop"));
 
-			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(0, new[] { "DocumentDB.Emulator" }, @"C:\Program Files\DocumentDB Emulator\DocumentDB.Emulator.exe", "", "/shutdown"));
-			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(1, new[] { "DocumentDB.GatewayService" }, @"C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe", "", "/shutdown"));
+			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(0, new[] { "DocumentDB.Emulator" }, @"C:\Program Files\DocumentDB Emulator\DocumentDB.Emulator.exe", string.Empty, "/shutdown"));
+			_documentDbEmulatorVersions.Add(new EmulatorVersionInfo(1, new[] { "DocumentDB.GatewayService" }, @"C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe", string.Empty, "/shutdown"));
 		}
 
 		#endregion

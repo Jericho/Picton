@@ -2,6 +2,7 @@
 using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
 using Picton.Interfaces;
+using Picton.Managers;
 using Shouldly;
 using System;
 using System.IO;
@@ -10,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Picton.Managers.UnitTests
+namespace Picton.UnitTests.Managers
 {
 	public class BlobManagerTests
 	{
