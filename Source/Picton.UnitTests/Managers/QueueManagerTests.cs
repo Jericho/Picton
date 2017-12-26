@@ -158,46 +158,6 @@ namespace Picton.UnitTests.Managers
 		}
 
 		[Fact]
-		public void AddMessageAsync_large_message()
-		{
-			// Arrange
-			var queueName = "myqueue";
-			var mockBlobItemUri = new Uri(BLOB_STORAGE_URL + "test.txt");
-			var mockQueue = GetMockQueue(queueName);
-			var mockQueueClient = GetMockQueueClient(mockQueue);
-			var mockBlobContainer = GetMockBlobContainer();
-			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
-			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
-
-			var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobItemUri);
-			mockBlobItem
-				.Setup(b => b.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(true))
-				.Verifiable();
-
-			mockBlobContainer
-				.Setup(c => c.GetBlockBlobReference(It.IsAny<string>()))
-				.Returns(mockBlobItem.Object)
-				.Verifiable();
-
-			mockQueue
-				.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-				.Returns(Task.FromResult(true))
-				.Verifiable();
-
-			// Act
-			var excessivelyLargeContent = RandomGenerator.GenerateString((int)CloudQueueMessage.MaxMessageSize * 2);
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
-			queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
-
-			// Assert
-			mockQueue.Verify();
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
-			mockBlobClient.Verify();
-		}
-
-		[Fact]
 		public void ClearAsync()
 		{
 			// Arrange
@@ -822,6 +782,87 @@ namespace Picton.UnitTests.Managers
 			content.GuidProp.ShouldBe(sampleMessage.GuidProp);
 			content.IntProp.ShouldBe(sampleMessage.IntProp);
 			content.StringProp.ShouldBe(sampleMessage.StringProp);
+		}
+
+		[Fact]
+		public void Add_and_get_large_message()
+		{
+			// Arrange
+			var queueName = "myqueue";
+			var mockBlobItemUri = new Uri(BLOB_STORAGE_URL + "test.txt");
+			var mockQueue = GetMockQueue(queueName);
+			var mockQueueClient = GetMockQueueClient(mockQueue);
+			var mockBlobContainer = GetMockBlobContainer();
+			var mockBlobClient = GetMockBlobClient(mockBlobContainer);
+			var storageAccount = GetMockStorageAccount(mockBlobClient, mockQueueClient);
+			var queuedMessage = (CloudQueueMessage)null;
+			var blobItemContent = (byte[])null;
+			var excessivelyLargeContent = RandomGenerator.GenerateString((int)CloudQueueMessage.MaxMessageSize * 2);
+
+			var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobItemUri);
+			mockBlobItem
+				.Setup(b => b.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Callback((Stream source, AccessCondition ac, BlobRequestOptions o, OperationContext c, CancellationToken t) =>
+				{
+					using (var ms = new MemoryStream())
+					{
+						source.CopyTo(ms);
+						blobItemContent = ms.ToArray();
+					}
+				})
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			mockBlobContainer
+				.Setup(c => c.GetBlobReference(It.IsAny<string>()))
+				.Returns(mockBlobItem.Object)
+				.Verifiable();
+
+			mockQueue
+				.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Callback((CloudQueueMessage message, TimeSpan? ttl, TimeSpan? initialVisibilityDelay, QueueRequestOptions o, OperationContext c, CancellationToken t) =>
+				{
+					queuedMessage = message;
+				})
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			mockQueue
+				.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync(() => queuedMessage)
+				.Verifiable();
+
+			mockBlobItem
+				.Setup(b => b.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
+				.Callback((Stream target, AccessCondition ac, BlobRequestOptions o, OperationContext c, CancellationToken t) =>
+				{
+					var bw = new BinaryWriter(target);
+					try
+					{
+						bw.Write(blobItemContent);
+						bw.Flush();
+						target.Seek(0, SeekOrigin.Begin);
+					}
+					finally
+					{
+						bw.Dispose();
+					}
+				})
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
+			var result = queueManager.GetMessageAsync().Result;
+
+			// Assert
+			mockQueue.Verify();
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			result.Content.GetType().ShouldBe(typeof(string));
+			result.Content.ShouldBe(excessivelyLargeContent);
 		}
 
 		private static Mock<CloudBlobContainer> GetMockBlobContainer(string containerName = "mycontainer")
