@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using MessagePack;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
@@ -16,7 +17,7 @@ using Xunit;
 
 namespace Picton.Managers.UnitTests
 {
-	public class SampleMessageType
+	internal class SampleMessageType
 	{
 		public string StringProp { get; set; }
 		public int IntProp { get; set; }
@@ -443,6 +444,23 @@ namespace Picton.Managers.UnitTests
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
 			result.ShouldBeNull();
+		}
+
+		[Fact]
+		// Serializing and deserializing an instance of an internal class didn't work in MessagePack version 1.7.0 until 1.7.3.
+		// It was resolved in 1.7.3.1 (see: https://github.com/neuecc/MessagePack-CSharp/issues/187)
+		// This unit test validates was used to demonstrate the issue.
+		public void Serialize_Internal_Type()
+		{
+			var sampleMessage = new SampleMessageType
+			{
+				DateProp = new DateTime(2016, 10, 8, 1, 2, 3, DateTimeKind.Utc),
+				GuidProp = Guid.NewGuid(),
+				IntProp = 123,
+				StringProp = "Hello World"
+			};
+			var serializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(sampleMessage);
+			var deserializedMessage = LZ4MessagePackSerializer.Typeless.Deserialize(serializedMessage);
 		}
 
 		[Fact]
