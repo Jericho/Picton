@@ -328,24 +328,24 @@ namespace Picton
 		/// <summary>
 		/// Creates a Shared Access Signature URI for the blob.
 		/// </summary>
+		/// <param name="blob">The blob to be shared</param>
+		/// <param name="permissions">The permissions granted to the shared access signature</param>
+		/// <param name="duration">The period of time the shared access signature is valid for. If this parameter is omited, it defaults to 15 minutes.</param>
+		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
+		/// <returns>The URI</returns>
 		/// <remarks>
 		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/
 		/// </remarks>
-		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, ISystemClock systemClock = null)
-		{
-			return GetSharedAccessSignatureUri(blob, permission, TimeSpan.FromMinutes(15), systemClock);
-		}
-
-		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permission, TimeSpan duration, ISystemClock systemClock = null)
+		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var now = (systemClock ?? SystemClock.Instance).UtcNow;
 			var sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
 			{
-				Permissions = permission,
+				Permissions = permissions,
 				SharedAccessStartTime = now.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
-				SharedAccessExpiryTime = now.Add(duration)
+				SharedAccessExpiryTime = now.Add(duration.GetValueOrDefault(TimeSpan.FromMinutes(15)))
 			});
 			return string.Format(CultureInfo.InvariantCulture, "{0}{1}", blob.Uri, sas);
 		}
