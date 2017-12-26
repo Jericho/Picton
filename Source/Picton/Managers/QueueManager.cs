@@ -47,17 +47,16 @@ namespace Picton.Managers
 		/// <param name="queueName"></param>
 		public QueueManager(string queueName, IStorageAccount storageAccount)
 		{
-			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
-			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
-
-			_storageAccount = storageAccount;
-			_queueName = queueName;
+			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
 			_queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
 			_blobContainer = storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
 
-			var tasks = new List<Task>();
-			tasks.Add(_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None));
-			tasks.Add(_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None));
+			var tasks = new List<Task>()
+			{
+				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
+				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
+			};
 			Task.WaitAll(tasks.ToArray());
 		}
 

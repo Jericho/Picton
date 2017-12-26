@@ -39,11 +39,8 @@ namespace Picton.Managers
 
 		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
-			if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentNullException(nameof(containerName));
-			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
-
-			_storageAccount = storageAccount;
-			_containerName = containerName;
+			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 

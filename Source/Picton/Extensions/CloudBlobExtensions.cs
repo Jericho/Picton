@@ -293,31 +293,31 @@ namespace Picton
 		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var container = blob.Container;
-			Func<CopyState, Task> waitForCopyCompletion = async (copyState) =>
+			async Task WaitForCopyCompletion(CopyState copyState)
 			{
 				while (copyState.Status == CopyStatus.Pending)
 					await Task.Delay(100).ConfigureAwait(false);
 				if (copyState.Status != CopyStatus.Success)
 					throw new Exception($"CopyAsync failed: {copyState.Status}");
-			};
+			}
 
 			if (blob is CloudAppendBlob)
 			{
 				var appendTarget = container.GetAppendBlobReference(destinationBlobName);
 				await appendTarget.StartCopyAsync((CloudAppendBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(appendTarget.CopyState).ConfigureAwait(false);
 			}
 			else if (blob is CloudBlockBlob)
 			{
 				var blockTarget = container.GetBlockBlobReference(destinationBlobName);
 				await blockTarget.StartCopyAsync((CloudBlockBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(blockTarget.CopyState).ConfigureAwait(false);
 			}
 			else if (blob is CloudPageBlob)
 			{
 				var pageTarget = container.GetPageBlobReference(destinationBlobName);
 				await pageTarget.StartCopyAsync((CloudPageBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
-				await waitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
+				await WaitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
 			}
 			else
 			{
