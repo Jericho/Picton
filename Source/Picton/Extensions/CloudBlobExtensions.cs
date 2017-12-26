@@ -214,6 +214,7 @@ namespace Picton
 					var content = new MemoryStream();
 					await blockBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
+					content.Position = 0; // Rewind the stream. IMPORTANT!
 					await blockBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
 				else
@@ -229,6 +230,7 @@ namespace Picton
 					var content = new MemoryStream();
 					await pageBlob.DownloadToStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 					await stream.CopyToAsync(content).ConfigureAwait(false);
+					content.Position = 0; // Rewind the stream. IMPORTANT!
 					await pageBlob.UploadFromStreamAsync(content, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
 				else
