@@ -287,13 +287,12 @@ namespace Picton.Managers
 
 			if (cleanSourceName == cleanDestinationName) return;
 
-			var source = _blobContainer.GetBlobReference(cleanSourceName);
-			if (!await source.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false)) return;
-
 			var blob = await GetBlobReferenceAsync(cleanSourceName, cancellationToken).ConfigureAwait(false);
+			if (blob == null) return;
+
 			await blob.CopyAsync(cleanDestinationName, cancellationToken).ConfigureAwait(false);
 
-			if (deleteSourceAfterCopy) await source.DeleteAsync().ConfigureAwait(false);
+			if (deleteSourceAfterCopy) await blob.DeleteAsync().ConfigureAwait(false);
 		}
 
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)
