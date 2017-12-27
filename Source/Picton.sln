@@ -1,13 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1C27358F-3DB6-4F3B-8FD0-7D82EE691688}"
 	ProjectSection(SolutionItems) = preProject
 		..\appveyor.yml = ..\appveyor.yml
 		..\build.cake = ..\build.cake
-		..\nuspec\Picton.nuspec = ..\nuspec\Picton.nuspec
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
@@ -47,5 +46,8 @@ Global
 		{8607EEA2-D4BA-4D26-9BAE-9AE465025485} = {0C6E479D-E557-456D-9F5A-E2E447A694CD}
 		{4B5FC1DF-F2CC-4C5E-AD92-9787888C4895} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
 		{9F606E32-32E3-4503-82F2-4CEC02D4A7FA} = {6C9EB647-4B1E-406C-9638-B73755D6DD5B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2583BBED-7053-4467-8D8E-BBF750B59533}
 	EndGlobalSection
 EndGlobal
