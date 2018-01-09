@@ -245,12 +245,12 @@ namespace Picton.Managers
 
 		#region PRIVATE METHODS
 
-		private object Deserialize(byte[] serializedContent)
+		private static object Deserialize(byte[] serializedContent)
 		{
 			return LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
 		}
 
-		private byte[] Serialize<T>(T message)
+		private static byte[] Serialize<T>(T message)
 		{
 			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
 			return LZ4MessagePackSerializer.Typeless.Serialize(message);
