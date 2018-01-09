@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,6 +20,7 @@ namespace Picton.Managers
 		#region FIELDS
 
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
+		private static PropertyInfo _messageContentTypeProperty = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
 
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _queueName;
@@ -304,6 +306,77 @@ namespace Picton.Managers
 				PopReceipt = cloudMessage.PopReceipt
 			};
 			return message;
+		}
+
+		public static CloudMessage GetMessageContentByReflection(CloudQueueMessage cloudMessage)
+		{
+			// We get a null value when the queue is empty
+			if (cloudMessage == null)
+			{
+				return null;
+			}
+
+			// Deserialize the content of the cloud message
+			var content = (object)null;
+
+			var property = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
+			var messageContentType = property.GetValue(cloudMessage).ToString();
+
+			if (messageContentType == "RawString")
+			{
+				content = cloudMessage.AsString;
+			}
+			else
+			{
+				content = Deserialize(cloudMessage.AsBytes);
+			}
+
+			return new CloudMessage(content);
+		}
+
+		public static CloudMessage GetMessageContentByCachedReflection(CloudQueueMessage cloudMessage)
+		{
+			// We get a null value when the queue is empty
+			if (cloudMessage == null)
+			{
+				return null;
+			}
+
+			// Deserialize the content of the cloud message
+			var content = (object)null;
+			var messageContentType = _messageContentTypeProperty.GetValue(cloudMessage).ToString();
+			if (messageContentType == "RawString")
+			{
+				content = cloudMessage.AsString;
+			}
+			else
+			{
+				content = Deserialize(cloudMessage.AsBytes);
+			}
+
+			return new CloudMessage(content);
+		}
+
+		public static CloudMessage GetMessageContentByExceptionHandling(CloudQueueMessage cloudMessage)
+		{
+			// We get a null value when the queue is empty
+			if (cloudMessage == null)
+			{
+				return null;
+			}
+
+			// Deserialize the content of the cloud message
+			var content = (object)null;
+			try
+			{
+				content = cloudMessage.AsString;
+			}
+			catch
+			{
+				content = Deserialize(cloudMessage.AsBytes);
+			}
+
+			return new CloudMessage(content);
 		}
 
 		#endregion
