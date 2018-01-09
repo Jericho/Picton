@@ -168,6 +168,7 @@ namespace Picton.Managers
 			var cloudMessages = await _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK messages into Picton messages
+			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
