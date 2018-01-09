@@ -154,7 +154,7 @@ namespace Picton.Managers
 			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -169,7 +169,7 @@ namespace Picton.Managers
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task<QueuePermissions> GetPermissionsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -192,7 +192,7 @@ namespace Picton.Managers
 			var cloudMessage = await _queue.PeekMessageAsync(options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -206,7 +206,7 @@ namespace Picton.Managers
 			var cloudMessages = await _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK messages into Picton messages
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task SetMetadataAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -256,7 +256,7 @@ namespace Picton.Managers
 			return LZ4MessagePackSerializer.Typeless.Serialize(message);
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
+		private async Task<CloudMessage> ConvertToPictonMessageAsync(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null)
