@@ -136,6 +136,13 @@ namespace Picton.IntegrationTests
 			var largeMessage = (SampleMessageType)message2.Content;
 			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
 			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
+
+			// Send a simple string
+			await queueManager.AddMessageAsync("Hello World");
+			var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
+			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
 		}
 	}
 }
