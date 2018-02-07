@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using HeyRed.Mime;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.RetryPolicies;
 using Picton.Interfaces;
@@ -125,7 +126,7 @@ namespace Picton.Managers
 				blob = _blobContainer.GetBlockBlobReference(cleanBlobName);
 			}
 
-			blob.Properties.ContentType = mimeType ?? MimeTypeMap.GetMimeType(Path.GetExtension(cleanBlobName));
+			blob.Properties.ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(cleanBlobName));
 
 			if (!string.IsNullOrEmpty(cacheControl)) blob.Properties.CacheControl = cacheControl;
 			if (!string.IsNullOrEmpty(contentEncoding)) blob.Properties.ContentEncoding = contentEncoding;
@@ -189,7 +190,7 @@ namespace Picton.Managers
 				blob = _blobContainer.GetBlockBlobReference(cleanBlobName);
 			}
 
-			blob.Properties.ContentType = mimeType ?? MimeTypeMap.GetMimeType(Path.GetExtension(cleanBlobName));
+			blob.Properties.ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(cleanBlobName));
 
 			if (!string.IsNullOrEmpty(cacheControl)) blob.Properties.CacheControl = cacheControl;
 			if (!string.IsNullOrEmpty(contentEncoding)) blob.Properties.ContentEncoding = contentEncoding;
