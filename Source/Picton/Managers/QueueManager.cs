@@ -4,9 +4,9 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -35,9 +35,7 @@ namespace Picton.Managers
 		/// </summary>
 		/// <param name="queueName"></param>
 		/// <param name="cloudStorageAccount"></param>
-#if NETFULL
 		[ExcludeFromCodeCoverage]
-#endif
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
 			: this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
 		{
@@ -180,9 +178,7 @@ namespace Picton.Managers
 		}
 
 		// GetSharedAccessSignature is not virtual therefore we can't mock it.
-#if NETFULL
 		[ExcludeFromCodeCoverage]
-#endif
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
