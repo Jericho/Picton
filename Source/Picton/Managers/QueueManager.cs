@@ -20,7 +20,7 @@ namespace Picton.Managers
 		#region FIELDS
 
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
-		private static PropertyInfo _messageContentTypeProperty = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
+		private static PropertyInfo MESSAGE_CONTENT_TYPE_PROPERTY = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
 
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _queueName;
@@ -268,7 +268,7 @@ namespace Picton.Managers
 
 			// Deserialize the content of the cloud message
 			var content = (object)null;
-			var messageContentType = _messageContentTypeProperty.GetValue(cloudMessage).ToString();
+			var messageContentType = MESSAGE_CONTENT_TYPE_PROPERTY.GetValue(cloudMessage).ToString();
 			if (messageContentType == "RawString")
 			{
 				content = cloudMessage.AsString;
