@@ -243,6 +243,12 @@ namespace Picton.Managers
 			return _queue.UpdateMessageAsync(cloudMessage, visibilityTimeout, MessageUpdateFields.Visibility, options, operationContext, cancellationToken);
 		}
 
+		public async Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default(CancellationToken))
+		{
+			await _queue.FetchAttributesAsync(null, null, cancellationToken).ConfigureAwait(false);
+			return _queue.ApproximateMessageCount ?? 0;
+		}
+
 		#endregion
 
 		#region PRIVATE METHODS
