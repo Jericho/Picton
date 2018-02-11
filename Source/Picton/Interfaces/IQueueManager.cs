@@ -47,5 +47,7 @@ namespace Picton.Interfaces
 		*/
 
 		Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken));
+
+		Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default(CancellationToken));
 	}
 }

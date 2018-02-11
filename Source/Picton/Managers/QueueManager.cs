@@ -4,11 +4,12 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,6 +20,7 @@ namespace Picton.Managers
 		#region FIELDS
 
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
+		private static PropertyInfo MESSAGE_CONTENT_TYPE_PROPERTY = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
 
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _queueName;
@@ -33,9 +35,7 @@ namespace Picton.Managers
 		/// </summary>
 		/// <param name="queueName"></param>
 		/// <param name="cloudStorageAccount"></param>
-#if NETFULL
 		[ExcludeFromCodeCoverage]
-#endif
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
 			: this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
 		{
@@ -154,7 +154,7 @@ namespace Picton.Managers
 			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -168,7 +168,8 @@ namespace Picton.Managers
 			var cloudMessages = await _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK messages into Picton messages
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task<QueuePermissions> GetPermissionsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -177,9 +178,7 @@ namespace Picton.Managers
 		}
 
 		// GetSharedAccessSignature is not virtual therefore we can't mock it.
-#if NETFULL
 		[ExcludeFromCodeCoverage]
-#endif
 		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
 		{
 			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
@@ -191,7 +190,7 @@ namespace Picton.Managers
 			var cloudMessage = await _queue.PeekMessageAsync(options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessage(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -205,7 +204,7 @@ namespace Picton.Managers
 			var cloudMessages = await _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken).ConfigureAwait(false);
 
 			// Convert the Azure SDK messages into Picton messages
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessage(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task SetMetadataAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -240,22 +239,28 @@ namespace Picton.Managers
 			return _queue.UpdateMessageAsync(cloudMessage, visibilityTimeout, MessageUpdateFields.Visibility, options, operationContext, cancellationToken);
 		}
 
+		public async Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default(CancellationToken))
+		{
+			await _queue.FetchAttributesAsync(null, null, cancellationToken).ConfigureAwait(false);
+			return _queue.ApproximateMessageCount ?? 0;
+		}
+
 		#endregion
 
 		#region PRIVATE METHODS
 
-		private object Deserialize(byte[] serializedContent)
+		private static object Deserialize(byte[] serializedContent)
 		{
 			return LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
 		}
 
-		private byte[] Serialize<T>(T message)
+		private static byte[] Serialize<T>(T message)
 		{
 			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
 			return LZ4MessagePackSerializer.Typeless.Serialize(message);
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessage(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
+		private async Task<CloudMessage> ConvertToPictonMessageAsync(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null)
@@ -265,11 +270,12 @@ namespace Picton.Managers
 
 			// Deserialize the content of the cloud message
 			var content = (object)null;
-			try
+			var messageContentType = MESSAGE_CONTENT_TYPE_PROPERTY.GetValue(cloudMessage).ToString();
+			if (messageContentType == "RawString")
 			{
 				content = cloudMessage.AsString;
 			}
-			catch
+			else
 			{
 				content = Deserialize(cloudMessage.AsBytes);
 			}

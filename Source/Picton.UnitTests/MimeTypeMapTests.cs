@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using HeyRed.Mime;
+using Shouldly;
 using System;
 using Xunit;
 
@@ -9,9 +10,9 @@ namespace Picton.UnitTests
 		[Fact]
 		public void GetMimeType_throws_when_extension_is_null()
 		{
-			Should.Throw<ArgumentNullException>(() =>
+			Should.Throw<NullReferenceException>(() =>
 			{
-				var mimeType = MimeTypeMap.GetMimeType(null);
+				var mimeType = MimeTypesMap.GetMimeType(null);
 			});
 		}
 
@@ -22,20 +23,7 @@ namespace Picton.UnitTests
 			var expected = "text/plain";
 
 			// Act
-			var mimeType = MimeTypeMap.GetMimeType(".txt");
-
-			// Assert
-			mimeType.ShouldBe(expected);
-		}
-
-		[Fact]
-		public void GetMimeType_with_malformed_extension()
-		{
-			// Arrange
-			var expected = "text/plain";
-
-			// Act
-			var mimeType = MimeTypeMap.GetMimeType("txt");
+			var mimeType = MimeTypesMap.GetMimeType("myfile.txt");
 
 			// Assert
 			mimeType.ShouldBe(expected);
@@ -48,7 +36,7 @@ namespace Picton.UnitTests
 			var expected = "application/octet-stream";
 
 			// Act
-			var mimeType = MimeTypeMap.GetMimeType(".blablabla");
+			var mimeType = MimeTypesMap.GetMimeType("myfile.blablabla");
 
 			// Assert
 			mimeType.ShouldBe(expected);
@@ -59,16 +47,7 @@ namespace Picton.UnitTests
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var extension = MimeTypeMap.GetExtension(null);
-			});
-		}
-
-		[Fact]
-		public void GetExtension_throws_when_mimeType_is_malformed()
-		{
-			Should.Throw<ArgumentException>(() =>
-			{
-				var extension = MimeTypeMap.GetExtension(".blablabla");
+				var extension = MimeTypesMap.GetExtension(null);
 			});
 		}
 
@@ -76,22 +55,26 @@ namespace Picton.UnitTests
 		public void GetExtension_with_known_mimeType()
 		{
 			// Arrange
-			var expected = ".txt";
+			var expected = "txt";
 
 			// Act
-			var mimeType = MimeTypeMap.GetExtension("text/plain");
+			var extension = MimeTypesMap.GetExtension("text/plain");
 
 			// Assert
-			mimeType.ShouldBe(expected);
+			extension.ShouldBe(expected);
 		}
 
 		[Fact]
 		public void GetExtension_with_unknown_mimeType()
 		{
-			Should.Throw<ArgumentException>(() =>
-			{
-				var extension = MimeTypeMap.GetExtension("blablabla");
-			});
+			// Arrange
+			var expected = "bin";
+
+			// Act
+			var extension = MimeTypesMap.GetExtension("notvalid/bogus");
+
+			// Assert
+			extension.ShouldBe(expected);
 		}
 	}
 }

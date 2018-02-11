@@ -106,7 +106,11 @@ namespace Picton.IntegrationTests
 			// Make sure the queue is empty
 			await queueManager.ClearAsync(null, null, cancellationToken).ConfigureAwait(false);
 
-			// Send and receive a simple message
+			// Check that the queue is empty
+			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
+
+			// Send a simple message
 			var sample = new SampleMessageType
 			{
 				StringProp = "abc123",
@@ -115,6 +119,12 @@ namespace Picton.IntegrationTests
 				DateProp = new DateTime(2016, 10, 6, 1, 2, 3, DateTimeKind.Utc)
 			};
 			await queueManager.AddMessageAsync(sample);
+
+			// Check that there is one message in the queue
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
+
+			// Get the message
 			var message1 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
 			if (message1.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
 			var receivedMessage = (SampleMessageType)message1.Content;
@@ -122,7 +132,13 @@ namespace Picton.IntegrationTests
 			if (receivedMessage.IntProp != sample.IntProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.GuidProp != sample.GuidProp) throw new Exception("Did not receive the expected message");
 			if (receivedMessage.DateProp != sample.DateProp) throw new Exception("Did not receive the expected message");
+
+			// Delete the message from the queue
 			await queueManager.DeleteMessageAsync(message1).ConfigureAwait(false);
+
+			// Check that the queue is empty
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 			// Send a message that exceeds the max size allowed in Azure queues
 			int characterCount = 100000;
@@ -131,11 +147,40 @@ namespace Picton.IntegrationTests
 				StringProp = new string('x', characterCount)
 			};
 			await queueManager.AddMessageAsync(largeSample);
+
+			// Check that there is one message in the queue
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
+
+			// Get the message
 			var message2 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
 			if (message2.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
 			var largeMessage = (SampleMessageType)message2.Content;
 			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
+
+			// Delete the message from the queue
 			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
+
+			// Check that the queue is empty
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
+
+			// Send a simple string
+			await queueManager.AddMessageAsync("Hello World");
+			var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
+
+			// Check that there is one message in the queue
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
+
+			// Delete the message from the queue
+			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
+
+			// Check that the queue is empty
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 		}
 	}
 }

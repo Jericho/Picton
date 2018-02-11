@@ -1,8 +1,6 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: CLSCompliant(true)]
 [assembly: InternalsVisibleTo("Picton.UnitTests")]
 
 // Setting ComVisible to false makes the types in this assembly not visible

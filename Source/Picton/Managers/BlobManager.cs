@@ -1,11 +1,12 @@
-﻿using Microsoft.WindowsAzure.Storage;
+﻿using HeyRed.Mime;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.RetryPolicies;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -30,9 +31,7 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-#if NETFULL
 		[ExcludeFromCodeCoverage]
-#endif
 		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 			: this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
 		{ }
@@ -125,7 +124,7 @@ namespace Picton.Managers
 				blob = _blobContainer.GetBlockBlobReference(cleanBlobName);
 			}
 
-			blob.Properties.ContentType = mimeType ?? MimeTypeMap.GetMimeType(Path.GetExtension(cleanBlobName));
+			blob.Properties.ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(cleanBlobName));
 
 			if (!string.IsNullOrEmpty(cacheControl)) blob.Properties.CacheControl = cacheControl;
 			if (!string.IsNullOrEmpty(contentEncoding)) blob.Properties.ContentEncoding = contentEncoding;
@@ -189,7 +188,7 @@ namespace Picton.Managers
 				blob = _blobContainer.GetBlockBlobReference(cleanBlobName);
 			}
 
-			blob.Properties.ContentType = mimeType ?? MimeTypeMap.GetMimeType(Path.GetExtension(cleanBlobName));
+			blob.Properties.ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(cleanBlobName));
 
 			if (!string.IsNullOrEmpty(cacheControl)) blob.Properties.CacheControl = cacheControl;
 			if (!string.IsNullOrEmpty(contentEncoding)) blob.Properties.ContentEncoding = contentEncoding;
