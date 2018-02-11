@@ -318,12 +318,7 @@ namespace Picton
 			else if (blob is CloudPageBlob)
 			{
 				var pageTarget = container.GetPageBlobReference(destinationBlobName);
-
-				// IMPORTANT: the 5 parameters overload of StartCopyAsync has an infinite loop which eventually causes a StackOverflow exception
-				// I reported this issue: https://github.com/Azure/azure-storage-net/issues/597
-				// While we wait for a fix, the workaround is to use the 6 parameters overload
-				await pageTarget.StartCopyAsync((CloudPageBlob)blob, null, null, null, null, null, cancellationToken).ConfigureAwait(false);
-
+				await pageTarget.StartCopyAsync((CloudPageBlob)blob, null, null, null, null, cancellationToken).ConfigureAwait(false);
 				await WaitForCopyCompletion(pageTarget.CopyState).ConfigureAwait(false);
 			}
 			else
