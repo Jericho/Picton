@@ -30,9 +30,8 @@ The extension methods allow operations on blob while holding a lock (also known 
 Early versions of the Picton library contained several interfaces to overcome the fact that most classed in the Azure Storage library where sealed and/or their methods where not marked as virtual and therefore not "mockable".
 In [release 7.0 of the Azure Storage library](https://github.com/Azure/azure-storage-net/releases/tag/v7.0.0), Microsoft unsealed most classes and marked most methods as virtual which is quite significant because it allows mocking these classes when they are injected in one of your own classes. 
 The Azure Storage library was further improved in [version 8.0](https://github.com/Azure/azure-storage-net/releases/tag/v8.0.0) to update the `Get*Reference` methods with the "virtual" qualifier.
-This means that, as of version 8.0, almost all classes and methods of the Azure Storage library can be mocked.
-However, there is one notable exception: the `StorageAccount` class is still sealed which means that we cannot mock its methods such as `CreateCloudQueueClient`, `CreateCloudBlobClient`, etc.
-That's why the Picton library contains a `IStorageAccount` interface. I have opened an [issue on Github](https://github.com/Azure/azure-storage-net/issues/514) and hopefully this class will be unsealed in an upcoming release of the Azure Storage library and this interface will no longer be necessary.
+The Azure Storage library was again improved in [version 9.0](https://github.com/Azure/azure-storage-net/releases/tag/v9.0.0) to unseal the `StorageAccount` class. This was the last hurdle that prevented "mocking" the Azure storage library in unit tests.
+This means that all interfaces and wrapper classes in the Picton library have become obsolete and have ben removed in version 3.0.
 
 #### 3) Managers
 The Blob and Queue managers are helpers that simplify common blob and queue related tasks. 
@@ -81,7 +80,7 @@ await container.CreateIfNotExistsAsync().ConfigureAwait(false);
 var blob = container.GetBlockBlobReference("MyBlob.txt");
 ```
 
-Here are a few examples how to use the extnsion methods:
+Here are a few examples how to use the extension methods:
 ```
 var leaseId = await blob.TryAcquireLeaseAsync(TimeSpan.FromSeconds(15), 5, cancellationToken).ConfigureAwait(false);
 await blob.UploadTextAsync("Hello World", leaseId, cancellationToken).ConfigureAwait(false);
@@ -101,6 +100,9 @@ var accessUri = await blob.GetSharedAccessSignatureUri(permission, duration).Con
 
 
 #### 2) Abstractions
+PLEASE NOTE: this section is now obsolete. 
+The interfaces and wrapper classes have been removed from Picton in version 3.0 since the classes in Azure Storage library are now unsealed and/or methods are now marked as 'Virtual'.
+
 Let's assume you have the following class:
 ```
 public class Foo

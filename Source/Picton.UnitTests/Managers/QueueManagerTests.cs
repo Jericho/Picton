@@ -5,13 +5,13 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Queue.Protocol;
 using Moq;
-using Picton.Interfaces;
 using Picton.Managers;
 using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -36,7 +36,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null, null);
 				var queueManager = new QueueManager(null, storageAccount.Object);
 			});
 		}
@@ -46,7 +46,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null, null);
 				var queueManager = new QueueManager("", storageAccount.Object);
 			});
 		}
@@ -56,17 +56,17 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null, null);
 				var queueManager = new QueueManager(" ", storageAccount.Object);
 			});
 		}
 
 		[Fact]
-		public void Null_IStorageAccount_throws()
+		public void Null_StorageAccount_throws()
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = (IStorageAccount)null;
+				var storageAccount = (CloudStorageAccount)null;
 				var queueManager = new QueueManager("myqueue", storageAccount);
 			});
 		}
@@ -76,7 +76,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = (IStorageAccount)null;
+				var storageAccount = (CloudStorageAccount)null;
 				var queueManager = new QueueManager("myqueue", storageAccount);
 			});
 		}
@@ -901,8 +901,8 @@ namespace Picton.UnitTests.Managers
 		private static Mock<CloudQueueClient> GetMockQueueClient(Mock<CloudQueue> mockQueue)
 		{
 			var mockQueueStorageUri = new Uri(QUEUE_STORAGE_URL);
-			var mockCredentials = new StorageCredentials("mySasToken");
-			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, mockQueueStorageUri, mockCredentials);
+			var storageCredentials = GetStorageCredentials();
+			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, mockQueueStorageUri, storageCredentials);
 			mockQueueClient
 				.Setup(c => c.GetQueueReference(mockQueue.Object.Name))
 				.Returns(mockQueue.Object)
@@ -910,18 +910,35 @@ namespace Picton.UnitTests.Managers
 			return mockQueueClient;
 		}
 
-		private static Mock<IStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient, Mock<CloudQueueClient> mockQueueClient)
+		private static Mock<CloudStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient, Mock<CloudQueueClient> mockQueueClient)
 		{
-			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
-			storageAccount
-				.Setup(s => s.CreateCloudBlobClient())
-				.Returns(mockBlobClient.Object)
-				.Verifiable();
-			storageAccount
-				.Setup(s => s.CreateCloudQueueClient())
-				.Returns(mockQueueClient.Object)
-				.Verifiable();
+			var storageCredentials = GetStorageCredentials();
+			var storageAccount = new Mock<CloudStorageAccount>(MockBehavior.Strict, storageCredentials, true);
+
+			if (mockBlobClient != null)
+			{
+				storageAccount
+					.Setup(s => s.CreateCloudBlobClient())
+					.Returns(mockBlobClient.Object)
+					.Verifiable();
+			}
+
+			if (mockQueueClient != null)
+			{
+				storageAccount
+					.Setup(s => s.CreateCloudQueueClient())
+					.Returns(mockQueueClient.Object)
+					.Verifiable();
+			}
+
 			return storageAccount;
+		}
+
+		private static StorageCredentials GetStorageCredentials()
+		{
+			var accountAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("this_is_a_bogus_account_access_key"));
+			var storageCredentials = new StorageCredentials("account_name", accountAccessKey);
+			return storageCredentials;
 		}
 	}
 }

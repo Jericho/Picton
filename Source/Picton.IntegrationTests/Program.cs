@@ -1,6 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
-using Picton.Interfaces;
 using Picton.Managers;
 using System;
 using System.Linq;
@@ -22,7 +21,7 @@ namespace Picton.IntegrationTests
 			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
-			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
+			var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
 			var containerName = "mycontainer";
 			var queueName = "myqueue";
 
@@ -44,7 +43,7 @@ namespace Picton.IntegrationTests
 			Console.ReadKey();
 		}
 
-		private static async Task RunCloudBlobExtensionsTests(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunCloudBlobExtensionsTests(CloudStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
 		{
 			var blobClient = storageAccount.CreateCloudBlobClient();
 			var container = blobClient.GetContainerReference(containerName);
@@ -79,7 +78,7 @@ namespace Picton.IntegrationTests
 			//Console.WriteLine(content3);
 		}
 
-		private static async Task RunBlobManagerTests(IStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunBlobManagerTests(CloudStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
 		{
 			var blobManager = new BlobManager(containerName, storageAccount);
 
@@ -102,7 +101,7 @@ namespace Picton.IntegrationTests
 			await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
 		}
 
-		private static async Task RunQueueManagerTests(IStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
+		private static async Task RunQueueManagerTests(CloudStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
 		{
 			var queueManager = new QueueManager(queueName, storageAccount);
 

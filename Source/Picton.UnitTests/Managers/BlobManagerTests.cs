@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
 using Picton.Interfaces;
@@ -22,7 +23,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null);
 				var blobManager = new BlobManager(null, storageAccount.Object);
 			});
 		}
@@ -32,7 +33,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null);
 				var blobManager = new BlobManager("", storageAccount.Object);
 			});
 		}
@@ -42,7 +43,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
+				var storageAccount = GetMockStorageAccount(null);
 				var blobManager = new BlobManager(" ", storageAccount.Object);
 			});
 		}
@@ -52,7 +53,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = (IStorageAccount)null;
+				var storageAccount = (CloudStorageAccount)null;
 				var blobManager = new BlobManager("mycontainer", storageAccount);
 			});
 		}
@@ -62,7 +63,7 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = (IStorageAccount)null;
+				var storageAccount = (CloudStorageAccount)null;
 				var blobManager = new BlobManager("mycontainer", storageAccount);
 			});
 		}
@@ -184,14 +185,27 @@ namespace Picton.UnitTests.Managers
 			return mockBlobClient;
 		}
 
-		private static Mock<IStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient)
+		private static Mock<CloudStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient)
 		{
-			var storageAccount = new Mock<IStorageAccount>(MockBehavior.Strict);
-			storageAccount
+			var storageCredentials = GetStorageCredentials();
+			var storageAccount = new Mock<CloudStorageAccount>(MockBehavior.Strict, storageCredentials, true);
+
+			if (mockBlobClient != null)
+			{
+				storageAccount
 				.Setup(s => s.CreateCloudBlobClient())
 				.Returns(mockBlobClient.Object)
 				.Verifiable();
+			}
+
 			return storageAccount;
+		}
+
+		private static StorageCredentials GetStorageCredentials()
+		{
+			var accountAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("this_is_a_bogus_account_access_key"));
+			var storageCredentials = new StorageCredentials("account_name", accountAccessKey);
+			return storageCredentials;
 		}
 	}
 }
