@@ -1,7 +1,10 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
 using Picton.Interfaces;
 using Picton.Managers;
 using System;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,8 +18,8 @@ namespace Picton.IntegrationTests
 			Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
 			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
-			Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
-			AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
+			//Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
+			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
 			var storageAccount = new StorageAccount(CloudStorageAccount.DevelopmentStorageAccount);
@@ -103,13 +106,15 @@ namespace Picton.IntegrationTests
 		{
 			var queueManager = new QueueManager(queueName, storageAccount);
 
-			// Make sure the queue is empty
+			// Empty the queue
 			await queueManager.ClearAsync(null, null, cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
 			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
+
+			//-----------------------------------------------------------------
 			// Send a simple message
 			var sample = new SampleMessageType
 			{
@@ -140,6 +145,8 @@ namespace Picton.IntegrationTests
 			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
+
+			//-----------------------------------------------------------------
 			// Send a message that exceeds the max size allowed in Azure queues
 			int characterCount = 100000;
 			var largeSample = new SampleMessageType
@@ -165,15 +172,19 @@ namespace Picton.IntegrationTests
 			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
+
+			//-----------------------------------------------------------------
 			// Send a simple string
 			await queueManager.AddMessageAsync("Hello World");
-			var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
-			if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
-			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
 
 			// Check that there is one message in the queue
 			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
+
+			// Get the message
+			var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
 
 			// Delete the message from the queue
 			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
@@ -181,6 +192,44 @@ namespace Picton.IntegrationTests
 			// Check that the queue is empty
 			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
+
+
+			//-----------------------------------------------------------------
+			// Send messages using the Azure CloudQueue class
+			// thereby bypassing Picton's queue manager serialization
+			var queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
+
+			var cloudMessage = new CloudQueueMessage("Hello World STRING");
+			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+
+			cloudMessage = new CloudQueueMessage(string.Empty);
+			cloudMessage.SetMessageContent(Encoding.UTF8.GetBytes("Hello World BINARY"));
+			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+
+			cloudMessage = new CloudQueueMessage(string.Empty);
+			cloudMessage.SetMessageContent(BitConverter.GetBytes(1234567890));
+			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+
+			// Check that there are three messages in the queue
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 3) throw new Exception($"We expected three messages in the queue but we found {queuedMessagesCount} messages.");
+
+			// Get the messages
+			var messages = (await queueManager.GetMessagesAsync(10, TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false)).ToArray();
+			if (messages[0].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			if ((string)messages[0].Content != "Hello World STRING") throw new Exception("Did not receive the expected message");
+			if (messages[1].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			if ((string)messages[1].Content != "Hello World BINARY") throw new Exception("Did not receive the expected message");
+			if (messages[2].Content.GetType() != typeof(byte[])) throw new Exception("The type of the received message does not match the expected type");
+			if (BitConverter.ToInt32((byte[])messages[2].Content, 0) != 1234567890) throw new Exception("Did not receive the expected message");
+
+			// Clear the queue
+			await queueManager.ClearAsync().ConfigureAwait(false);
+
+			// Check that the queue is empty
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
+
 		}
 	}
 }
