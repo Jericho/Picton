@@ -3,7 +3,6 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.RetryPolicies;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -22,7 +21,7 @@ namespace Picton.Managers
 		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
 		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
 
-		private readonly IStorageAccount _storageAccount;
+		private readonly CloudStorageAccount _storageAccount;
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
 		private readonly CloudBlobContainer _blobContainer;
@@ -31,14 +30,9 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-		[ExcludeFromCodeCoverage]
 		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
-			: this(containerName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount), accessType)
-		{ }
-
-		public BlobManager(string containerName, IStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
-			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_storageAccount = cloudStorageAccount ?? throw new ArgumentNullException(nameof(cloudStorageAccount));
 			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
 			_blobClient = _storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);

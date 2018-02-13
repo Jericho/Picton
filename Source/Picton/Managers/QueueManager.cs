@@ -25,7 +25,7 @@ namespace Picton.Managers
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
-		private readonly IStorageAccount _storageAccount;
+		private readonly CloudStorageAccount _storageAccount;
 		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
@@ -34,12 +34,12 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-		public QueueManager(string queueName, IStorageAccount storageAccount)
+		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
 		{
-			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
+			_storageAccount = cloudStorageAccount ?? throw new ArgumentNullException(nameof(cloudStorageAccount));
 			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
-			_blobContainer = storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
+			_queue = _storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
+			_blobContainer = _storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
 
 			var tasks = new List<Task>()
 			{
