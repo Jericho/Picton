@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,8 +19,11 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
+		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
+		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
+
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
-		private static PropertyInfo MESSAGE_CONTENT_TYPE_PROPERTY = typeof(CloudQueueMessage).GetTypeInfo().GetDeclaredProperty("MessageType");
+		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
 		private readonly IStorageAccount _storageAccount;
 		private readonly string _queueName;
@@ -31,20 +34,6 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
-		/// <summary>
-		/// </summary>
-		/// <param name="queueName"></param>
-		/// <param name="cloudStorageAccount"></param>
-		[ExcludeFromCodeCoverage]
-		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
-			: this(queueName, StorageAccount.FromCloudStorageAccount(cloudStorageAccount))
-		{
-		}
-
-		/// <summary>
-		/// For unit testing
-		/// </summary>
-		/// <param name="queueName"></param>
 		public QueueManager(string queueName, IStorageAccount storageAccount)
 		{
 			_storageAccount = storageAccount ?? throw new ArgumentNullException(nameof(storageAccount));
@@ -251,13 +240,46 @@ namespace Picton.Managers
 
 		private static object Deserialize(byte[] serializedContent)
 		{
-			return LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
+			var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
+			if (code == MessagePackType.Extension)
+			{
+				// The message was added to the queue using Picton's QueueManager.
+				// Therefore we know exactly how to deserialize the content.
+				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var readSize);
+				if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
+				{
+					var envelope = (MessageEnvelope)LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
+					return envelope.Content;
+				}
+				else
+				{
+					throw new Exception($"Picton is unable to deserialize content using serialization method '{header.TypeCode}'");
+				}
+			}
+			else
+			{
+				// The message was added to the queue using the CloudQueue class in Microsoft's Azure Storage nuget package
+				// Therefore we can't be sure if the content is a string or binary.
+				try
+				{
+					return UTF8_ENCODER.GetString(serializedContent, 0, serializedContent.Length);
+				}
+				catch
+				{
+					return serializedContent;
+				}
+			}
 		}
 
 		private static byte[] Serialize<T>(T message)
 		{
+			var envelope = new MessageEnvelope()
+			{
+				Content = message
+			};
+
 			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
-			return LZ4MessagePackSerializer.Typeless.Serialize(message);
+			return LZ4MessagePackSerializer.Typeless.Serialize(envelope);
 		}
 
 		private async Task<CloudMessage> ConvertToPictonMessageAsync(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
@@ -269,16 +291,7 @@ namespace Picton.Managers
 			}
 
 			// Deserialize the content of the cloud message
-			var content = (object)null;
-			var messageContentType = MESSAGE_CONTENT_TYPE_PROPERTY.GetValue(cloudMessage).ToString();
-			if (messageContentType == "RawString")
-			{
-				content = cloudMessage.AsString;
-			}
-			else
-			{
-				content = Deserialize(cloudMessage.AsBytes);
-			}
+			var content = Deserialize(cloudMessage.AsBytes);
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
 			var largeContentBlobName = (string)null;
