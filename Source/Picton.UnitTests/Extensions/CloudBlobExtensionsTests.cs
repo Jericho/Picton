@@ -15,7 +15,8 @@ namespace Picton.UnitTests.Extensions
 	public class CloudBlobExtensionsTests
 	{
 		private static readonly string BLOB_STORAGE_URL = "http://bogus:10000/devstoreaccount1/";
-		private static readonly string BLOB_ITEM_URL = $"{BLOB_STORAGE_URL}MyContainer/Blob.txt";
+		private static readonly string BLOB_CONTAINER_NAME = "MyContainer";
+		private static readonly string BLOB_ITEM_URL = $"{BLOB_STORAGE_URL}{BLOB_CONTAINER_NAME}/Blob.txt";
 
 		[Fact]
 		public async Task TryAcquireLeaseAsync_throws_when_blob_is_null()
@@ -997,6 +998,16 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
+		public async Task DownloadByteArrayAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+
+			// Act
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).DownloadByteArrayAsync(cancellationToken)).ConfigureAwait(false);
+		}
+
+		[Fact]
 		public async Task DownloadByteArrayAsync()
 		{
 			// Arrange
@@ -1020,6 +1031,17 @@ namespace Picton.UnitTests.Extensions
 			// Assert
 			mockBlob.Verify();
 			result.ShouldBe(expected.ToBytes());
+		}
+
+		[Fact]
+		public async Task CopyAsync_throws_when_blob_is_null()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var destinationBlobUrl = $"{BLOB_STORAGE_URL}{BLOB_CONTAINER_NAME}/DestinationBlob.txt";
+
+			// Act
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).CopyAsync(destinationBlobUrl, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]

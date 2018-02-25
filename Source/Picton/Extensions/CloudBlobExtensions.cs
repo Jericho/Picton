@@ -291,6 +291,8 @@ namespace Picton
 
 		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+
 			var container = blob.Container;
 			async Task WaitForCopyCompletion(CopyState copyState)
 			{
