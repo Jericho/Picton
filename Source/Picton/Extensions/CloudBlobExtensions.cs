@@ -72,18 +72,11 @@ namespace Picton
 				// exist. If it doesn't we handle the 404, create it, and retry below
 				leaseId = await blob.AcquireLeaseAsync(leaseTime, proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
-			catch (StorageException exception)
+			catch (StorageException e)
 			{
-				if (exception.RequestInformation != null)
+				if (e.RequestInformation?.HttpStatusCode == 404)
 				{
-					if (exception.RequestInformation.HttpStatusCode == 404)
-					{
-						blobDoesNotExist = true;
-					}
-					else
-					{
-						throw;
-					}
+					blobDoesNotExist = true;
 				}
 				else
 				{
@@ -271,6 +264,8 @@ namespace Picton
 
 		public static async Task<string> DownloadTextAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+
 			using (var stream = new MemoryStream())
 			{
 				await blob.DownloadToStreamAsync(stream, null, null, null, cancellationToken).ConfigureAwait(false);
@@ -284,6 +279,8 @@ namespace Picton
 
 		public static async Task<byte[]> DownloadByteArrayAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+
 			using (var ms = new MemoryStream())
 			{
 				await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);

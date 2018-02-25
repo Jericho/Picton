@@ -3,7 +3,9 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Moq;
 using Shouldly;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -16,32 +18,30 @@ namespace Picton.UnitTests.Extensions
 		private static readonly string BLOB_ITEM_URL = $"{BLOB_STORAGE_URL}MyContainer/Blob.txt";
 
 		[Fact]
-		public void TryAcquireLeaseAsync_throws_when_blob_is_null()
+		public async Task TryAcquireLeaseAsync_throws_when_blob_is_null()
 		{
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).TryAcquireLeaseAsync().ConfigureAwait(false);
-			});
+			// Act
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).TryAcquireLeaseAsync()).ConfigureAwait(false);
 		}
 
 		[Fact]
-		public void TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_small()
+		public async Task TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_small()
 		{
-			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-			{
-				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
-				await mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 0).ConfigureAwait(false);
-			});
+			// Arrange
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+
+			// Act
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 0)).ConfigureAwait(false);
 		}
 
 		[Fact]
-		public void TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_large()
+		public async Task TryAcquireLeaseAsync_throws_when_maxLeaseAttempts_is_too_large()
 		{
-			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-			{
-				var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
-				await mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 11).ConfigureAwait(false);
-			});
+			// Arrange
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+
+			// Act
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlob.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 11)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -88,7 +88,7 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void TryAcquireLeaseAsync_throws_when_lease_fails()
+		public async Task TryAcquireLeaseAsync_throws_when_lease_fails()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -102,10 +102,25 @@ namespace Picton.UnitTests.Extensions
 				.Verifiable();
 
 			// Act
-			Should.ThrowAsync<Exception>(async () =>
-			{
-				await mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<Exception>(() => mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken)).ConfigureAwait(false);
+		}
+
+		[Fact]
+		public async Task TryAcquireLeaseAsync_throws_when_exception_other_than_HTTP409()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = (TimeSpan?)null;
+			var exception = new Exception("An exception occured");
+
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.AcquireLeaseAsync(TimeSpan.FromSeconds(15), (string)null, null, null, null, cancellationToken))
+				.ThrowsAsync(new StorageException(new RequestResult() { HttpStatusCode = 999 }, "Let's simulate some problem", new Exception("???")))
+				.Verifiable();
+
+			// Act
+			await Should.ThrowAsync<Exception>(() => mockBlob.Object.TryAcquireLeaseAsync(leaseTime, 1, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -174,7 +189,7 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void AcquireLeaseAsync_10_seconds()
+		public async Task AcquireLeaseAsync_10_seconds()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -183,10 +198,7 @@ namespace Picton.UnitTests.Extensions
 			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 
 			// Act
-			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-			{
-				await mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -212,19 +224,41 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void AcquireLeaseAsync_too_long()
+		public async Task AcquireLeaseAsync_too_long()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseTime = TimeSpan.FromMinutes(2);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 
 			// Act
-			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-			{
-				await mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken)).ConfigureAwait(false);
+		}
+
+		[Fact]
+		public async Task AcquireLeaseAsync_creates_blob_if_does_not_exist()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseTime = TimeSpan.FromSeconds(30);
+			var expected = "Hello World";
+
+			var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.SetupSequence(c => c.AcquireLeaseAsync(leaseTime, (string)null, null, null, null, cancellationToken))
+				.ThrowsAsync(new StorageException(new RequestResult() { HttpStatusCode = 404 }, "Not found", new Exception("???")))
+				.Returns(Task.FromResult(expected));
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), null, null, null, It.IsAny<CancellationToken>()))
+				.Returns(Task.FromResult(true));
+
+			// Act
+			var result = await mockBlob.Object.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+			result.ShouldBe(expected);
 		}
 
 		[Fact]
@@ -235,10 +269,7 @@ namespace Picton.UnitTests.Extensions
 			var leaseId = "abc123";
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			Should.Throw<ArgumentNullException>(() => ((CloudBlob)null).ReleaseLeaseAsync(leaseId, cancellationToken));
 		}
 
 		[Fact]
@@ -269,10 +300,7 @@ namespace Picton.UnitTests.Extensions
 			var leaseId = "abc123";
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).RenewLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			Should.Throw<ArgumentNullException>(() => ((CloudBlob)null).RenewLeaseAsync(leaseId, cancellationToken));
 		}
 
 		[Fact]
@@ -338,7 +366,7 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void UploadStreamAsync_throws_when_blob_is_null()
+		public async Task UploadStreamAsync_throws_when_blob_is_null()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -347,27 +375,21 @@ namespace Picton.UnitTests.Extensions
 			var stream = new MemoryStream(streamContent);
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).UploadStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
-		public void UploadStreamAsync_throws_when_stream_is_null()
+		public async Task UploadStreamAsync_throws_when_stream_is_null()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseId = (string)null;
 			var stream = (Stream)null;
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentNullException>(() => mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -489,6 +511,24 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
+		public async Task UploadStreamAsync_throws_when_unknown_blob_type()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+
+			// Act
+			var e = await Should.ThrowAsync<Exception>(() => mockBlob.Object.UploadStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+
+			// Assert
+			e.Message.ShouldStartWith("Unknow blob type: ");
+		}
+
+		[Fact]
 		public void SetMetadataAsync_throws_when_blob_is_null()
 		{
 			// Arrange
@@ -496,10 +536,7 @@ namespace Picton.UnitTests.Extensions
 			var leaseId = (string)null;
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).SetMetadataAsync(leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			Should.Throw<ArgumentNullException>(() => ((CloudBlob)null).SetMetadataAsync(leaseId, cancellationToken));
 		}
 
 		[Fact]
@@ -543,16 +580,13 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void DownloadTextAsync_throws_when_blob_is_null()
+		public async Task DownloadTextAsync_throws_when_blob_is_null()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).DownloadTextAsync(cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).DownloadTextAsync(cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -602,7 +636,7 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
-		public void AppendStreamAsync_throws_when_blob_is_null()
+		public async Task AppendStreamAsync_throws_when_blob_is_null()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
@@ -611,27 +645,21 @@ namespace Picton.UnitTests.Extensions
 			var stream = new MemoryStream(streamContent);
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await ((CloudBlob)null).AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentNullException>(() => ((CloudBlob)null).AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
-		public void AppendStreamAsync_throws_when_stream_is_null()
+		public async Task AppendStreamAsync_throws_when_stream_is_null()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
 			var leaseId = (string)null;
 			var stream = (Stream)null;
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict);
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
 
 			// Act
-			Should.ThrowAsync<ArgumentNullException>(async () =>
-			{
-				await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-			});
+			await Should.ThrowAsync<ArgumentNullException>(() => mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
 		}
 
 		[Fact]
@@ -803,6 +831,114 @@ namespace Picton.UnitTests.Extensions
 		}
 
 		[Fact]
+		public async Task AppendStreamAsync_to_CloudPageBlob_without_lease()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = (string)null;
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+			mockBlob
+				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), null, It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[Fact]
+		public async Task AppendStreamAsync_to_CloudPageBlob_with_lease()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+			mockBlob
+				.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[Fact]
+		public async Task AppendStreamAsync_to_CloudPageBlob_blob_does_not_exist()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudPageBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
+				.Returns(Task.FromResult(false))
+				.Verifiable();
+			mockBlob
+				.Setup(c => c.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+			// Assert
+			mockBlob.Verify();
+		}
+
+		[Fact]
+		public async Task AppendStreamAsync_throws_when_unknown_blob_type()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var leaseId = "abc123";
+			var streamContent = "Hello World".ToBytes();
+			var stream = new MemoryStream(streamContent);
+
+			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
+			mockBlob
+				.Setup(c => c.ExistsAsync(null, null, cancellationToken))
+				.Returns(Task.FromResult(true))
+				.Verifiable();
+
+			// Act
+			var e = await Should.ThrowAsync<Exception>(() => mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+
+			// Assert
+			e.Message.ShouldStartWith("Unknow blob type: ");
+		}
+
+		[Fact]
 		public async Task AppendBytesAsync()
 		{
 			// Arrange
@@ -902,36 +1038,24 @@ namespace Picton.UnitTests.Extensions
 			});
 		}
 
-		// Can't mock GetSharedAccessSignature because it's not marked as 'virtual
-		/*
 		[Fact]
 		public void GetSharedAccessSignatureUri_with_specified_duration()
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
-			var sas = "abc123";
 			var permission = SharedAccessBlobPermissions.Read;
 			var systemClock = new MockSystemClock(new DateTime(2016, 8, 12, 15, 0, 0, 0, DateTimeKind.Utc)).Object;
 			var duration = TimeSpan.FromMinutes(1);
-			var startSharingTime = systemClock.UtcNow.AddMinutes(-5);
-			var stopSharingTime = systemClock.UtcNow.Add(duration);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, FAKE_BLOB_URI);
-			mockBlob
-				.Setup(c => c.GetSharedAccessSignature(It.Is<SharedAccessBlobPolicy>(p =>
-					p.SharedAccessStartTime == startSharingTime &&
-					p.SharedAccessExpiryTime == stopSharingTime
-				)))
-				.Returns(sas)
-				.Verifiable();
-
-			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/myaccount/blob"));
+			var blob = new CloudBlob(new Uri(BLOB_ITEM_URL), Misc.GetStorageCredentials());
 
 			// Act
-			var result = mockBlob.Object.GetSharedAccessSignatureUri(permission, duration, systemClock);
+			var result = blob.GetSharedAccessSignatureUri(permission, duration, systemClock);
 
 			// Assert
-			mockBlob.Verify();
+			var qs = ParseQueryString(result);
+			qs["st"].ShouldBe("2016-08-12T14:55:00Z");
+			qs["se"].ShouldBe("2016-08-12T15:01:00Z");
 		}
 
 		[Fact]
@@ -939,30 +1063,27 @@ namespace Picton.UnitTests.Extensions
 		{
 			// Arrange
 			var cancellationToken = CancellationToken.None;
-			var sas = "abc123";
 			var permission = SharedAccessBlobPermissions.Read;
 			var systemClock = new MockSystemClock(new DateTime(2016, 8, 12, 15, 0, 0, 0, DateTimeKind.Utc)).Object;
-			var defaultDuration = TimeSpan.FromMinutes(15);
-			var startSharingTime = systemClock.UtcNow.AddMinutes(-5);
-			var stopSharingTime = systemClock.UtcNow.Add(defaultDuration);
 
-			var mockBlob = new Mock<CloudBlob>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL));
-			mockBlob
-				.Setup(c => c.GetSharedAccessSignature(It.Is<SharedAccessBlobPolicy>(p =>
-					p.SharedAccessStartTime == startSharingTime &&
-					p.SharedAccessExpiryTime == stopSharingTime
-				)))
-				.Returns(sas)
-				.Verifiable();
-
-			mockBlob.SetupGet(b => b.Uri).Returns(new Uri("http://bogus/myaccount/blob"));
+			var blob = new CloudBlob(new Uri(BLOB_ITEM_URL), Misc.GetStorageCredentials());
 
 			// Act
-			var result = mockBlob.Object.GetSharedAccessSignatureUri(permission, systemClock);
+			var result = blob.GetSharedAccessSignatureUri(permission, systemClock: systemClock);
 
 			// Assert
-			mockBlob.Verify();
+			var qs = ParseQueryString(result);
+			qs["st"].ShouldBe("2016-08-12T14:55:00Z");
+			qs["se"].ShouldBe("2016-08-12T15:15:00Z");
 		}
-		*/
+
+		private static IDictionary<string, string> ParseQueryString(string uri)
+		{
+			var queryString = uri
+				.Split('?')[1]
+				.Split('&')
+				.ToDictionary(c => c.Split('=')[0], c => Uri.UnescapeDataString(c.Split('=')[1]));
+			return queryString;
+		}
 	}
 }
