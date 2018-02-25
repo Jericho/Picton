@@ -3,16 +3,23 @@ using System.Text;
 
 namespace Picton
 {
+	/// <summary>
+	/// Class containing extension methods for the <see cref="string"/> data type.
+	/// </summary>
 	public static class StringExtensions
 	{
 		#region PUBLIC EXTENSION METHODS
 
 		/// <summary>
-		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
+		/// Trim all occurrences of the exactly matching substring at the start of a given string.
 		/// </summary>
-		/// <param name="target"></param>
-		/// <param name="trimString"></param>
-		/// <returns></returns>
+		/// <remarks>
+		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
+		/// </remarks>
+		/// <param name="target">The string to be trimmed</param>
+		/// <param name="trimString">The substring to be removed</param>
+		/// <param name="stringComparison">Comparison settings</param>
+		/// <returns>The trimmed string</returns>
 		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
 		{
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
@@ -27,11 +34,15 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
+		/// Trim all occurrences of the exactly matching substring at the end of a given string.
 		/// </summary>
-		/// <param name="target"></param>
-		/// <param name="trimString"></param>
-		/// <returns></returns>
+		/// <remarks>
+		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
+		/// </remarks>
+		/// <param name="target">The string to be trimmed</param>
+		/// <param name="trimString">The substring to be removed</param>
+		/// <param name="stringComparison">Comparison settings</param>
+		/// <returns>The trimmed string</returns>
 		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
 		{
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
