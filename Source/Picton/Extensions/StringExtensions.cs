@@ -4,7 +4,7 @@ using System.Text;
 namespace Picton
 {
 	/// <summary>
-	/// Class containing extension methods for the <see cref="string"/> data type.
+	/// Contains extension methods for the <see cref="string"/> data type.
 	/// </summary>
 	public static class StringExtensions
 	{
