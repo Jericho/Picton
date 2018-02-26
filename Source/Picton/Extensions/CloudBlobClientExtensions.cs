@@ -1,5 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage.Blob;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,6 +26,7 @@ namespace Picton
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var containers = new List<CloudBlobContainer>();
+			var maxNumberOfContainers = maxResults.GetValueOrDefault(int.MaxValue);
 
 			do
 			{
@@ -32,9 +34,11 @@ namespace Picton
 				continuationToken = response.ContinuationToken;
 				containers.AddRange(response.Results);
 			}
-			while (continuationToken != null || (maxResults.HasValue && containers.Count >= maxResults.Value));
+			while (continuationToken != null && containers.Count < maxNumberOfContainers);
 
-			return containers;
+			return containers
+				.Take(maxNumberOfContainers)
+				.ToArray();
 		}
 
 		#endregion
