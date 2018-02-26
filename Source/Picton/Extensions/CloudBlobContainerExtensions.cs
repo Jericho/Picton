@@ -27,6 +27,7 @@ namespace Picton
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var blobs = new List<IListBlobItem>();
+			var maxNumberOfItems = maxResults.GetValueOrDefault(int.MaxValue);
 
 			do
 			{
@@ -34,9 +35,11 @@ namespace Picton
 				continuationToken = response.ContinuationToken;
 				blobs.AddRange(response.Results);
 			}
-			while (continuationToken != null || (maxResults.HasValue && blobs.Count >= maxResults.Value));
+			while (continuationToken != null && blobs.Count < maxNumberOfItems);
 
-			return blobs;
+			return blobs
+				.Take(maxNumberOfItems)
+				.ToArray();
 		}
 
 		/// <summary>
