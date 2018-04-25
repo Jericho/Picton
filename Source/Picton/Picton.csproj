@@ -59,6 +59,6 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <CodeAnalysisRuleSet>$(SolutionDir)\Picton.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>$(SolutionDir)\StyleCopRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 </Project>
