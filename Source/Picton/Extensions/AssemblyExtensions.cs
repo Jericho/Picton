@@ -2,8 +2,11 @@
 using System.Linq;
 using System.Reflection;
 
-namespace Picton.Extensions
+namespace Picton
 {
+	/// <summary>
+	/// Contains extension methods for the <see cref="Assembly"/> class.
+	/// </summary>
 	public static class AssemblyExtensions
 	{
 		#region PUBLIC EXTENSION METHODS
