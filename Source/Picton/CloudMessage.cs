@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Picton
 {
@@ -24,13 +25,15 @@ namespace Picton
 
 		public string LargeContentBlobName { get; internal set; }
 
+		public IDictionary<string, string> Metadata { get; set; }
+
 		#endregion
 
 		#region CONSTRUCTOR
 
 		public CloudMessage(object content)
 		{
-			this.Content = content;
+			Content = content;
 		}
 
 		#endregion

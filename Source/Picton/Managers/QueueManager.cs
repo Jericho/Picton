@@ -53,9 +53,9 @@ namespace Picton.Managers
 
 		#region PUBLIC METHODS
 
-		public async Task AddMessageAsync<T>(T message, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			var data = Serialize(message);
+			var data = Serialize(message, metadata);
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
 			if (data.Length > MAX_MESSAGE_CONTENT_SIZE)
@@ -73,7 +73,7 @@ namespace Picton.Managers
 				{
 					BlobName = blobName
 				};
-				data = Serialize(largeEnvelope);
+				data = Serialize(largeEnvelope, null);
 
 				/*
 					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
@@ -271,11 +271,12 @@ namespace Picton.Managers
 			}
 		}
 
-		private static byte[] Serialize<T>(T message)
+		private static byte[] Serialize<T>(T message, IDictionary<string, string> metadata)
 		{
 			var envelope = new MessageEnvelope()
 			{
-				Content = message
+				Content = message,
+				Metadata = metadata
 			};
 
 			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
@@ -294,11 +295,12 @@ namespace Picton.Managers
 			var content = Deserialize(cloudMessage.AsBytes);
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+			var envelope = (MessageEnvelope)null;
 			var largeContentBlobName = (string)null;
 			if (content.GetType() == typeof(LargeMessageEnvelope))
 			{
-				var envelope = (LargeMessageEnvelope)content;
-				var blob = _blobContainer.GetBlobReference(envelope.BlobName);
+				var blobName = ((LargeMessageEnvelope)content).BlobName;
+				var blob = _blobContainer.GetBlobReference(blobName);
 
 				byte[] buffer;
 				using (var ms = new MemoryStream())
@@ -307,8 +309,12 @@ namespace Picton.Managers
 					buffer = ms.ToArray();
 				}
 
-				content = Deserialize(buffer);
-				largeContentBlobName = envelope.BlobName;
+				envelope = (MessageEnvelope)Deserialize(buffer);
+				largeContentBlobName = blobName;
+			}
+			else if (content.GetType() == typeof(MessageEnvelope))
+			{
+				envelope = (MessageEnvelope)content;
 			}
 
 			var message = new CloudMessage(content)
@@ -319,7 +325,8 @@ namespace Picton.Managers
 				InsertionTime = cloudMessage.InsertionTime,
 				LargeContentBlobName = largeContentBlobName,
 				NextVisibleTime = cloudMessage.NextVisibleTime,
-				PopReceipt = cloudMessage.PopReceipt
+				PopReceipt = cloudMessage.PopReceipt,
+				Metadata = envelope?.Metadata ?? new Dictionary<string, string>()
 			};
 			return message;
 		}
