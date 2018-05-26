@@ -193,7 +193,6 @@ namespace Picton
 				WindowStyle = ProcessWindowStyle.Hidden,
 #endif
 				UseShellExecute = false,
-				// CreateNoWindow = true,
 				Arguments = arguments,
 				FileName = fileName
 			};
