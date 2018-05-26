@@ -104,9 +104,9 @@ namespace Picton.Managers
 				maxLeaseAttempts = Math.Min(maxLeaseAttempts, 10);  // No more than 10 attempts
 				for (var attempts = 0; attempts < maxLeaseAttempts; attempts++)
 				{
-					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken);
+					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -132,7 +132,7 @@ namespace Picton.Managers
 					blob.Metadata[key] = metadata[key];
 				}
 
-				await blob.SetMetadataAsync(leaseId, cancellationToken);
+				await blob.SetMetadataAsync(leaseId, cancellationToken).ConfigureAwait(false);
 			}
 
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(new AccessCondition() { LeaseId = leaseId }, null, null, cancellationToken).ConfigureAwait(false);
@@ -168,9 +168,9 @@ namespace Picton.Managers
 				maxLeaseAttempts = Math.Min(maxLeaseAttempts, 10);  // No more than 10 attempts
 				for (var attempts = 0; attempts < maxLeaseAttempts; attempts++)
 				{
-					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken);
+					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false); // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -196,7 +196,7 @@ namespace Picton.Managers
 					blob.Metadata[key] = metadata[key];
 				}
 
-				await blob.SetMetadataAsync(leaseId, cancellationToken);
+				await blob.SetMetadataAsync(leaseId, cancellationToken).ConfigureAwait(false);
 			}
 
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);

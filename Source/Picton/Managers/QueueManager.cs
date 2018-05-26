@@ -121,10 +121,10 @@ namespace Picton.Managers
 			if (message.IsLargeMessage)
 			{
 				var blob = _blobContainer.GetBlobReference(message.LargeContentBlobName);
-				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken);
+				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 
-			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, options, operationContext, cancellationToken);
+			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, options, operationContext, cancellationToken).ConfigureAwait(false);
 		}
 
 		public Task<bool> ExistsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))

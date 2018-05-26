@@ -51,10 +51,10 @@ namespace Picton.IntegrationTests
 
 			var blob1 = container.GetBlockBlobReference("test1.txt");
 			var leaseId1 = (await blob1.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false) ? await blob1.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
-			await blob1.UploadTextAsync("Hello World", leaseId1, cancellationToken);
-			await blob1.UploadTextAsync("qwerty", leaseId1, cancellationToken);
-			await blob1.AppendTextAsync("azerty", leaseId1, cancellationToken);
-			if (!string.IsNullOrEmpty(leaseId1)) await blob1.ReleaseLeaseAsync(leaseId1, cancellationToken);
+			await blob1.UploadTextAsync("Hello World", leaseId1, cancellationToken).ConfigureAwait(false);
+			await blob1.UploadTextAsync("qwerty", leaseId1, cancellationToken).ConfigureAwait(false);
+			await blob1.AppendTextAsync("azerty", leaseId1, cancellationToken).ConfigureAwait(false);
+			if (!string.IsNullOrEmpty(leaseId1)) await blob1.ReleaseLeaseAsync(leaseId1, cancellationToken).ConfigureAwait(false);
 			var content1 = await blob1.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			Console.WriteLine(content1);
 
@@ -109,7 +109,7 @@ namespace Picton.IntegrationTests
 			await queueManager.ClearAsync(null, null, cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -122,10 +122,10 @@ namespace Picton.IntegrationTests
 				GuidProp = Guid.NewGuid(),
 				DateProp = new DateTime(2016, 10, 6, 1, 2, 3, DateTimeKind.Utc)
 			};
-			await queueManager.AddMessageAsync(sample);
+			await queueManager.AddMessageAsync(sample).ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -141,7 +141,7 @@ namespace Picton.IntegrationTests
 			await queueManager.DeleteMessageAsync(message1).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -152,10 +152,10 @@ namespace Picton.IntegrationTests
 			{
 				StringProp = new string('x', characterCount)
 			};
-			await queueManager.AddMessageAsync(largeSample);
+			await queueManager.AddMessageAsync(largeSample).ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -168,16 +168,16 @@ namespace Picton.IntegrationTests
 			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
 			//-----------------------------------------------------------------
 			// Send a simple string
-			await queueManager.AddMessageAsync("Hello World");
+			await queueManager.AddMessageAsync("Hello World").ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -189,7 +189,7 @@ namespace Picton.IntegrationTests
 			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -210,7 +210,7 @@ namespace Picton.IntegrationTests
 			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
 			// Check that there are three messages in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 3) throw new Exception($"We expected three messages in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the messages
@@ -226,7 +226,7 @@ namespace Picton.IntegrationTests
 			await queueManager.ClearAsync().ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync();
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 		}
