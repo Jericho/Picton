@@ -32,6 +32,18 @@ namespace Picton.Managers
 
 		#endregion
 
+		#region PROPERTIES
+
+		public IDictionary<string, string> Metadata
+		{
+			get
+			{
+				return _queue.Metadata;
+			}
+		}
+
+		#endregion
+
 		#region CONSTRUCTORS
 
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
@@ -55,6 +67,8 @@ namespace Picton.Managers
 
 		public async Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (message == null) return;
+
 			var data = Serialize(message, metadata);
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
