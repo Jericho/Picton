@@ -31,7 +31,7 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="WindowsAzure.Storage" Version="9.0.0" />
+    <PackageReference Include="WindowsAzure.Storage" Version="9.2.0" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
