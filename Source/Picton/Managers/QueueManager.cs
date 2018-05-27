@@ -132,9 +132,11 @@ namespace Picton.Managers
 
 		public async Task DeleteMessageAsync(CloudMessage message, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (message.IsLargeMessage)
+			var isLargeMessage = message.Metadata.TryGetValue(CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA, out string largeContentBlobName);
+
+			if (isLargeMessage)
 			{
-				var blob = _blobContainer.GetBlobReference(message.LargeContentBlobName);
+				var blob = _blobContainer.GetBlobReference(largeContentBlobName);
 				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 
@@ -252,7 +254,7 @@ namespace Picton.Managers
 
 		#region PRIVATE METHODS
 
-		private static object Deserialize(byte[] serializedContent)
+		private async Task<MessageEnvelope> DeserializeAsync(byte[] serializedContent, CancellationToken cancellationToken)
 		{
 			var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
 			if (code == MessagePackType.Extension)
@@ -262,8 +264,40 @@ namespace Picton.Managers
 				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var readSize);
 				if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
 				{
-					var envelope = (MessageEnvelope)LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
-					return envelope.Content;
+					var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
+
+					// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+					if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+					{
+						var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+						var blob = _blobContainer.GetBlobReference(largeEnvelope.BlobName);
+
+						// Get the binary content from blob item
+						byte[] buffer;
+						using (var ms = new MemoryStream())
+						{
+							await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
+							buffer = ms.ToArray();
+						}
+
+						// Deserialize the binary content
+						var messageEnvelope = await DeserializeAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+						// Add the name of the blob item to metadata
+						if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
+						messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
+
+						// Return the envelope
+						return messageEnvelope;
+					}
+					else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+					{
+						return (MessageEnvelope)deserializedContent;
+					}
+					else
+					{
+						throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+					}
 				}
 				else
 				{
@@ -276,25 +310,40 @@ namespace Picton.Managers
 				// Therefore we can't be sure if the content is a string or binary.
 				try
 				{
-					return UTF8_ENCODER.GetString(serializedContent, 0, serializedContent.Length);
+					return new MessageEnvelope()
+					{
+						Content = UTF8_ENCODER.GetString(serializedContent, 0, serializedContent.Length),
+						Metadata = new Dictionary<string, string>()
+					};
 				}
 				catch
 				{
-					return serializedContent;
+					return new MessageEnvelope()
+					{
+						Content = serializedContent,
+						Metadata = new Dictionary<string, string>()
+					};
 				}
 			}
 		}
 
 		private static byte[] Serialize<T>(T message, IDictionary<string, string> metadata)
 		{
-			var envelope = new MessageEnvelope()
+			var typeOfMessage = message.GetType();
+			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				Content = message,
-				Metadata = metadata
-			};
+				return LZ4MessagePackSerializer.Typeless.Serialize(message);
+			}
+			else
+			{
+				var envelope = new MessageEnvelope()
+				{
+					Content = message,
+					Metadata = metadata
+				};
 
-			// If target binary size under 64 bytes, LZ4MessagePackSerializer does not compress to optimize small size serialization.
-			return LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+				return LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+			}
 		}
 
 		private async Task<CloudMessage> ConvertToPictonMessageAsync(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
@@ -306,41 +355,17 @@ namespace Picton.Managers
 			}
 
 			// Deserialize the content of the cloud message
-			var content = Deserialize(cloudMessage.AsBytes);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.AsBytes, cancellationToken).ConfigureAwait(false);
 
-			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-			var envelope = (MessageEnvelope)null;
-			var largeContentBlobName = (string)null;
-			if (content.GetType() == typeof(LargeMessageEnvelope))
-			{
-				var blobName = ((LargeMessageEnvelope)content).BlobName;
-				var blob = _blobContainer.GetBlobReference(blobName);
-
-				byte[] buffer;
-				using (var ms = new MemoryStream())
-				{
-					await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
-					buffer = ms.ToArray();
-				}
-
-				envelope = (MessageEnvelope)Deserialize(buffer);
-				largeContentBlobName = blobName;
-			}
-			else if (content.GetType() == typeof(MessageEnvelope))
-			{
-				envelope = (MessageEnvelope)content;
-			}
-
-			var message = new CloudMessage(content)
+			var message = new CloudMessage(messageEnvelope.Content)
 			{
 				DequeueCount = cloudMessage.DequeueCount,
 				ExpirationTime = cloudMessage.ExpirationTime,
 				Id = cloudMessage.Id,
 				InsertionTime = cloudMessage.InsertionTime,
-				LargeContentBlobName = largeContentBlobName,
 				NextVisibleTime = cloudMessage.NextVisibleTime,
 				PopReceipt = cloudMessage.PopReceipt,
-				Metadata = envelope?.Metadata ?? new Dictionary<string, string>()
+				Metadata = messageEnvelope.Metadata ?? new Dictionary<string, string>()
 			};
 			return message;
 		}

@@ -5,6 +5,13 @@ namespace Picton
 {
 	public class CloudMessage
 	{
+		#region FIELDS
+
+		public const string LARGE_CONTENT_BLOB_NAME_METADATA = "LargeContentBlobName";
+		private IDictionary<string, string> _metadata;
+
+		#endregion
+
 		#region PROPERTIES
 
 		public int DequeueCount { get; internal set; }
@@ -21,11 +28,19 @@ namespace Picton
 
 		public object Content { get; internal set; }
 
-		public bool IsLargeMessage { get { return !string.IsNullOrEmpty(this.LargeContentBlobName); } }
+		public IDictionary<string, string> Metadata
+		{
+			get
+			{
+				if (_metadata == null) _metadata = new Dictionary<string, string>();
+				return _metadata;
+			}
 
-		public string LargeContentBlobName { get; internal set; }
-
-		public IDictionary<string, string> Metadata { get; set; }
+			set
+			{
+				_metadata = value;
+			}
+		}
 
 		#endregion
 
