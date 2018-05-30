@@ -104,7 +104,7 @@ namespace Picton
 
 			if (blobDoesNotExist)
 			{
-				await blob.UploadTextAsync(string.Empty, null, cancellationToken);
+				await blob.UploadTextAsync(string.Empty, null, cancellationToken).ConfigureAwait(false);
 				leaseId = await blob.AcquireLeaseAsync(leaseTime, proposedLeaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 
@@ -151,7 +151,7 @@ namespace Picton
 		{
 			try
 			{
-				await RenewLeaseAsync(blob, leaseId, cancellationToken);
+				await RenewLeaseAsync(blob, leaseId, cancellationToken).ConfigureAwait(false);
 				return true;
 			}
 			catch
@@ -181,7 +181,7 @@ namespace Picton
 			{
 				var appendBlob = blob as CloudAppendBlob;
 				await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
-				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			else if (blob is CloudBlockBlob)
 			{
@@ -253,7 +253,7 @@ namespace Picton
 					await appendBlob.CreateOrReplaceAsync(accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 				}
 
-				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken);
+				await appendBlob.AppendFromStreamAsync(stream, accessCondition, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			else if (blob is CloudBlockBlob)
 			{
@@ -357,7 +357,7 @@ namespace Picton
 				using (var reader = new StreamReader(stream, true))
 				{
 					stream.Position = 0;
-					return await reader.ReadToEndAsync();
+					return await reader.ReadToEndAsync().ConfigureAwait(false);
 				}
 			}
 		}
