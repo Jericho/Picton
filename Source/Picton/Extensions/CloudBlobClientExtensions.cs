@@ -30,7 +30,7 @@ namespace Picton
 
 			do
 			{
-				var response = await blobClient.ListContainersSegmentedAsync(prefix, listingDetails, maxResults, continuationToken, null, null, cancellationToken);
+				var response = await blobClient.ListContainersSegmentedAsync(prefix, listingDetails, maxResults, continuationToken, null, null, cancellationToken).ConfigureAwait(false);
 				continuationToken = response.ContinuationToken;
 				containers.AddRange(response.Results);
 			}
