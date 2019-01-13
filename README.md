@@ -61,7 +61,6 @@ Once you have the Picton library properly referenced in your project, add the fo
 
 ```
 using Picton;            // This is always required
-using Picton.Interfaces; // This is only required if you want to use the abstractions
 using Picton.Managers;   // This is only required if you want to use BlobManager or QueueManager
 ```
 

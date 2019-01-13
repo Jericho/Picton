@@ -3,6 +3,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.RetryPolicies;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -21,7 +22,6 @@ namespace Picton.Managers
 		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
 		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
 
-		private readonly CloudStorageAccount _storageAccount;
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
 		private readonly CloudBlobContainer _blobContainer;
@@ -30,14 +30,28 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
+		// This constructor must be excluded from code covereage because CreateCloudBlobClient
+		// is an extension method since Microsoft.Azure.Storage.Blob 9.4 and extension methods
+		// cannot be mocked.
+		[ExcludeFromCodeCoverage]
 		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
-			_storageAccount = cloudStorageAccount ?? throw new ArgumentNullException(nameof(cloudStorageAccount));
+			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
+
 			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
-			_blobClient = _storageAccount.CreateCloudBlobClient();
+			_blobClient = cloudStorageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
-			_blobContainer.CreateIfNotExistsAsync(accessType, null, null, CancellationToken.None).Wait();
+			InitBlobManager(accessType);
+		}
+
+		public BlobManager(string containerName, CloudBlobClient cloudBlobClient, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+		{
+			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
+			_blobClient = cloudBlobClient ?? throw new ArgumentNullException(nameof(cloudBlobClient));
+			_blobContainer = _blobClient.GetContainerReference(_containerName);
+
+			InitBlobManager(accessType);
 		}
 
 		#endregion
@@ -272,6 +286,11 @@ namespace Picton.Managers
 		#endregion
 
 		#region PRIVATE METHODS
+
+		private void InitBlobManager(BlobContainerPublicAccessType accessType)
+		{
+			_blobContainer.CreateIfNotExistsAsync(accessType, null, null, CancellationToken.None).Wait();
+		}
 
 		private async Task MoveOrCopyBlobAsync(string sourceBlobName, string destinationBlobName, bool deleteSourceAfterCopy, CancellationToken cancellationToken = default(CancellationToken))
 		{
