@@ -19,8 +19,10 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var blobManager = new BlobManager(null, storageAccount.Object);
+				var containerName = "mycontainer";
+				var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var blobManager = new BlobManager(null, mockBlobClient.Object);
 			});
 		}
 
@@ -29,8 +31,10 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var blobManager = new BlobManager("", storageAccount.Object);
+				var containerName = "mycontainer";
+				var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var blobManager = new BlobManager("", mockBlobClient.Object);
 			});
 		}
 
@@ -39,23 +43,15 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var blobManager = new BlobManager(" ", storageAccount.Object);
+				var containerName = "mycontainer";
+				var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var blobManager = new BlobManager(" ", mockBlobClient.Object);
 			});
 		}
 
 		[Fact]
-		public void Null_IStorageAccount_throws()
-		{
-			Should.Throw<ArgumentNullException>(() =>
-			{
-				var storageAccount = (CloudStorageAccount)null;
-				var blobManager = new BlobManager("mycontainer", storageAccount);
-			});
-		}
-
-		[Fact]
-		public void Null_storageAccount_throws()
+		public void Null_StorageAccount_throws()
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
@@ -71,10 +67,9 @@ namespace Picton.UnitTests.Managers
 			var containerName = "mycontainer";
 			var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, null);
 
 			// Act
-			var blobManager = new BlobManager(containerName, storageAccount.Object);
+			var blobManager = new BlobManager(containerName, mockBlobClient.Object);
 
 			// Assert
 			mockBlobContainer.Verify();
@@ -88,7 +83,6 @@ namespace Picton.UnitTests.Managers
 			var containerName = "mycontainer";
 			var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, null);
 			var blobName = "myblob.txt";
 			var mockBlobUri = new Uri(Misc.BLOB_STORAGE_URL + blobName);
 
@@ -104,7 +98,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var blobManager = new BlobManager(containerName, storageAccount.Object);
+			var blobManager = new BlobManager(containerName, mockBlobClient.Object);
 			var result = blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
 			result.Wait();
 			var content = result.Result;
@@ -123,7 +117,6 @@ namespace Picton.UnitTests.Managers
 			var containerName = "mycontainer";
 			var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, null);
 			var blobName = "myblob.txt";
 			var mockBlobUri = new Uri(Misc.BLOB_STORAGE_URL + blobName);
 			var expected = "Hello World!";
@@ -149,7 +142,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var blobManager = new BlobManager(containerName, storageAccount.Object);
+			var blobManager = new BlobManager(containerName, mockBlobClient.Object);
 			var result = Encoding.UTF8.GetString(blobManager.GetBlobContentAsync(blobName).Result);
 
 			// Assert

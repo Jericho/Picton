@@ -59,30 +59,6 @@ namespace Picton.UnitTests
 			return mockQueue;
 		}
 
-		public static Mock<CloudStorageAccount> GetMockStorageAccount(Mock<CloudBlobClient> mockBlobClient, Mock<CloudQueueClient> mockQueueClient)
-		{
-			var storageCredentials = GetStorageCredentials();
-			var storageAccount = new Mock<CloudStorageAccount>(MockBehavior.Strict, storageCredentials, true);
-
-			if (mockBlobClient != null)
-			{
-				storageAccount
-					.Setup(s => s.CreateCloudBlobClient())
-					.Returns(mockBlobClient.Object)
-					.Verifiable();
-			}
-
-			if (mockQueueClient != null)
-			{
-				storageAccount
-					.Setup(s => s.CreateCloudQueueClient())
-					.Returns(mockQueueClient.Object)
-					.Verifiable();
-			}
-
-			return storageAccount;
-		}
-
 		public static StorageCredentials GetStorageCredentials()
 		{
 			var accountAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("this_is_a_bogus_account_access_key"));

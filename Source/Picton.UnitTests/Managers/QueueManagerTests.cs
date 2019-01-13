@@ -31,8 +31,12 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var queueManager = new QueueManager(null, storageAccount.Object);
+				var queueName = "myqueue";
+				var mockQueue = Misc.GetMockQueue(queueName);
+				var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
+				var mockBlobContainer = Misc.GetMockBlobContainer();
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var queueManager = new QueueManager(null, mockQueueClient.Object, mockBlobClient.Object);
 			});
 		}
 
@@ -41,8 +45,12 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var queueManager = new QueueManager("", storageAccount.Object);
+				var queueName = "myqueue";
+				var mockQueue = Misc.GetMockQueue(queueName);
+				var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
+				var mockBlobContainer = Misc.GetMockBlobContainer();
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var queueManager = new QueueManager("", mockQueueClient.Object, mockBlobClient.Object);
 			});
 		}
 
@@ -51,8 +59,12 @@ namespace Picton.UnitTests.Managers
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = Misc.GetMockStorageAccount(null, null);
-				var queueManager = new QueueManager(" ", storageAccount.Object);
+				var queueName = "myqueue";
+				var mockQueue = Misc.GetMockQueue(queueName);
+				var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
+				var mockBlobContainer = Misc.GetMockBlobContainer();
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var queueManager = new QueueManager(" ", mockQueueClient.Object, mockBlobClient.Object);
 			});
 		}
 
@@ -67,12 +79,26 @@ namespace Picton.UnitTests.Managers
 		}
 
 		[Fact]
-		public void Null_storageAccount_throws()
+		public void Null_QueueClient_throws()
 		{
 			Should.Throw<ArgumentNullException>(() =>
 			{
-				var storageAccount = (CloudStorageAccount)null;
-				var queueManager = new QueueManager("myqueue", storageAccount);
+				var queueName = "myqueue";
+				var mockBlobContainer = Misc.GetMockBlobContainer();
+				var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+				var queueManager = new QueueManager(queueName, null, mockBlobClient.Object);
+			});
+		}
+
+		[Fact]
+		public void Null_BlobClient_throws()
+		{
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				var queueName = "myqueue";
+				var mockQueue = Misc.GetMockQueue(queueName);
+				var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
+				var queueManager = new QueueManager(queueName, mockQueueClient.Object, null);
 			});
 		}
 
@@ -85,10 +111,9 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 
 			// Assert
 			mockQueue.Verify();
@@ -106,7 +131,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -114,7 +138,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.AddMessageAsync("Hello world!").Wait();
 
 			// Assert
@@ -133,7 +157,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -142,7 +165,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var largeContentWillBeCompressed = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.AddMessageAsync(largeContentWillBeCompressed).Wait();
 
 			// Assert
@@ -161,7 +184,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.ClearAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -169,7 +191,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.ClearAsync().Wait();
 
 			// Assert
@@ -188,7 +210,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.CreateAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -196,7 +217,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.CreateAsync().Wait();
 
 			// Assert
@@ -215,7 +236,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -223,7 +243,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.CreateIfNotExistsAsync().Wait();
 
 			// Assert
@@ -242,7 +262,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.DeleteIfExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -250,7 +269,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.DeleteIfExistsAsync().Wait();
 
 			// Assert
@@ -269,7 +288,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var message = new CloudMessage("Hello world");
 
 			mockQueue
@@ -278,7 +296,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.DeleteMessageAsync(message).Wait();
 
 			// Assert
@@ -297,7 +315,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.ExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -305,7 +322,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.ExistsAsync().Result;
 
 			// Assert
@@ -325,7 +342,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.FetchAttributesAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -333,7 +349,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.FetchAttributesAsync().Wait();
 
 			// Assert
@@ -352,7 +368,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var cloudMessage = new CloudQueueMessage("Hello world");
 			var message = new CloudMessage("Hello world");
 
@@ -362,7 +377,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.GetMessageAsync().Result;
 
 			// Assert
@@ -383,7 +398,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -391,7 +405,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.GetMessageAsync().Result;
 
 			// Assert
@@ -405,7 +419,7 @@ namespace Picton.UnitTests.Managers
 		[Fact]
 		// Serializing and deserializing an instance of an internal class didn't work in MessagePack version 1.7.0 until 1.7.3.
 		// It was resolved in 1.7.3.1 (see: https://github.com/neuecc/MessagePack-CSharp/issues/187)
-		// This unit test validates was used to demonstrate the issue.
+		// This unit test was used to demonstrate the issue.
 		public void Serialize_Internal_Type()
 		{
 			var sampleMessage = new SampleMessageType
@@ -428,7 +442,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var cloudMessages = new[]
 			{
 				new CloudQueueMessage("Message 1"),
@@ -441,7 +454,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.GetMessagesAsync(5).Result.ToArray();
 
 			// Assert
@@ -461,11 +474,10 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = 0;
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
 				var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
@@ -484,11 +496,10 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
 				var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
@@ -507,7 +518,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var permissions = new QueuePermissions();
 
 			mockQueue
@@ -516,7 +526,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.GetPermissionsAsync().Result;
 
 			// Assert
@@ -536,7 +546,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var cloudMessage = new CloudQueueMessage("Hello world");
 			var message = new CloudMessage("Hello world");
 
@@ -546,7 +555,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.PeekMessageAsync().Result;
 
 			// Assert
@@ -567,7 +576,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var cloudMessages = new[]
 			{
 				new CloudQueueMessage("Message 1"),
@@ -580,7 +588,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			var result = queueManager.PeekMessagesAsync(5).Result.ToArray();
 
 			// Assert
@@ -600,11 +608,10 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = 0;
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
 				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
@@ -623,11 +630,10 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
 			{
 				var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
@@ -646,7 +652,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 
 			mockQueue
 				.Setup(c => c.SetMetadataAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
@@ -654,7 +659,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.SetMetadataAsync().Wait();
 
 			// Assert
@@ -673,7 +678,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var permissions = new QueuePermissions();
 
 			mockQueue
@@ -682,7 +686,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.SetPermissionsAsync(permissions).Wait();
 
 			// Assert
@@ -701,7 +705,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var permissions = new QueuePermissions();
 			var message = new CloudMessage("Hello world");
 			var visibilityTimeout = TimeSpan.FromSeconds(2);
@@ -712,7 +715,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).Wait();
 
 			// Assert
@@ -733,7 +736,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var queuedMessage = (CloudQueueMessage)null;
 
 			var sampleMessage = new SampleMessageType
@@ -759,7 +761,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.AddMessageAsync(sampleMessage).Wait();
 			var result = queueManager.GetMessageAsync().Result;
 
@@ -789,7 +791,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
 			var mockBlobContainer = Misc.GetMockBlobContainer();
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-			var storageAccount = Misc.GetMockStorageAccount(mockBlobClient, mockQueueClient);
 			var queuedMessage = (CloudQueueMessage)null;
 			var blobItemContent = (byte[])null;
 			var excessivelyLargeContent = RandomGenerator.GenerateString((int)CloudQueueMessage.MaxMessageSize * 2);
@@ -847,7 +848,7 @@ namespace Picton.UnitTests.Managers
 				.Verifiable();
 
 			// Act
-			var queueManager = new QueueManager(queueName, storageAccount.Object);
+			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 			queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
 			var result = queueManager.GetMessageAsync().Result;
 

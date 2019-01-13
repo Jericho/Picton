@@ -25,7 +25,6 @@ namespace Picton.Managers
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
-		private readonly CloudStorageAccount _storageAccount;
 		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
@@ -46,19 +45,34 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
+		// This constructor must be excluded from code covereage because CreateCloudQueueClient and
+		// CreateCloudBlobClient are extension methods since Microsoft.Azure.Storage.Blob 9.4 and
+		// extension methods cannot be mocked.
+		[ExcludeFromCodeCoverage]
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
 		{
-			_storageAccount = cloudStorageAccount ?? throw new ArgumentNullException(nameof(cloudStorageAccount));
-			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = _storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
-			_blobContainer = _storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
+			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
 
-			var tasks = new List<Task>()
-			{
-				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
-				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
-			};
-			Task.WaitAll(tasks.ToArray());
+			var cloudQueueClient = cloudStorageAccount.CreateCloudQueueClient();
+			var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
+			_queue = cloudQueueClient.GetQueueReference(queueName);
+			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+
+			InitQueueManager();
+		}
+
+		public QueueManager(string queueName, CloudQueueClient cloudQueueClient, CloudBlobClient cloudBlobClient)
+		{
+			if (cloudQueueClient == null) throw new ArgumentNullException(nameof(cloudQueueClient));
+			if (cloudBlobClient == null) throw new ArgumentNullException(nameof(cloudBlobClient));
+
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
+			_queue = cloudQueueClient.GetQueueReference(queueName);
+			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+
+			InitQueueManager();
 		}
 
 		#endregion
@@ -243,6 +257,16 @@ namespace Picton.Managers
 		#endregion
 
 		#region PRIVATE METHODS
+
+		private void InitQueueManager()
+		{
+			var tasks = new List<Task>()
+			{
+				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
+				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
+			};
+			Task.WaitAll(tasks.ToArray());
+		}
 
 		private async Task<MessageEnvelope> DeserializeAsync(byte[] serializedContent, CancellationToken cancellationToken)
 		{
