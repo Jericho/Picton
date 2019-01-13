@@ -28,7 +28,7 @@ namespace Picton.UnitTests
 		public static Mock<CloudBlobClient> GetMockBlobClient(Mock<CloudBlobContainer> mockBlobContainer)
 		{
 			var mockBlobStorageUri = new Uri(BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri, null);
 			mockBlobClient
 				.Setup(c => c.GetContainerReference(It.IsAny<string>()))
 				.Returns(mockBlobContainer.Object)
@@ -40,7 +40,7 @@ namespace Picton.UnitTests
 		{
 			var mockQueueStorageUri = new Uri(QUEUE_STORAGE_URL);
 			var storageCredentials = GetStorageCredentials();
-			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, mockQueueStorageUri, storageCredentials);
+			var mockQueueClient = new Mock<CloudQueueClient>(MockBehavior.Strict, mockQueueStorageUri, storageCredentials, null);
 			mockQueueClient
 				.Setup(c => c.GetQueueReference(mockQueue.Object.Name))
 				.Returns(mockQueue.Object)

@@ -89,23 +89,13 @@ namespace Picton.Managers
 				};
 				data = Serialize(largeEnvelope, null);
 
-				/*
-					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				*/
-				var cloudMessage = new CloudQueueMessage(string.Empty);
-				cloudMessage.SetMessageContent(data);
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				/*
-					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				*/
-				var cloudMessage = new CloudQueueMessage(string.Empty);
-				cloudMessage.SetMessageContent(data);
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 		}

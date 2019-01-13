@@ -28,7 +28,7 @@ namespace Picton.UnitTests.Extensions
 			var expected = new ContainerResultSegment(expectedContainers, null);
 
 			var mockBlobStorageUri = new Uri(Misc.BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri, null);
 			mockBlobClient
 				.Setup(c => c.ListContainersSegmentedAsync(prefix, listingDetails, maxResults, null, null, null, cancellationToken))
 				.ReturnsAsync(expected)
@@ -56,7 +56,7 @@ namespace Picton.UnitTests.Extensions
 			var expected = new ContainerResultSegment(expectedContainers, null);
 
 			var mockBlobStorageUri = new Uri(Misc.BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri, null);
 			mockBlobClient
 				.Setup(c => c.ListContainersSegmentedAsync(prefix, listingDetails, maxResults, null, null, null, cancellationToken))
 				.ReturnsAsync(expected)
@@ -88,7 +88,7 @@ namespace Picton.UnitTests.Extensions
 			var expected = new ContainerResultSegment(expectedContainers, new BlobContinuationToken());
 
 			var mockBlobStorageUri = new Uri(Misc.BLOB_STORAGE_URL);
-			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri);
+			var mockBlobClient = new Mock<CloudBlobClient>(MockBehavior.Strict, mockBlobStorageUri, null);
 			mockBlobClient
 				.Setup(c => c.ListContainersSegmentedAsync(prefix, listingDetails, maxResults, It.IsAny<BlobContinuationToken>(), null, null, cancellationToken))
 				.ReturnsAsync(expected)
