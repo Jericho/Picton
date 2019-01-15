@@ -25,7 +25,6 @@ namespace Picton.Managers
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
-		private readonly CloudStorageAccount _storageAccount;
 		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
@@ -46,19 +45,34 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
+		// This constructor must be excluded from code covereage because CreateCloudQueueClient and
+		// CreateCloudBlobClient are extension methods since Microsoft.Azure.Storage.Blob 9.4 and
+		// extension methods cannot be mocked.
+		[ExcludeFromCodeCoverage]
 		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
 		{
-			_storageAccount = cloudStorageAccount ?? throw new ArgumentNullException(nameof(cloudStorageAccount));
-			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = _storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
-			_blobContainer = _storageAccount.CreateCloudBlobClient().GetContainerReference("oversizedqueuemessages");
+			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
 
-			var tasks = new List<Task>()
-			{
-				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
-				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
-			};
-			Task.WaitAll(tasks.ToArray());
+			var cloudQueueClient = cloudStorageAccount.CreateCloudQueueClient();
+			var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
+			_queue = cloudQueueClient.GetQueueReference(queueName);
+			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+
+			InitQueueManager();
+		}
+
+		public QueueManager(string queueName, CloudQueueClient cloudQueueClient, CloudBlobClient cloudBlobClient)
+		{
+			if (cloudQueueClient == null) throw new ArgumentNullException(nameof(cloudQueueClient));
+			if (cloudBlobClient == null) throw new ArgumentNullException(nameof(cloudBlobClient));
+
+			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
+			_queue = cloudQueueClient.GetQueueReference(queueName);
+			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+
+			InitQueueManager();
 		}
 
 		#endregion
@@ -89,23 +103,13 @@ namespace Picton.Managers
 				};
 				data = Serialize(largeEnvelope, null);
 
-				/*
-					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				*/
-				var cloudMessage = new CloudQueueMessage(string.Empty);
-				cloudMessage.SetMessageContent(data);
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				/*
-					There is a constructor that accepts an array of bytes in NETFULL but it is not available in NETSTANDARD.
-					The work around is to initialize with an empty string and subsequently invoke the 'SetMessageContent' method with the byte array
-				*/
-				var cloudMessage = new CloudQueueMessage(string.Empty);
-				cloudMessage.SetMessageContent(data);
+				var cloudMessage = new CloudQueueMessage(data);
 				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
 			}
 		}
@@ -253,6 +257,16 @@ namespace Picton.Managers
 		#endregion
 
 		#region PRIVATE METHODS
+
+		private void InitQueueManager()
+		{
+			var tasks = new List<Task>()
+			{
+				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
+				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
+			};
+			Task.WaitAll(tasks.ToArray());
+		}
 
 		private async Task<MessageEnvelope> DeserializeAsync(byte[] serializedContent, CancellationToken cancellationToken)
 		{

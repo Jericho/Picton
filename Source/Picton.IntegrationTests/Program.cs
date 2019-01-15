@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Picton.Managers;
 using System;
@@ -201,12 +202,10 @@ namespace Picton.IntegrationTests
 			var cloudMessage = new CloudQueueMessage("Hello World STRING");
 			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
-			cloudMessage = new CloudQueueMessage(string.Empty);
-			cloudMessage.SetMessageContent(Encoding.UTF8.GetBytes("Hello World BINARY"));
+			cloudMessage = new CloudQueueMessage(Encoding.UTF8.GetBytes("Hello World BINARY"));
 			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
-			cloudMessage = new CloudQueueMessage(string.Empty);
-			cloudMessage.SetMessageContent(BitConverter.GetBytes(1234567890));
+			cloudMessage = new CloudQueueMessage(BitConverter.GetBytes(1234567890));
 			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
 			// Check that there are three messages in the queue
@@ -228,7 +227,6 @@ namespace Picton.IntegrationTests
 			// Check that the queue is empty
 			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
-
 		}
 	}
 }
