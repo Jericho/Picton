@@ -49,28 +49,28 @@ namespace Picton.Managers
 		// CreateCloudBlobClient are extension methods since Microsoft.Azure.Storage.Blob 9.4 and
 		// extension methods cannot be mocked.
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
+		public QueueManager(string queueName, CloudStorageAccount storageAccount)
 		{
-			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
+			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
 
-			var cloudQueueClient = cloudStorageAccount.CreateCloudQueueClient();
-			var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+			var queueClient = storageAccount.CreateCloudQueueClient();
+			var blobClient = storageAccount.CreateCloudBlobClient();
 
 			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = cloudQueueClient.GetQueueReference(queueName);
-			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+			_queue = queueClient.GetQueueReference(queueName);
+			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
 			InitQueueManager();
 		}
 
-		public QueueManager(string queueName, CloudQueueClient cloudQueueClient, CloudBlobClient cloudBlobClient)
+		public QueueManager(string queueName, CloudQueueClient queueClient, CloudBlobClient blobClient)
 		{
-			if (cloudQueueClient == null) throw new ArgumentNullException(nameof(cloudQueueClient));
-			if (cloudBlobClient == null) throw new ArgumentNullException(nameof(cloudBlobClient));
+			if (queueClient == null) throw new ArgumentNullException(nameof(queueClient));
+			if (blobClient == null) throw new ArgumentNullException(nameof(blobClient));
 
 			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = cloudQueueClient.GetQueueReference(queueName);
-			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+			_queue = queueClient.GetQueueReference(queueName);
+			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
 			InitQueueManager();
 		}
