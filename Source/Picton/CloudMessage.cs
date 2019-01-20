@@ -7,7 +7,7 @@ namespace Picton
 	{
 		#region FIELDS
 
-		public const string LARGE_CONTENT_BLOB_NAME_METADATA = "LargeContentBlobName";
+		internal const string LARGE_CONTENT_BLOB_NAME_METADATA = "LargeContentBlobName";
 		private IDictionary<string, string> _metadata;
 
 		#endregion
