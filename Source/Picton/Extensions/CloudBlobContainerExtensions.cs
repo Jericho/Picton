@@ -14,15 +14,15 @@ namespace Picton
 		#region PUBLIC EXTENSION METHODS
 
 		/// <summary>
-		/// Lists the blobs in a storage container
+		/// Lists the blobs in a storage container.
 		/// </summary>
 		/// <param name="blobContainer">The storage container</param>
 		/// <param name="prefix">Prefix</param>
 		/// <param name="includeSubFolders">Indicates whether to list blobs in a flat listing or to list blobs hierarchically, by virtual directory.</param>
-		/// <param name="listingDetails">Specifies which details to include when listing the blobs</param>
-		/// <param name="maxResults">The maximum number of blobs to include in the result</param>
-		/// <param name="cancellationToken">The cancellation token</param>
-		/// <returns>The list of blobs</returns>
+		/// <param name="listingDetails">Specifies which details to include when listing the blobs.</param>
+		/// <param name="maxResults">The maximum number of blobs to include in the result.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>The list of blobs.</returns>
 		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobContainer blobContainer, string prefix, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var continuationToken = (BlobContinuationToken)null;

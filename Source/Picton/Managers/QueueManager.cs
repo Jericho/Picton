@@ -49,28 +49,28 @@ namespace Picton.Managers
 		// CreateCloudBlobClient are extension methods since Microsoft.Azure.Storage.Blob 9.4 and
 		// extension methods cannot be mocked.
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string queueName, CloudStorageAccount cloudStorageAccount)
+		public QueueManager(string queueName, CloudStorageAccount storageAccount)
 		{
-			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
+			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
 
-			var cloudQueueClient = cloudStorageAccount.CreateCloudQueueClient();
-			var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+			var queueClient = storageAccount.CreateCloudQueueClient();
+			var blobClient = storageAccount.CreateCloudBlobClient();
 
 			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = cloudQueueClient.GetQueueReference(queueName);
-			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+			_queue = queueClient.GetQueueReference(queueName);
+			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
 			InitQueueManager();
 		}
 
-		public QueueManager(string queueName, CloudQueueClient cloudQueueClient, CloudBlobClient cloudBlobClient)
+		public QueueManager(string queueName, CloudQueueClient queueClient, CloudBlobClient blobClient)
 		{
-			if (cloudQueueClient == null) throw new ArgumentNullException(nameof(cloudQueueClient));
-			if (cloudBlobClient == null) throw new ArgumentNullException(nameof(cloudBlobClient));
+			if (queueClient == null) throw new ArgumentNullException(nameof(queueClient));
+			if (blobClient == null) throw new ArgumentNullException(nameof(blobClient));
 
 			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
-			_queue = cloudQueueClient.GetQueueReference(queueName);
-			_blobContainer = cloudBlobClient.GetContainerReference("oversizedqueuemessages");
+			_queue = queueClient.GetQueueReference(queueName);
+			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
 			InitQueueManager();
 		}
@@ -230,7 +230,7 @@ namespace Picton.Managers
 			In order to support updating content we need to consider the following scenarios
 				1) Previous content was smaller than max size and we are updating with content that is also smaller than max size. This is a trivial scenario. We simply need to update the content in the Azure queue.
 				2) Previous content exceeded max size and we are updating with content that also exceeds max size. This is also a trivial scenario. We simply need to update the content in the blob.
-				3) Previous content was smaller than max size and we are updating with content that exceeds max size. We need to save the new content in a blob, and the queue message must be updated with a 'LargeMessageEnvelope'
+				3) Previous content was smaller than max size and we are updating with content that exceeds max size. We need to save the new content in a blob, and the queue message must be updated with a 'LargeMessageEnvelope'.
 				4) Previous content exceeded max size and we are updating with content smaller than max size. We need to delete the blob item and update the queue message.
 
 			Determining if the new content exceeds max size or not is easy (see AddMessageAsync) but how can we determine if previous content exceeded the max size?

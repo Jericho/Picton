@@ -34,21 +34,21 @@ namespace Picton.Managers
 		// is an extension method since Microsoft.Azure.Storage.Blob 9.4 and extension methods
 		// cannot be mocked.
 		[ExcludeFromCodeCoverage]
-		public BlobManager(string containerName, CloudStorageAccount cloudStorageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+		public BlobManager(string containerName, CloudStorageAccount storageAccount, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
-			if (cloudStorageAccount == null) throw new ArgumentNullException(nameof(cloudStorageAccount));
+			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
 
 			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
-			_blobClient = cloudStorageAccount.CreateCloudBlobClient();
+			_blobClient = storageAccount.CreateCloudBlobClient();
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
 			InitBlobManager(accessType);
 		}
 
-		public BlobManager(string containerName, CloudBlobClient cloudBlobClient, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
+		public BlobManager(string containerName, CloudBlobClient blobClient, BlobContainerPublicAccessType accessType = BlobContainerPublicAccessType.Off)
 		{
 			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
-			_blobClient = cloudBlobClient ?? throw new ArgumentNullException(nameof(cloudBlobClient));
+			_blobClient = blobClient ?? throw new ArgumentNullException(nameof(blobClient));
 			_blobContainer = _blobClient.GetContainerReference(_containerName);
 
 			InitBlobManager(accessType);

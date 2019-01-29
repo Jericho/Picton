@@ -18,10 +18,10 @@ namespace Picton
 		/// </summary>
 		/// <param name="blobClient">The blob client</param>
 		/// <param name="prefix">Prefix</param>
-		/// <param name="listingDetails">Specifies which details to include when listing the containers</param>
-		/// <param name="maxResults">The maximum number of containers to include in the result</param>
-		/// <param name="cancellationToken">The cancellation token</param>
-		/// <returns>The list of containers</returns>
+		/// <param name="listingDetails">Specifies which details to include when listing the containers.</param>
+		/// <param name="maxResults">The maximum number of containers to include in the result.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>The list of containers.</returns>
 		public static async Task<IEnumerable<CloudBlobContainer>> ListContainersAsync(this CloudBlobClient blobClient, string prefix = null, ContainerListingDetails listingDetails = ContainerListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			var continuationToken = (BlobContinuationToken)null;

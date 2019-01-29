@@ -14,8 +14,8 @@ namespace Picton
 		/// <summary>
 		/// Returns a boolean indicating if the assembly has been compiled in Debug mode.
 		/// </summary>
-		/// <param name="assembly">The assembly</param>
-		/// <returns>true if the assembly was compiled in Debug mode; false otherwise</returns>
+		/// <param name="assembly">The assembly.</param>
+		/// <returns>true if the assembly was compiled in Debug mode; false otherwise.</returns>
 		public static bool IsDebugConfiguration(this Assembly assembly)
 		{
 			return IsAssemblyConfiguration(assembly, "Debug");
@@ -24,8 +24,8 @@ namespace Picton
 		/// <summary>
 		/// Returns a boolean indicating if the assembly has been compiled in Release mode.
 		/// </summary>
-		/// <param name="assembly">The assembly</param>
-		/// <returns>true if the assembly was compiled in Release mode; false otherwise</returns>
+		/// <param name="assembly">The assembly.</param>
+		/// <returns>true if the assembly was compiled in Release mode; false otherwise.</returns>
 		public static bool IsReleaseConfiguration(this Assembly assembly)
 		{
 			return IsAssemblyConfiguration(assembly, "Release");

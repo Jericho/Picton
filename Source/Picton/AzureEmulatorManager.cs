@@ -29,35 +29,35 @@ namespace Picton
 	/// - 5.2 was released ???
 	/// - 5.3 was released in December 2017 as a separate download
 	/// </summary>
-	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a></remarks>
+	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a>.</remarks>
 	public static class AzureEmulatorManager
 	{
 		private class EmulatorVersionInfo
 		{
 			/// <summary>
-			/// Gets the emulator version
+			/// Gets the emulator version.
 			/// </summary>
 			public int Version { get; private set; }
 
 			/// <summary>
 			/// Gets the array containing the various possible process names for a given version of the emulator.
 			/// The process name is not always the same on different platforms. For instance, "WAStorageEmulator" is named "WASTOR~1" on Windows 8.
-			/// That's why we need an array of strings to store the various names rather than a simple string
+			/// That's why we need an array of strings to store the various names rather than a simple string.
 			/// </summary>
 			public string[] ProcessNames { get; private set; }
 
 			/// <summary>
-			/// Gets the path where the emulator executable is located
+			/// Gets the path where the emulator executable is located.
 			/// </summary>
 			public string ExecutablePath { get; private set; }
 
 			/// <summary>
-			/// Gets the parameters expected by the emulator when starting
+			/// Gets the parameters expected by the emulator when starting.
 			/// </summary>
 			public string StartParameters { get; private set; }
 
 			/// <summary>
-			/// Gets the parameters expected by the emulator when stoping
+			/// Gets the parameters expected by the emulator when stoping.
 			/// </summary>
 			public string StopParameters { get; private set; }
 
@@ -106,7 +106,7 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Stop the storage emulator if running
+		/// Stop the storage emulator if running.
 		/// </summary>
 		public static void StopStorageEmulator()
 		{
@@ -125,7 +125,7 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Stop the DocumentDb emulator if running
+		/// Stop the DocumentDb emulator if running.
 		/// </summary>
 		public static void StopDocumentDbEmulator()
 		{
