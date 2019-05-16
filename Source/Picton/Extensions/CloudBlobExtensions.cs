@@ -24,7 +24,7 @@ namespace Picton
 		/// <param name="maxLeaseAttempts">The maximum number of attempts</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
-		public static async Task<string> TryAcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> TryAcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
@@ -67,7 +67,7 @@ namespace Picton
 		/// <param name="leaseTime">The lease duration. If specified, this value must be between 15 and 60 seconds.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
-		public static async Task<string> AcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> AcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, CancellationToken cancellationToken = default)
 		{
 			// From: https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
 			// The Lease Blob operation establishes and manages a lock on a blob for write and delete operations.
@@ -118,7 +118,7 @@ namespace Picton
 		/// <param name="leaseId">The lease Id</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task ReleaseLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task ReleaseLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
@@ -133,7 +133,7 @@ namespace Picton
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		/// <exception cref="ArgumentNullException">blob</exception>
-		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			var accessCondition = new AccessCondition { LeaseId = leaseId };
@@ -147,7 +147,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="bool">boolean</see> value indicating if the lease was obtained.</returns>
-		public static async Task<bool> TryRenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<bool> TryRenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -168,7 +168,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task UploadStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -207,7 +207,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task UploadBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(buffer);
 			return blob.UploadStreamAsync(stream, leaseId, cancellationToken);
@@ -221,7 +221,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task UploadTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
@@ -235,7 +235,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task AppendStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task AppendStreamAsync(this CloudBlob blob, Stream stream, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -301,7 +301,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task AppendBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task AppendBytesAsync(this CloudBlob blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(buffer);
 			return blob.AppendStreamAsync(stream, leaseId, cancellationToken);
@@ -315,7 +315,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task AppendTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task AppendTextAsync(this CloudBlob blob, string content, string leaseId, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
@@ -328,7 +328,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task SetMetadataAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task SetMetadataAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -347,7 +347,7 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The content as a string.</returns>
-		public static async Task<string> DownloadTextAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<string> DownloadTextAsync(this CloudBlob blob, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -368,7 +368,7 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The content as a byte array.</returns>
-		public static async Task<byte[]> DownloadByteArrayAsync(this CloudBlob blob, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<byte[]> DownloadByteArrayAsync(this CloudBlob blob, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -387,7 +387,7 @@ namespace Picton
 		/// <param name="destinationBlobName">The name of the blob where the source wil be copied.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task CopyAsync(this CloudBlob blob, string destinationBlobName, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 

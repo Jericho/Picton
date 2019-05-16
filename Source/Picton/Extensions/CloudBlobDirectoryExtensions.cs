@@ -22,7 +22,7 @@ namespace Picton
 		/// <param name="maxResults">The maximum number of blobs to include in the result.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The list of blobs</returns>
-		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobDirectory blobFolder, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobDirectory blobFolder, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var blobs = new List<IListBlobItem>();

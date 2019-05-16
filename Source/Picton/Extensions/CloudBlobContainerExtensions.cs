@@ -23,7 +23,7 @@ namespace Picton
 		/// <param name="maxResults">The maximum number of blobs to include in the result.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The list of blobs.</returns>
-		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobContainer blobContainer, string prefix, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobContainer blobContainer, string prefix, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var blobs = new List<IListBlobItem>();
@@ -51,7 +51,7 @@ namespace Picton
 		/// <param name="maxResults">The maximum number of sub-folders to include in the result</param>
 		/// <param name="cancellationToken">The cancellation token</param>
 		/// <returns>The list of blobs</returns>
-		public static async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(this CloudBlobContainer blobContainer, string parentFolder = null, BlobListingDetails listingDetails = BlobListingDetails.None, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(this CloudBlobContainer blobContainer, string parentFolder = null, BlobListingDetails listingDetails = BlobListingDetails.None, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			if (string.IsNullOrEmpty(parentFolder))
 			{
