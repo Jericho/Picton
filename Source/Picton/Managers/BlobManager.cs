@@ -1,7 +1,6 @@
 ﻿using HeyRed.Mime;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
-using Microsoft.Azure.Storage.RetryPolicies;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
@@ -19,8 +18,6 @@ namespace Picton.Managers
 		#region FIELDS
 
 		private const string PATH_SEPARATOR = "/";
-		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
-		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
 
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
