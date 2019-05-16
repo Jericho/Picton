@@ -69,7 +69,7 @@ namespace Picton.UnitTests.Managers
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
 
 			// Act
-			var blobManager = new BlobManager(containerName, mockBlobClient.Object);
+			new BlobManager(containerName, mockBlobClient.Object);
 
 			// Assert
 			mockBlobContainer.Verify();

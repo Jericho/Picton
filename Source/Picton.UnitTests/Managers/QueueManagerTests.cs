@@ -113,7 +113,7 @@ namespace Picton.UnitTests.Managers
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
 
 			// Act
-			var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
+			new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
 
 			// Assert
 			mockQueue.Verify();
@@ -430,7 +430,12 @@ namespace Picton.UnitTests.Managers
 				StringProp = "Hello World"
 			};
 			var serializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(sampleMessage);
-			var deserializedMessage = LZ4MessagePackSerializer.Typeless.Deserialize(serializedMessage);
+			var deserializedMessage = (SampleMessageType)LZ4MessagePackSerializer.Typeless.Deserialize(serializedMessage);
+
+			deserializedMessage.DateProp.ShouldBe(sampleMessage.DateProp);
+			deserializedMessage.GuidProp.ShouldBe(sampleMessage.GuidProp);
+			deserializedMessage.IntProp.ShouldBe(sampleMessage.IntProp);
+			deserializedMessage.StringProp.ShouldBe(sampleMessage.StringProp);
 		}
 
 		[Fact]
