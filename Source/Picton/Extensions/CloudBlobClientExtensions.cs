@@ -16,8 +16,8 @@ namespace Picton
 		/// <summary>
 		/// Lists the containers in a storage account.
 		/// </summary>
-		/// <param name="blobClient">The blob client</param>
-		/// <param name="prefix">Prefix</param>
+		/// <param name="blobClient">The blob client.</param>
+		/// <param name="prefix">Prefix.</param>
 		/// <param name="listingDetails">Specifies which details to include when listing the containers.</param>
 		/// <param name="maxResults">The maximum number of containers to include in the result.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>

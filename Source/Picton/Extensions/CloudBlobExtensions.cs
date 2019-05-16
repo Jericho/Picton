@@ -19,9 +19,9 @@ namespace Picton
 		/// <summary>
 		/// Attempt to acquire a lease asynchronously.
 		/// </summary>
-		/// <param name="blob">The blob</param>
+		/// <param name="blob">The blob.</param>
 		/// <param name="leaseTime">The lease duration. If specified, this value must be between 15 and 60 seconds.</param>
-		/// <param name="maxLeaseAttempts">The maximum number of attempts</param>
+		/// <param name="maxLeaseAttempts">The maximum number of attempts.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
 		public static async Task<string> TryAcquireLeaseAsync(this CloudBlob blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
@@ -63,7 +63,7 @@ namespace Picton
 		/// <summary>
 		/// Acquire a lease asynchronously.
 		/// </summary>
-		/// <param name="blob">The blob</param>
+		/// <param name="blob">The blob.</param>
 		/// <param name="leaseTime">The lease duration. If specified, this value must be between 15 and 60 seconds.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
@@ -114,8 +114,8 @@ namespace Picton
 		/// <summary>
 		/// Release a lease.
 		/// </summary>
-		/// <param name="blob">The blob</param>
-		/// <param name="leaseId">The lease Id</param>
+		/// <param name="blob">The blob.</param>
+		/// <param name="leaseId">The lease Id.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task ReleaseLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
@@ -132,7 +132,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		/// <exception cref="ArgumentNullException">blob</exception>
+		/// <exception cref="ArgumentNullException">blob.</exception>
 		public static Task RenewLeaseAsync(this CloudBlob blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
@@ -427,13 +427,13 @@ namespace Picton
 		/// <summary>
 		/// Creates a Shared Access Signature URI for the blob.
 		/// </summary>
-		/// <param name="blob">The blob to be shared</param>
-		/// <param name="permissions">The permissions granted to the shared access signature</param>
+		/// <param name="blob">The blob to be shared.</param>
+		/// <param name="permissions">The permissions granted to the shared access signature.</param>
 		/// <param name="duration">The period of time the shared access signature is valid for. If this parameter is omited, it defaults to 15 minutes.</param>
 		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
-		/// <returns>The URI</returns>
+		/// <returns>The URI.</returns>
 		/// <remarks>
-		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/
+		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/ .
 		/// </remarks>
 		public static string GetSharedAccessSignatureUri(this CloudBlob blob, SharedAccessBlobPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null)
 		{
