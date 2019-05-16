@@ -1,8 +1,8 @@
 ﻿using MessagePack;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Queue;
-using Microsoft.WindowsAzure.Storage.Queue.Protocol;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
+using Microsoft.Azure.Storage.Queue;
+using Microsoft.Azure.Storage.Queue.Protocol;
 using Moq;
 using Picton.Managers;
 using Shouldly;
