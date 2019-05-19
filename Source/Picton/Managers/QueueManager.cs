@@ -25,7 +25,6 @@ namespace Picton.Managers
 		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
 		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
-		private readonly string _queueName;
 		private readonly CloudQueue _queue;
 		private readonly CloudBlobContainer _blobContainer;
 
@@ -51,12 +50,12 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		public QueueManager(string queueName, CloudStorageAccount storageAccount)
 		{
+			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
 			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
 
 			var queueClient = storageAccount.CreateCloudQueueClient();
 			var blobClient = storageAccount.CreateCloudBlobClient();
 
-			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
 			_queue = queueClient.GetQueueReference(queueName);
 			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
@@ -65,10 +64,10 @@ namespace Picton.Managers
 
 		public QueueManager(string queueName, CloudQueueClient queueClient, CloudBlobClient blobClient)
 		{
+			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
 			if (queueClient == null) throw new ArgumentNullException(nameof(queueClient));
 			if (blobClient == null) throw new ArgumentNullException(nameof(blobClient));
 
-			_queueName = !string.IsNullOrWhiteSpace(queueName) ? queueName : throw new ArgumentNullException(nameof(queueName));
 			_queue = queueClient.GetQueueReference(queueName);
 			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
 
@@ -275,7 +274,7 @@ namespace Picton.Managers
 			{
 				// The message was added to the queue using Picton's QueueManager.
 				// Therefore we know exactly how to deserialize the content.
-				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var readSize);
+				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
 				if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
 				{
 					var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
