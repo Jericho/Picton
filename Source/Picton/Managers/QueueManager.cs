@@ -274,7 +274,7 @@ namespace Picton.Managers
 			{
 				// The message was added to the queue using Picton's QueueManager.
 				// Therefore we know exactly how to deserialize the content.
-				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var readSize);
+				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
 				if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
 				{
 					var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
