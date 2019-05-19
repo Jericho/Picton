@@ -1,5 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+﻿using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Moq;
 using Picton.Managers;
 using Shouldly;
@@ -69,7 +69,7 @@ namespace Picton.UnitTests.Managers
 			var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
 
 			// Act
-			var blobManager = new BlobManager(containerName, mockBlobClient.Object);
+			new BlobManager(containerName, mockBlobClient.Object);
 
 			// Assert
 			mockBlobContainer.Verify();

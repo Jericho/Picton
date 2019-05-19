@@ -1,4 +1,4 @@
-﻿using Microsoft.WindowsAzure.Storage.Blob;
+﻿using Microsoft.Azure.Storage.Blob;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,13 +16,13 @@ namespace Picton
 		/// <summary>
 		/// Lists the containers in a storage account.
 		/// </summary>
-		/// <param name="blobClient">The blob client</param>
-		/// <param name="prefix">Prefix</param>
+		/// <param name="blobClient">The blob client.</param>
+		/// <param name="prefix">Prefix.</param>
 		/// <param name="listingDetails">Specifies which details to include when listing the containers.</param>
 		/// <param name="maxResults">The maximum number of containers to include in the result.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The list of containers.</returns>
-		public static async Task<IEnumerable<CloudBlobContainer>> ListContainersAsync(this CloudBlobClient blobClient, string prefix = null, ContainerListingDetails listingDetails = ContainerListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<IEnumerable<CloudBlobContainer>> ListContainersAsync(this CloudBlobClient blobClient, string prefix = null, ContainerListingDetails listingDetails = ContainerListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			var continuationToken = (BlobContinuationToken)null;
 			var containers = new List<CloudBlobContainer>();

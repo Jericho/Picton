@@ -26,8 +26,11 @@ namespace Picton
 	/// - 4.6 was released with in November 2016 as a separate download, not as part of SDK 2.9.6
 	/// - 5.0 was released with SDK 3.0.0 in March 2017
 	/// - 5.1 was released with SDK 3.0.1 in May 2017
-	/// - 5.2 was released ???
 	/// - 5.3 was released in December 2017 as a separate download
+	/// - 5.8 was released in October 2018 as a separate download
+	/// - 5.9 was released in December 2018 as a separate download
+	///
+	/// Storage emulator can be downloaded <a href="https://go.microsoft.com/fwlink/?linkid=717179&amp;clcid=0x409">here</a>.
 	/// </summary>
 	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a>.</remarks>
 	public static class AzureEmulatorManager
@@ -73,8 +76,8 @@ namespace Picton
 
 		#region FIELDS
 
-		private static IList<EmulatorVersionInfo> _storageEmulatorVersions = new List<EmulatorVersionInfo>();
-		private static IList<EmulatorVersionInfo> _documentDbEmulatorVersions = new List<EmulatorVersionInfo>();
+		private static readonly IList<EmulatorVersionInfo> _storageEmulatorVersions = new List<EmulatorVersionInfo>();
+		private static readonly IList<EmulatorVersionInfo> _documentDbEmulatorVersions = new List<EmulatorVersionInfo>();
 
 		#endregion
 
@@ -165,7 +168,7 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Stop the storage emulator if running
+		/// Stop the storage emulator if running.
 		/// </summary>
 		private static void EnsureEmulatorIsStoped(IEnumerable<EmulatorVersionInfo> emulatorVersions, bool elevated)
 		{

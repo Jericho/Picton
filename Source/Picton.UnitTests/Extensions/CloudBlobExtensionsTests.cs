@@ -1,5 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+﻿using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Moq;
 using Shouldly;
 using System;
@@ -1064,7 +1064,6 @@ namespace Picton.UnitTests.Extensions
 		public void GetSharedAccessSignatureUri_with_specified_duration()
 		{
 			// Arrange
-			var cancellationToken = CancellationToken.None;
 			var permission = SharedAccessBlobPermissions.Read;
 			var systemClock = new MockSystemClock(new DateTime(2016, 8, 12, 15, 0, 0, 0, DateTimeKind.Utc)).Object;
 			var duration = TimeSpan.FromMinutes(1);
@@ -1084,7 +1083,6 @@ namespace Picton.UnitTests.Extensions
 		public void GetSharedAccessSignatureUri_default_duration()
 		{
 			// Arrange
-			var cancellationToken = CancellationToken.None;
 			var permission = SharedAccessBlobPermissions.Read;
 			var systemClock = new MockSystemClock(new DateTime(2016, 8, 12, 15, 0, 0, 0, DateTimeKind.Utc)).Object;
 

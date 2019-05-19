@@ -1,7 +1,6 @@
 ﻿using HeyRed.Mime;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.RetryPolicies;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
@@ -19,8 +18,6 @@ namespace Picton.Managers
 		#region FIELDS
 
 		private const string PATH_SEPARATOR = "/";
-		private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
-		private static readonly IRetryPolicy _retryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3);
 
 		private readonly string _containerName;
 		private readonly CloudBlobClient _blobClient;
@@ -58,7 +55,7 @@ namespace Picton.Managers
 
 		#region PUBLIC METHODS
 
-		public async Task<CloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<CloudBlob> GetBlobReferenceAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var source = _blobContainer.GetBlobReference(cleanBlobName);
@@ -78,7 +75,7 @@ namespace Picton.Managers
 			}
 		}
 
-		public async Task<BlobProperties> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<BlobProperties> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = _blobContainer.GetBlobReference(cleanBlobName);
@@ -89,7 +86,7 @@ namespace Picton.Managers
 			return blob.Properties;
 		}
 
-		public async Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = _blobContainer.GetBlobReference(cleanBlobName);
@@ -106,7 +103,7 @@ namespace Picton.Managers
 			return buffer;
 		}
 
-		public async Task UploadStreamAsync(string blobName, Stream stream, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task UploadStreamAsync(string blobName, Stream stream, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
@@ -152,25 +149,25 @@ namespace Picton.Managers
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(new AccessCondition() { LeaseId = leaseId }, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
-		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var memoryStream = new MemoryStream(buffer);
 			return this.UploadStreamAsync(blobName, memoryStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public Task UploadTextAsync(string blobName, string content, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public Task UploadTextAsync(string blobName, string content, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return this.UploadBytesAsync(blobName, buffer, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public Task UploadFileAsync(string blobName, string fileName, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public Task UploadFileAsync(string blobName, string fileName, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var fileStream = File.OpenRead(fileName);
 			return this.UploadStreamAsync(blobName, fileStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public async Task AppendStreamAsync(string blobName, Stream stream, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task AppendStreamAsync(string blobName, Stream stream, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = await GetBlobReferenceAsync(cleanBlobName, cancellationToken).ConfigureAwait(false);
@@ -216,26 +213,26 @@ namespace Picton.Managers
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
 		}
 
-		public Task AppendBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public Task AppendBytesAsync(string blobName, byte[] buffer, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var memoryStream = new MemoryStream(buffer);
 			return AppendStreamAsync(blobName, memoryStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public Task AppendTextAsync(string blobName, string content, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default(CancellationToken))
+		public Task AppendTextAsync(string blobName, string content, string mimeType = null, NameValueCollection metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return this.AppendBytesAsync(blobName, buffer, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
-		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
 			var blob = _blobContainer.GetBlobReference(cleanBlobName);
 			await blob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
-		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default)
 		{
 			var blobItems = await ListBlobsAsync(prefix, true, false).ConfigureAwait(false);
 			if (blobItems != null)
@@ -257,7 +254,7 @@ namespace Picton.Managers
 			}
 		}
 
-		public Task<IEnumerable<IListBlobItem>> ListBlobsAsync(string prefix, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<IListBlobItem>> ListBlobsAsync(string prefix, bool includeSubFolders = false, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			var cleanPrefix = SanitizeBlobName(prefix, true);
 			var blobPrefix = $"{_containerName}{PATH_SEPARATOR}{cleanPrefix}";
@@ -266,19 +263,19 @@ namespace Picton.Managers
 			return _blobContainer.ListBlobsAsync(blobPrefix, includeSubFolders, listingDetails, maxResults, cancellationToken);
 		}
 
-		public Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(string folder, bool includeMetadata = false, int? maxResults = null, CancellationToken cancellationToken = default)
 		{
 			var cleanFolder = SanitizeBlobName(folder, true);
 			var listingDetails = includeMetadata ? BlobListingDetails.Metadata : BlobListingDetails.None;
 			return _blobContainer.ListSubFoldersAsync(cleanFolder, listingDetails, maxResults, cancellationToken);
 		}
 
-		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
+		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default)
 		{
 			return MoveOrCopyBlobAsync(sourceBlobName, destinationBlobName, false, cancellationToken);
 		}
 
-		public Task MoveBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default(CancellationToken))
+		public Task MoveBlobAsync(string sourceBlobName, string destinationBlobName, CancellationToken cancellationToken = default)
 		{
 			return MoveOrCopyBlobAsync(sourceBlobName, destinationBlobName, true, cancellationToken);
 		}
@@ -292,7 +289,7 @@ namespace Picton.Managers
 			_blobContainer.CreateIfNotExistsAsync(accessType, null, null, CancellationToken.None).Wait();
 		}
 
-		private async Task MoveOrCopyBlobAsync(string sourceBlobName, string destinationBlobName, bool deleteSourceAfterCopy, CancellationToken cancellationToken = default(CancellationToken))
+		private async Task MoveOrCopyBlobAsync(string sourceBlobName, string destinationBlobName, bool deleteSourceAfterCopy, CancellationToken cancellationToken = default)
 		{
 			var cleanSourceName = SanitizeBlobName(sourceBlobName);
 			var cleanDestinationName = SanitizeBlobName(destinationBlobName);
