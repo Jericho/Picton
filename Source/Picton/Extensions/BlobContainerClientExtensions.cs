@@ -1,70 +1,58 @@
-﻿using Microsoft.Azure.Storage.Blob;
-using System.Collections.Generic;
-using System.Linq;
+using Azure.Storage;
+using Azure.Storage.Blobs;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Picton
 {
 	/// <summary>
-	/// Contains extension methods for the <see cref="CloudBlobContainer"/> class.
+	/// Contains extension methods for the <see cref="BlobContainerClient"/> class.
 	/// </summary>
-	public static class CloudBlobContainerExtensions
+	public static class BlobContainerClientExtensions
 	{
 		#region PUBLIC EXTENSION METHODS
 
 		/// <summary>
-		/// Lists the blobs in a storage container.
+		/// Indicates if a container exists.
 		/// </summary>
-		/// <param name="blobContainer">The storage container.</param>
-		/// <param name="prefix">Prefix.</param>
-		/// <param name="includeSubFolders">Indicates whether to list blobs in a flat listing or to list blobs hierarchically, by virtual directory.</param>
-		/// <param name="listingDetails">Specifies which details to include when listing the blobs.</param>
-		/// <param name="maxResults">The maximum number of blobs to include in the result.</param>
+		/// <param name="blobContainer">The container.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>The list of blobs.</returns>
-		public static async Task<IEnumerable<IListBlobItem>> ListBlobsAsync(this CloudBlobContainer blobContainer, string prefix, bool includeSubFolders = false, BlobListingDetails listingDetails = BlobListingDetails.Metadata, int? maxResults = null, CancellationToken cancellationToken = default)
+		/// <returns>true if the container exists; false otherwise.</returns>
+		public static async Task<bool> ExistsAsync(this BlobContainerClient blobContainer, CancellationToken cancellationToken = default)
 		{
-			var continuationToken = (BlobContinuationToken)null;
-			var blobs = new List<IListBlobItem>();
-			var maxNumberOfItems = maxResults.GetValueOrDefault(int.MaxValue);
+			if (blobContainer == null) throw new ArgumentNullException(nameof(blobContainer));
 
-			do
+			try
 			{
-				var response = await blobContainer.ListBlobsSegmentedAsync(prefix, includeSubFolders, listingDetails, maxResults, continuationToken, null, null, cancellationToken).ConfigureAwait(false);
-				continuationToken = response.ContinuationToken;
-				blobs.AddRange(response.Results);
+				var properties = await blobContainer.GetPropertiesAsync(null, cancellationToken).ConfigureAwait(false);
+				return true;
 			}
-			while (continuationToken != null && blobs.Count < maxNumberOfItems);
-
-			return blobs
-				.Take(maxNumberOfItems)
-				.ToArray();
+			catch (StorageRequestFailedException e) when (e.ErrorCode == "ContainerNotFound")
+			{
+				return false;
+			}
 		}
 
 		/// <summary>
-		/// Lists the sub-directories that are present in a folder.
+		/// Creates a container if it doesn't already exists.
 		/// </summary>
-		/// <param name="blobContainer">The storage container.</param>
-		/// <param name="parentFolder">The parent folder.</param>
-		/// <param name="listingDetails">Specifies which details to include when listing the sub-folders.</param>
-		/// <param name="maxResults">The maximum number of sub-folders to include in the result.</param>
+		/// <param name="blobContainer">The container.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>The list of blobs.</returns>
-		public static async Task<IEnumerable<CloudBlobDirectory>> ListSubFoldersAsync(this CloudBlobContainer blobContainer, string parentFolder = null, BlobListingDetails listingDetails = BlobListingDetails.None, int? maxResults = null, CancellationToken cancellationToken = default)
+		/// <returns>true if the container was created; false otherwise.</returns>
+		public static async Task<bool> CreateIfNotExistsAsync(this BlobContainerClient blobContainer, CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrEmpty(parentFolder))
+			if (blobContainer == null) throw new ArgumentNullException(nameof(blobContainer));
+
+			var exists = await blobContainer.ExistsAsync(cancellationToken).ConfigureAwait(false);
+
+			if (!exists)
 			{
-				var blobs = await blobContainer.ListBlobsAsync(parentFolder, false, listingDetails, maxResults, cancellationToken).ConfigureAwait(false);
-				var subFolders = blobs.OfType<CloudBlobDirectory>();
-				return subFolders;
+				await blobContainer.CreateAsync(null, null, cancellationToken).ConfigureAwait(false);
+				return true;
 			}
-			else
-			{
-				var blobs = await blobContainer.GetDirectoryReference(parentFolder).ListBlobsAsync(false, listingDetails, maxResults, cancellationToken).ConfigureAwait(false);
-				var subFolders = blobs.OfType<CloudBlobDirectory>();
-				return subFolders;
-			}
+
+			return false;
 		}
 
 		#endregion
