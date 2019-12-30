@@ -1,4 +1,4 @@
-using Azure.Core.Http;
+using Azure;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -44,7 +44,7 @@ namespace Picton
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
 			{
-				throw new ArgumentOutOfRangeException(string.Format("{0} must be between 1 and 10", nameof(maxLeaseAttempts)));
+				throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "The number of attempts must be between 1 and 10");
 			}
 
 			var leaseId = (string)null;
@@ -55,13 +55,12 @@ namespace Picton
 					leaseId = await blob.AcquireLeaseAsync(leaseTime, cancellationToken).ConfigureAwait(false);
 					if (!string.IsNullOrEmpty(leaseId)) break;
 				}
-				catch (StorageRequestFailedException e) when (e.ErrorCode == "LeaseAlreadyPresent")
+				catch (RequestFailedException e) when (e.ErrorCode == "LeaseAlreadyPresent")
 				{
 					if (attempts < maxLeaseAttempts - 1)
 					{
 						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
 					}
-
 				}
 			}
 
@@ -82,23 +81,23 @@ namespace Picton
 			// The lock duration can be 15 to 60 seconds, or can be infinite.
 			if (leaseTime.HasValue && (leaseTime.Value < TimeSpan.FromSeconds(15) | leaseTime.Value > TimeSpan.FromSeconds(60)))
 			{
-				throw new ArgumentOutOfRangeException(nameof(leaseTime), string.Format("{0} must be between 15 and 60 seconds", nameof(leaseTime)));
+				throw new ArgumentOutOfRangeException(nameof(leaseTime), "Lease duration must be between 15 and 60 seconds");
 			}
 
-			var leaseClient = blob.GetLeaseClient();
+			var leaseClient = new BlobLeaseClient(blob, null);
 			var defaultLeaseTime = TimeSpan.FromSeconds(15);
 
 			try
 			{
 				// Optimistically try to acquire the lease. The blob may not yet
 				// exist. If it doesn't we handle the 404, create it, and retry below
-				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime).Seconds, null, cancellationToken).ConfigureAwait(false);
+				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), null, cancellationToken).ConfigureAwait(false);
 				return response.Value.LeaseId;
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
-				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime).Seconds, null, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
+				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), null, cancellationToken).ConfigureAwait(false);
 
 				return response.Value.LeaseId;
 			}
@@ -115,7 +114,7 @@ namespace Picton
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			var leaseClient = new LeaseClient(blob, leaseId);
+			var leaseClient = new BlobLeaseClient(blob, leaseId);
 			return leaseClient.ReleaseAsync(null, cancellationToken);
 		}
 
@@ -131,7 +130,7 @@ namespace Picton
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			var leaseClient = new LeaseClient(blob, leaseId);
+			var leaseClient = new BlobLeaseClient(blob, leaseId);
 			return leaseClient.RenewAsync(null, cancellationToken);
 		}
 
@@ -163,31 +162,31 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this PageBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this PageBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			PageBlobAccessConditions? pageBlobAccessConditions = null;
+			PageBlobRequestConditions pageBlobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				pageBlobAccessConditions = new PageBlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				pageBlobRequestConditions = new PageBlobRequestConditions { LeaseId = leaseId };
 			}
 
 			try
 			{
-				var pageRangesInfo = await blob.GetPageRangesAsync(null, null, pageBlobAccessConditions, cancellationToken).ConfigureAwait(false);
-				await blob.ClearPagesAsync(new HttpRange(0, pageRangesInfo.Value.BlobContentLength), pageBlobAccessConditions, cancellationToken).ConfigureAwait(false);
+				var pageRangesInfo = await blob.GetPageRangesAsync(null, null, pageBlobRequestConditions, cancellationToken).ConfigureAwait(false);
+				await blob.ClearPagesAsync(new HttpRange(0, pageRangesInfo.Value.BlobContentLength), pageBlobRequestConditions, cancellationToken).ConfigureAwait(false);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
-				await blob.UploadPagesAsync(new AlignedStream(content, PageBlobClient.PageBlobPageBytes), 0, null, pageBlobAccessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadPagesAsync(new AlignedStream(content, blob.PageBlobPageBytes), 0, null, pageBlobRequestConditions, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -199,17 +198,17 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this BlockBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this BlockBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			BlobAccessConditions? accessConditions = null;
+			BlobRequestConditions accessConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			BlobProperties properties = null;
@@ -217,9 +216,9 @@ namespace Picton
 			{
 				properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -228,7 +227,7 @@ namespace Picton
 					ContentType = properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(content, headers, properties?.Metadata, accessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content, headers, properties?.Metadata, accessConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -240,42 +239,19 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this AppendBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this AppendBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			AppendBlobAccessConditions? appendBlobAccessConditions = null;
+			AppendBlobRequestConditions appendRequestConditions = null;
+			BlobRequestConditions accessConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				appendBlobAccessConditions = new AppendBlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
-			}
-
-			await blob.CreateIfNotExistsAsync(cancellationToken);
-			await blob.AppendBlockAsync(content, null, appendBlobAccessConditions, null, cancellationToken).ConfigureAwait(false);
-		}
-
-		/// <summary>
-		/// Upload the content of a stream to a blob. If the blog already exist, it will be overwritten.
-		/// </summary>
-		/// <param name="blob">The blob.</param>
-		/// <param name="content">The stream.</param>
-		/// <param name="leaseId">The lease identifier.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
-		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
-
-			content.Position = 0; // Rewind the stream. IMPORTANT!
-
-			BlobAccessConditions? accessConditions = null;
-			if (!string.IsNullOrEmpty(leaseId))
-			{
-				accessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				appendRequestConditions = new AppendBlobRequestConditions { LeaseId = leaseId };
+				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			BlobProperties properties = null;
@@ -283,18 +259,66 @@ namespace Picton
 			{
 				properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
 				var headers = new BlobHttpHeaders()
 				{
-					ContentType = properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+					ContentType = mimeType ?? properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath)),
+					CacheControl = cacheControl ?? properties?.CacheControl,
+					ContentEncoding = contentEncoding ?? properties?.ContentEncoding
 				};
 
-				await blob.UploadAsync(content, headers, properties?.Metadata, accessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.AppendBlockAsync(content, null, appendRequestConditions, null, cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		/// <summary>
+		/// Upload the content of a stream to a blob. If the blog already exist, it will be overwritten.
+		/// </summary>
+		/// <param name="blob">The blob.</param>
+		/// <param name="content">The stream.</param>
+		/// <param name="mimeType">The MIME type.</param>
+		/// <param name="cacheControl">The directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">The content encoding.</param>
+		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
+		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (content == null) throw new ArgumentNullException(nameof(content));
+
+			content.Position = 0; // Rewind the stream. IMPORTANT!
+
+			BlobRequestConditions accessConditions = null;
+			if (!string.IsNullOrEmpty(leaseId))
+			{
+				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+			}
+
+			BlobProperties properties = null;
+			try
+			{
+				properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
+			}
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			{
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
+			}
+			finally
+			{
+				var headers = new BlobHttpHeaders()
+				{
+					ContentType = mimeType ?? properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath)),
+					CacheControl = cacheControl ?? properties?.CacheControl,
+					ContentEncoding = contentEncoding ?? properties?.ContentEncoding
+				};
+
+				await blob.UploadAsync(content, headers, properties?.Metadata, accessConditions, null, null, default, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -306,12 +330,15 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadStreamAsync(this BlobBaseClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadStreamAsync(this BlobBaseClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob is PageBlobClient pageBlob) return pageBlob.UploadStreamAsync(content, leaseId, cancellationToken);
-			else if (blob is BlockBlobClient blockBlob) return blockBlob.UploadStreamAsync(content, leaseId, cancellationToken);
-			else if (blob is AppendBlobClient appendBlob) return appendBlob.UploadStreamAsync(content, leaseId, cancellationToken);
-			else if (blob is BlobClient blobClient) return blobClient.UploadStreamAsync(content, leaseId, cancellationToken);
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (content == null) throw new ArgumentNullException(nameof(content));
+
+			if (blob is PageBlobClient pageBlob) return pageBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			else if (blob is BlockBlobClient blockBlob) return blockBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			else if (blob is AppendBlobClient appendBlob) return appendBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			else if (blob is BlobClient blobClient) return blobClient.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
 			else throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 		}
 
@@ -323,10 +350,10 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadBytesAsync(this BlobBaseClient blob, byte[] content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadBytesAsync(this BlobBaseClient blob, byte[] content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(content);
-			return blob.UploadStreamAsync(stream, leaseId, cancellationToken);
+			return blob.UploadStreamAsync(stream, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
 		}
 
 		/// <summary>
@@ -337,10 +364,10 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadTextAsync(this BlobBaseClient blob, string content, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadTextAsync(this BlobBaseClient blob, string content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
-			return blob.UploadBytesAsync(buffer, leaseId, cancellationToken);
+			return blob.UploadBytesAsync(buffer, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
 		}
 
 		/// <summary>
@@ -358,25 +385,25 @@ namespace Picton
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			PageBlobAccessConditions? pageBlobAccessConditions = null;
+			PageBlobRequestConditions pageBlobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				pageBlobAccessConditions = new PageBlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				pageBlobRequestConditions = new PageBlobRequestConditions { LeaseId = leaseId };
 			}
 
 			var offset = 0L;
 			try
 			{
-				var pageRangesInfo = await blob.GetPageRangesAsync(null, null, pageBlobAccessConditions, cancellationToken).ConfigureAwait(false);
-				offset = pageRangesInfo.Value.Body.PageRange.Max(r => r.End) + 1;
+				var pageRangesInfo = await blob.GetPageRangesAsync(null, null, pageBlobRequestConditions, cancellationToken).ConfigureAwait(false);
+				offset = pageRangesInfo.Value.PageRanges.Sum(r => r.Length ?? 0);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
-				await blob.UploadPagesAsync(new AlignedStream(content, PageBlobClient.PageBlobPageBytes), offset, null, pageBlobAccessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadPagesAsync(new AlignedStream(content, blob.PageBlobPageBytes), offset, null, pageBlobRequestConditions, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -395,32 +422,37 @@ namespace Picton
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			BlobAccessConditions? blobAccessConditions = null;
+			BlobRequestConditions blobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				blobAccessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				blobRequestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			BlobDownloadInfo downloadInfo = null;
 			var combinedContent = new MultiStream();
 			try
 			{
-				downloadInfo = await blob.DownloadAsync(accessConditions: blobAccessConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
-				combinedContent.AddStream(downloadInfo.Content);
+				downloadInfo = await blob.DownloadAsync(default, blobRequestConditions, false, cancellationToken).ConfigureAwait(false);
+
+				// The content in downloadInfo is non-seekable. Therfeore, must make a copy
+				var memStream = new MemoryStream();
+				downloadInfo.Content.CopyTo(memStream);
+
+				combinedContent.AddStream(memStream);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
 				var headers = new BlobHttpHeaders()
 				{
-					ContentType = downloadInfo?.Properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
 				combinedContent.AddStream(content);
-				await blob.UploadAsync(combinedContent, headers, null, blobAccessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(combinedContent, headers, null, blobRequestConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -439,14 +471,14 @@ namespace Picton
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			AppendBlobAccessConditions? appendBlobAccessConditions = null;
+			AppendBlobRequestConditions appendBlobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				appendBlobAccessConditions = new AppendBlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				appendBlobRequestConditions = new AppendBlobRequestConditions { LeaseId = leaseId };
 			}
 
-			await blob.CreateIfNotExistsAsync(cancellationToken);
-			await blob.AppendBlockAsync(content, null, appendBlobAccessConditions, null, cancellationToken).ConfigureAwait(false);
+			await blob.CreateIfNotExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
+			await blob.AppendBlockAsync(content, null, appendBlobRequestConditions, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -464,32 +496,37 @@ namespace Picton
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			BlobAccessConditions? blobAccessConditions = null;
+			BlobRequestConditions blobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				blobAccessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				blobRequestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			BlobDownloadInfo downloadInfo = null;
 			var combinedContent = new MultiStream();
 			try
 			{
-				downloadInfo = await blob.DownloadAsync(accessConditions: blobAccessConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
-				combinedContent.AddStream(downloadInfo.Content);
+				downloadInfo = await blob.DownloadAsync(conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+				// The content in downloadInfo is non-seekable. Therfeore, must make a copy
+				var memStream = new MemoryStream();
+				downloadInfo.Content.CopyTo(memStream);
+
+				combinedContent.AddStream(memStream);
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, true, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
 				var headers = new BlobHttpHeaders()
 				{
-					ContentType = downloadInfo?.Properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
 				combinedContent.AddStream(content);
-				await blob.UploadAsync(combinedContent, headers, null, blobAccessConditions, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content: combinedContent, httpHeaders: headers, conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -503,6 +540,9 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task AppendStreamAsync(this BlobBaseClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
 		{
+			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			if (content == null) throw new ArgumentNullException(nameof(content));
+
 			if (blob is PageBlobClient pageBlob) return pageBlob.AppendStreamAsync(content, leaseId, cancellationToken);
 			else if (blob is BlockBlobClient blockBlob) return blockBlob.AppendStreamAsync(content, leaseId, cancellationToken);
 			else if (blob is AppendBlobClient appendBlob) return appendBlob.AppendStreamAsync(content, leaseId, cancellationToken);
@@ -550,10 +590,10 @@ namespace Picton
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			BlobAccessConditions? accessConditions = null;
+			BlobRequestConditions accessConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
+				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			return blob.SetMetadataAsync(metadata, accessConditions, cancellationToken);
@@ -608,36 +648,6 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Asynchronously copy a blob.
-		/// </summary>
-		/// <param name="blob">The blob.</param>
-		/// <param name="destinationBlobName">The name of the blob where the source wil be copied.</param>
-		/// <param name="leaseId">The lease identifier.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		//public static async Task CopyAsync(this BlobBaseClient blob, string destinationBlobName, string leaseId = null, bool waitForCompletion = true, CancellationToken cancellationToken = default)
-		//{
-		//	if (blob == null) throw new ArgumentNullException(nameof(blob));
-		//	if (string.IsNullOrEmpty(destinationBlobName)) throw new ArgumentNullException(nameof(destinationBlobName));
-
-		//	BlobAccessConditions? accessConditions = null;
-		//	if (!string.IsNullOrEmpty(leaseId))
-		//	{
-		//		accessConditions = new BlobAccessConditions { LeaseAccessConditions = new LeaseAccessConditions { LeaseId = leaseId } };
-		//	}
-
-		//	var destinationUri = new Uri(blob.Uri, destinationBlobName);
-
-		//	var destinationBlob = new BlobClient(destinationUri);
-		//	var copyOperation = await destinationBlob.StartCopyFromUriAsync(blob.Uri, null, accessConditions, null, cancellationToken).ConfigureAwait(false);
-
-		//	if (waitForCompletion)
-		//	{
-		//		await copyOperation.WaitCompletionAsync(cancellationToken).ConfigureAwait(false);
-		//	}
-		//}
-
-		/// <summary>
 		/// Creates a Shared Access Signature URI for the blob.
 		/// </summary>
 		/// <param name="blob">The blob to be shared.</param>
@@ -648,25 +658,18 @@ namespace Picton
 		/// <remarks>
 		/// Inspired by http://gauravmantri.com/2013/02/13/revisiting-windows-azure-shared-access-signature/ .
 		/// </remarks>
-		public static async Task<string> GetSharedAccessSignatureUriAsync(this BlobBaseClient blob, StorageSharedKeyCredential sharedKeyCredential, BlobSasPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null, CancellationToken cancellationToken = default)
+		public static string GetSharedAccessSignatureUri(this BlobBaseClient blob, StorageSharedKeyCredential sharedKeyCredential, BlobSasPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var now = (systemClock ?? SystemClock.Instance).UtcNow;
-			var properties = await blob.GetPropertiesAsync(null, cancellationToken).ConfigureAwait(false);
 
 			var blobSasBuilder = new BlobSasBuilder
 			{
-				StartTime = now.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
-				ExpiryTime = now.Add(duration.GetValueOrDefault(TimeSpan.FromMinutes(15))),
-				Permissions = string.Format(
-					"{0}{1}{2}{3}{4}",
-					permissions.Add ? "a" : string.Empty,
-					permissions.Create ? "c" : string.Empty,
-					permissions.Delete ? "d" : string.Empty,
-					permissions.Read ? "r" : string.Empty,
-					permissions.Write ? "w" : string.Empty)
+				StartsOn = now.AddMinutes(-5), // Start time is back by 5 minutes to take clock skewness into consideration
+				ExpiresOn = now.Add(duration.GetValueOrDefault(TimeSpan.FromMinutes(15)))
 			};
+			blobSasBuilder.SetPermissions(permissions);
 
 			var sasQueryParameters = blobSasBuilder.ToSasQueryParameters(sharedKeyCredential).ToString();
 
@@ -688,7 +691,7 @@ namespace Picton
 				await blob.GetPropertiesAsync(null, cancellationToken).ConfigureAwait(false);
 				return true;
 			}
-			catch (StorageRequestFailedException e) when (e.ErrorCode == "BlobNotFound" || e.ErrorCode == "ResourceNotFound")
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound" || e.ErrorCode == "ResourceNotFound")
 			{
 				return false;
 			}
@@ -698,10 +701,11 @@ namespace Picton
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this PageBlobClient blob, CancellationToken cancellationToken = default)
+		public static Task<Response<BlobContentInfo>> CreateAsync(this PageBlobClient blob, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
-			return blob.CreateAsync(DEFAULT_PAGE_BLOB_SIZE, cancellationToken);
+			return blob.CreateAsync(DEFAULT_PAGE_BLOB_SIZE, metadata, overwriteIfExists, cancellationToken);
 		}
 
 		/// <summary>
@@ -709,8 +713,9 @@ namespace Picton
 		/// </summary>
 		/// <param name="blob">The blob.</param>
 		/// <param name="blobSize">The blob size.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this PageBlobClient blob, long blobSize, CancellationToken cancellationToken = default)
+		public static Task<Response<BlobContentInfo>> CreateAsync(this PageBlobClient blob, long blobSize, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -719,15 +724,25 @@ namespace Picton
 				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
-			return blob.CreateAsync(blobSize, null, headers, null, null, cancellationToken);
+			PageBlobRequestConditions accessConditions = null;
+			if (!overwriteIfExists)
+			{
+				accessConditions = new PageBlobRequestConditions
+				{
+					IfNoneMatch = new ETag("*")
+				};
+			}
+
+			return blob.CreateAsync(blobSize, null, headers, metadata, accessConditions, cancellationToken);
 		}
 
 		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this BlockBlobClient blob, CancellationToken cancellationToken = default)
+		public static Task<Response<BlobContentInfo>> CreateAsync(this BlockBlobClient blob, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -735,17 +750,27 @@ namespace Picton
 			{
 				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
+
+			BlobRequestConditions accessConditions = null;
+			if (!overwriteIfExists)
+			{
+				accessConditions = new BlobRequestConditions
+				{
+					IfNoneMatch = new ETag("*")
+				};
+			}
 
 			var content = new MemoryStream();
-			return blob.UploadAsync(content, headers, null, null, null, cancellationToken);
+			return blob.UploadAsync(content, headers, metadata, accessConditions, null, null, cancellationToken);
 		}
 
 		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this AppendBlobClient blob, CancellationToken cancellationToken = default)
+		public static Task<Response<BlobContentInfo>> CreateAsync(this AppendBlobClient blob, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -754,15 +779,25 @@ namespace Picton
 				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
-			return blob.CreateAsync(headers, null, null, cancellationToken);
+			AppendBlobRequestConditions accessConditions = null;
+			if (!overwriteIfExists)
+			{
+				accessConditions = new AppendBlobRequestConditions
+				{
+					IfNoneMatch = new ETag("*")
+				};
+			}
+
+			return blob.CreateAsync(headers, metadata, accessConditions, cancellationToken);
 		}
 
 		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this BlobClient blob, CancellationToken cancellationToken = default)
+		public static Task<Response<BlobContentInfo>> CreateAsync(this BlobClient blob, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -770,40 +805,54 @@ namespace Picton
 			{
 				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
+
+			BlobRequestConditions accessConditions = null;
+			if (!overwriteIfExists)
+			{
+				accessConditions = new BlobRequestConditions
+				{
+					IfNoneMatch = new ETag("*")
+				};
+			}
 
 			var content = new MemoryStream();
-			return blob.UploadAsync(content, headers, null, null, null, cancellationToken);
+			return blob.UploadAsync(content, headers, null, accessConditions, null, null, default, cancellationToken);
 		}
 
 		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		public static Task CreateAsync(this BlobBaseClient blob, CancellationToken cancellationToken = default)
+		public static Task CreateAsync(this BlobBaseClient blob, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
 		{
-			if (blob is PageBlobClient pageBlob) return pageBlob.CreateAsync(cancellationToken);
-			else if (blob is BlockBlobClient blockBlob) return blockBlob.CreateAsync(cancellationToken);
-			else if (blob is AppendBlobClient appendBlob) return appendBlob.CreateAsync(cancellationToken);
-			else if (blob is BlobClient blobClient) return blobClient.CreateAsync(cancellationToken);
+			if (blob is PageBlobClient pageBlob) return pageBlob.CreateAsync(metadata, overwriteIfExists, cancellationToken);
+			else if (blob is BlockBlobClient blockBlob) return blockBlob.CreateAsync(metadata, overwriteIfExists, cancellationToken);
+			else if (blob is AppendBlobClient appendBlob) return appendBlob.CreateAsync(metadata, overwriteIfExists, cancellationToken);
+			else if (blob is BlobClient blobClient) return blobClient.CreateAsync(metadata, overwriteIfExists, cancellationToken);
 			else throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 		}
 
 		/// <summary>
-		/// Creates a blob if it doesn't already exists.
+		/// Gets all user-defined metadata, standard HTTP properties, and system properties for the blob. It does not return the content of the blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>true if the blob was created; false otherwise.</returns>
-		public static async Task<bool> CreateIfNotExistsAsync(this PageBlobClient blob, long blobSize, CancellationToken cancellationToken = default)
+		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
+		public static async Task<BlobProperties> GetProperties(this BlobBaseClient blob, string leaseId, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			var exists = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (exists) return false;
+			BlobRequestConditions accessConditions = null;
+			if (!string.IsNullOrEmpty(leaseId))
+			{
+				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+			}
 
-			await blob.CreateAsync(blobSize, cancellationToken).ConfigureAwait(false);
-			return true;
+			var response = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
 		/// <summary>
@@ -812,15 +861,19 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>true if the blob was created; false otherwise.</returns>
-		public static async Task<bool> CreateIfNotExistsAsync(this BlobBaseClient blob, CancellationToken cancellationToken = default)
+		public static async Task<bool> CreateIfNotExistsAsync(this BlobClient blob, IDictionary<string, string> metadata = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			var exists = await blob.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (exists) return false;
-
-			await blob.CreateAsync(cancellationToken).ConfigureAwait(false);
-			return true;
+			try
+			{
+				await blob.CreateAsync(metadata, false, cancellationToken).ConfigureAwait(false);
+				return true; // True indicates that blob was created
+			}
+			catch (RequestFailedException e) when (e.ErrorCode == "BlobAlreadyExists")
+			{
+				return false; // False indicates that blob was not created
+			}
 		}
 
 		#endregion

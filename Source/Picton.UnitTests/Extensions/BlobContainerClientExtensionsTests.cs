@@ -1,6 +1,5 @@
 using Azure;
-using Azure.Core.Pipeline;
-using Azure.Storage;
+using Azure.Core;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Moq;
@@ -20,13 +19,13 @@ namespace Picton.UnitTests.Extensions
 			var cancellationToken = CancellationToken.None;
 			var connectionString = "UseDevelopmentStorage=true";
 			var containerName = "mycontainer";
-			var containerItem = new ContainerItem();
-			var expected = new Response<ContainerItem>();
+
+			var mockResponse = new Mock<Response<BlobContainerProperties>>();
 
 			var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
 			mockBlobContainer
 				.Setup(c => c.GetPropertiesAsync(null, cancellationToken))
-				.ReturnsAsync(expected)
+				.ReturnsAsync(mockResponse.Object)
 				.Verifiable();
 
 			// Act
@@ -44,14 +43,15 @@ namespace Picton.UnitTests.Extensions
 			var cancellationToken = CancellationToken.None;
 			var connectionString = "UseDevelopmentStorage=true";
 			var containerName = "mycontainer";
+			var errorCode = "ContainerNotFound";
 
 			var response = new MockAzureResponse(400, "The specified container does not exist.");
-			response.AddHeader(new HttpHeader("x-ms-error-code", "ContainerNotFound"));
+			response.AddHeader(new HttpHeader("x-ms-error-code", errorCode));
 
 			var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
 			mockBlobContainer
 				.Setup(c => c.GetPropertiesAsync(null, cancellationToken))
-				.ThrowsAsync(new StorageRequestFailedException(response))
+				.ThrowsAsync(new RequestFailedException(response.Status, response.ReasonPhrase, errorCode, null))
 				.Verifiable();
 
 			// Act

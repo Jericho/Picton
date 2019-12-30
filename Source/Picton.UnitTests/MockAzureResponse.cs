@@ -1,7 +1,7 @@
 // From: https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/core/Azure.Core/tests/TestFramework/MockResponse.cs
 
 using Azure;
-using Azure.Core.Pipeline;
+using Azure.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,7 +28,7 @@ namespace Picton.UnitTests
 
 		public override string ClientRequestId { get; set; }
 
-		public override string ToString() => $"{Status}";
+		public bool IsDisposed { get; private set; }
 
 		public void SetContent(byte[] content)
 		{
@@ -42,7 +42,7 @@ namespace Picton.UnitTests
 
 		public void AddHeader(HttpHeader header)
 		{
-			if (!_headers.TryGetValue(header.Name, out var values))
+			if (!_headers.TryGetValue(header.Name, out List<string> values))
 			{
 				_headers[header.Name] = values = new List<string>();
 			}
@@ -52,7 +52,7 @@ namespace Picton.UnitTests
 
 		protected override bool TryGetHeader(string name, out string value)
 		{
-			if (_headers.TryGetValue(name, out var values))
+			if (_headers.TryGetValue(name, out List<string> values))
 			{
 				value = JoinHeaderValue(values);
 				return true;
@@ -64,7 +64,7 @@ namespace Picton.UnitTests
 
 		protected override bool TryGetHeaderValues(string name, out IEnumerable<string> values)
 		{
-			var result = _headers.TryGetValue(name, out var valuesList);
+			var result = _headers.TryGetValue(name, out List<string> valuesList);
 			values = valuesList;
 			return result;
 		}
@@ -83,6 +83,7 @@ namespace Picton.UnitTests
 
 		public override void Dispose()
 		{
+			IsDisposed = true;
 		}
 	}
 }
