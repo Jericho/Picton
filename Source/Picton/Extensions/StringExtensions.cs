@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 
 namespace Picton
@@ -16,21 +16,22 @@ namespace Picton
 		/// <remarks>
 		/// From: http://stackoverflow.com/questions/4335878/c-sharp-trimstart-with-string-parameter
 		/// </remarks>
-		/// <param name="target">The string to be trimmed</param>
-		/// <param name="trimString">The substring to be removed</param>
-		/// <param name="stringComparison">Comparison settings</param>
-		/// <returns>The trimmed string</returns>
-		public static string TrimStart(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+		/// <param name="target">The string to be trimmed.</param>
+		/// <param name="trimString">The substring to be removed.</param>
+		/// <param name="comparisonType">Comparison settings.</param>
+		/// <returns>The trimmed string.</returns>
+		public static string TrimStart(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
+			if (target == null) throw new ArgumentNullException(nameof(target));
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
 
-			string result = target;
-			while (result.StartsWith(trimString, stringComparison))
+			int startIndex = 0;
+			while (target.IndexOf(trimString, startIndex, comparisonType) == startIndex)
 			{
-				result = result.Substring(trimString.Length);
+				startIndex += trimString.Length;
 			}
 
-			return result;
+			return target.Substring(startIndex);
 		}
 
 		/// <summary>
@@ -41,19 +42,22 @@ namespace Picton
 		/// </remarks>
 		/// <param name="target">The string to be trimmed.</param>
 		/// <param name="trimString">The substring to be removed.</param>
-		/// <param name="stringComparison">Comparison settings.</param>
+		/// <param name="comparisonType">Comparison settings.</param>
 		/// <returns>The trimmed string.</returns>
-		public static string TrimEnd(this string target, string trimString, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+		public static string TrimEnd(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
+			if (target == null) throw new ArgumentNullException(nameof(target));
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
 
-			string result = target;
-			while (result.EndsWith(trimString, stringComparison))
+			int sourceLength = target.Length;
+			int valueLength = trimString.Length;
+			int count = sourceLength;
+			while (target.LastIndexOf(trimString, count, comparisonType) == count - valueLength)
 			{
-				result = result.Substring(0, result.Length - trimString.Length);
+				count -= valueLength;
 			}
 
-			return result;
+			return target.Substring(0, count);
 		}
 
 		/// <summary>
@@ -70,6 +74,8 @@ namespace Picton
 		/// <remarks>From the .NET Extensions project: http://dnpextensions.codeplex.com/</remarks>
 		public static byte[] ToBytes(this string value, Encoding encoding = null)
 		{
+			if (value == null) throw new ArgumentNullException(nameof(value));
+
 			return (encoding ?? Encoding.UTF8).GetBytes(value);
 		}
 
