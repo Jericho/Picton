@@ -50,11 +50,10 @@ namespace Picton
 			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
 
 			int sourceLength = target.Length;
-			int valueLength = trimString.Length;
 			int count = sourceLength;
-			while (target.LastIndexOf(trimString, count, comparisonType) == count - valueLength)
+			while (target.LastIndexOf(trimString, count - 1, comparisonType) == count - trimString.Length)
 			{
-				count -= valueLength;
+				count -= trimString.Length;
 			}
 
 			return target.Substring(0, count);
