@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -29,6 +30,7 @@ namespace Picton
 	/// - 5.3 was released in December 2017 as a separate download
 	/// - 5.8 was released in October 2018 as a separate download
 	/// - 5.9 was released in December 2018 as a separate download
+	/// - 5.10 was released in August 2019 as a separate download
 	///
 	/// Storage emulator can be downloaded <a href="https://go.microsoft.com/fwlink/?linkid=717179&amp;clcid=0x409">here</a>.
 	/// </summary>
@@ -228,6 +230,7 @@ namespace Picton
 			if (exitCode != 0)
 			{
 				var message = string.Format(
+					CultureInfo.InvariantCulture,
 					"Error {0} executing {1} {2}",
 					exitCode,
 					start.FileName,
