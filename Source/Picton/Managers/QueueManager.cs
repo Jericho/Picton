@@ -8,7 +8,6 @@ using Picton.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,8 +19,6 @@ namespace Picton.Managers
 
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
-
-		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;

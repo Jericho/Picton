@@ -24,8 +24,6 @@ namespace Picton
 	{
 		private const int KB = 1024;
 		private const int MB = KB * 1024;
-		private const int GB = MB * 1024;
-		private const long TB = GB * 1024L;
 
 		private const long DEFAULT_PAGE_BLOB_SIZE = 5 * MB;
 
@@ -254,10 +252,9 @@ namespace Picton
 				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
-			BlobProperties properties = null;
 			try
 			{
-				properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
+				await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
@@ -265,13 +262,6 @@ namespace Picton
 			}
 			finally
 			{
-				var headers = new BlobHttpHeaders()
-				{
-					ContentType = mimeType ?? properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath)),
-					CacheControl = cacheControl ?? properties?.CacheControl,
-					ContentEncoding = contentEncoding ?? properties?.ContentEncoding
-				};
-
 				await blob.AppendBlockAsync(content, null, appendRequestConditions, null, cancellationToken).ConfigureAwait(false);
 			}
 		}
