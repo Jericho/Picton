@@ -663,7 +663,7 @@ namespace Picton
 
 			var sasQueryParameters = blobSasBuilder.ToSasQueryParameters(sharedKeyCredential).ToString();
 
-			return string.Format(CultureInfo.InvariantCulture, "{0}{1}", blob.Uri, sasQueryParameters);
+			return string.Format(CultureInfo.InvariantCulture, "{0}?{1}", blob.Uri, sasQueryParameters);
 		}
 
 		/// <summary>
