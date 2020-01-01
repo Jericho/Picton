@@ -806,7 +806,7 @@ namespace Picton
 			}
 
 			var content = new MemoryStream();
-			return blob.UploadAsync(content, headers, null, accessConditions, null, null, default, cancellationToken);
+			return blob.UploadAsync(content, headers, metadata, accessConditions, null, null, default, cancellationToken);
 		}
 
 		/// <summary>
