@@ -98,10 +98,6 @@ namespace Picton.Managers
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
 			}
-			else
-			{
-				await blob.CreateIfNotExistsAsync(metadata, cancellationToken).ConfigureAwait(false);
-			}
 
 			await blob.UploadStreamAsync(stream, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken).ConfigureAwait(false);
 
@@ -151,10 +147,6 @@ namespace Picton.Managers
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
-			}
-			else
-			{
-				await blob.CreateIfNotExistsAsync(metadata, cancellationToken).ConfigureAwait(false);
 			}
 
 			await blob.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
@@ -240,7 +232,7 @@ namespace Picton.Managers
 			}
 			else
 			{
-				await blob.CreateIfNotExistsAsync(null, cancellationToken).ConfigureAwait(false);
+				await blob.CreateIfNotExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
 			}
 
 			await _blobContainer.CopyAsync(cleanSourceName, cleanDestinationName, leaseId, true, cancellationToken).ConfigureAwait(false);

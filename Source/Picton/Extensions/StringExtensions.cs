@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Picton
@@ -76,6 +77,49 @@ namespace Picton
 			if (value == null) throw new ArgumentNullException(nameof(value));
 
 			return (encoding ?? Encoding.UTF8).GetBytes(value);
+		}
+
+		/// <summary>
+		/// Calculates the MD5 hash for a given string.
+		/// </summary>
+		/// <param name="value">The string.</param>
+		/// <returns>The hash.</returns>
+		public static byte[] ToMD5Hash(this string value)
+		{
+			using (var md5 = MD5.Create())
+			{
+				// Convert the input string to a byte array.
+				byte[] data = value.ToBytes(Encoding.UTF8);
+
+				// Compute the hash.
+				byte[] hash = md5.ComputeHash(data);
+
+				// Return the byte array.
+				return hash;
+			}
+		}
+
+		/// <summary>
+		/// Calculates the MD5 hash for a given string.
+		/// </summary>
+		/// <param name="value">The string.</param>
+		/// <returns>The hash.</returns>
+		public static string ToMD5HashString(this string value)
+		{
+			// Calculate the hash.
+			var hash = value.ToMD5Hash();
+
+			// Create a new Stringbuilder to collect the bytes and create a string.
+			var sb = new StringBuilder();
+
+			// Loop through each byte of the hashed data and format each one as a hexadecimal string.
+			for (int i = 0; i < hash.Length; i++)
+			{
+				sb.Append(hash[i].ToString("x2"));
+			}
+
+			// Return the hexadecimal string.
+			return sb.ToString();
 		}
 
 		#endregion
