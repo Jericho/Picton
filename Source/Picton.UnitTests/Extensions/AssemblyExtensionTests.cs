@@ -16,8 +16,8 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = new[]
 				{
-				new AssemblyConfigurationAttribute("debug")
-			};
+					new AssemblyConfigurationAttribute("debug")
+				};
 
 				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
 				mockAssembly
@@ -65,8 +65,8 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = new[]
 				{
-				new AssemblyConfigurationAttribute("release")
-			};
+					new AssemblyConfigurationAttribute("release")
+				};
 
 				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
 				mockAssembly
@@ -88,8 +88,8 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = new[]
 				{
-				new AssemblyConfigurationAttribute("qwerty")
-			};
+					new AssemblyConfigurationAttribute("qwerty")
+				};
 
 				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
 				mockAssembly
@@ -154,8 +154,8 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = new AssemblyConfigurationAttribute[]
 				{
-				new AssemblyConfigurationAttribute("qwerty"),
-				new AssemblyConfigurationAttribute("qwerty")
+					new AssemblyConfigurationAttribute("qwerty"),
+					new AssemblyConfigurationAttribute("qwerty")
 				};
 
 				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
