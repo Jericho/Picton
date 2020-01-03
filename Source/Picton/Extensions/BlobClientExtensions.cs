@@ -27,6 +27,8 @@ namespace Picton
 
 		private const long DEFAULT_PAGE_BLOB_SIZE = 5 * MB;
 
+		private static readonly Stream EmptyStream = new MemoryStream();
+
 		#region PUBLIC EXTENSION METHODS
 
 		/// <summary>
@@ -217,7 +219,7 @@ namespace Picton
 					ContentType = properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(content, headers, properties?.Metadata ?? new Dictionary<string, string>(), requestConditions, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata ?? new Dictionary<string, string>(), requestConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
@@ -291,7 +293,7 @@ namespace Picton
 					ContentEncoding = contentEncoding ?? properties?.ContentEncoding
 				};
 
-				await blob.UploadAsync(content, headers, properties?.Metadata, accessConditions, null, null, default, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata, accessConditions, null, null, default, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
@@ -422,11 +424,11 @@ namespace Picton
 					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(combinedContent, headers, null, blobRequestConditions, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(combinedContent ?? BlobClientExtensions.EmptyStream, headers, null, blobRequestConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, null, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -494,11 +496,11 @@ namespace Picton
 					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(content: combinedContent, httpHeaders: headers, conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content: combinedContent ?? BlobClientExtensions.EmptyStream, httpHeaders: headers, conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, null, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -746,7 +748,7 @@ namespace Picton
 				};
 			}
 
-			await blob.UploadAsync(content, headers, metadata, requestConditions, null, null, cancellationToken).ConfigureAwait(false);
+			await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, metadata, requestConditions, null, null, cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -811,7 +813,7 @@ namespace Picton
 				};
 			}
 
-			await blob.UploadAsync(content, headers, metadata, requestConditions, null, null, default, cancellationToken).ConfigureAwait(false);
+			await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, metadata, requestConditions, null, null, default, cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>
