@@ -94,7 +94,7 @@ namespace Picton
 		/// <param name="leaseId">The lease Id.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task ReleaseLeaseAsync(this BlobContainerClient container, string leaseId, CancellationToken cancellationToken = default)
+		public static Task ReleaseLeaseAsync(this BlobContainerClient container, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (container == null) throw new ArgumentNullException(nameof(container));
 
@@ -110,7 +110,7 @@ namespace Picton
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		/// <exception cref="ArgumentNullException">blob.</exception>
-		public static Task RenewLeaseAsync(this BlobContainerClient container, string leaseId, CancellationToken cancellationToken = default)
+		public static Task RenewLeaseAsync(this BlobContainerClient container, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (container == null) throw new ArgumentNullException(nameof(container));
 
@@ -125,7 +125,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="bool">boolean</see> value indicating if the lease was obtained.</returns>
-		public static async Task<bool> TryRenewLeaseAsync(this BlobContainerClient container, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task<bool> TryRenewLeaseAsync(this BlobContainerClient container, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -220,13 +220,13 @@ namespace Picton
 			var sourceBlob = container.GetBlobClient(sourceBlobName);
 			var destinationBlob = container.GetBlobClient(destinationBlobName);
 
-			BlobRequestConditions accessConditions = null;
+			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+				requestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
-			var copyOperation = await destinationBlob.StartCopyFromUriAsync(sourceBlob.Uri, null, null, accessConditions, null, null, cancellationToken).ConfigureAwait(false);
+			var copyOperation = await destinationBlob.StartCopyFromUriAsync(sourceBlob.Uri, null, null, requestConditions, null, null, cancellationToken).ConfigureAwait(false);
 
 			if (waitForCompletion)
 			{

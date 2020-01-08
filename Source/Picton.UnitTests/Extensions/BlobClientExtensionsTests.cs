@@ -33,23 +33,23 @@ namespace Picton.UnitTests.Extensions
 			}
 
 			[Fact]
-			public async Task Throws_when_maxLeaseAttempts_is_too_small()
+			public async Task Throws_when_maxAttempts_is_too_small()
 			{
 				// Arrange
 				var blobClient = new BlobClient(new Uri(BLOB_ITEM_URL));
 
 				// Act
-				await Should.ThrowAsync<ArgumentOutOfRangeException>(() => blobClient.TryAcquireLeaseAsync(maxLeaseAttempts: 0)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentOutOfRangeException>(() => blobClient.TryAcquireLeaseAsync(maxAttempts: 0)).ConfigureAwait(false);
 			}
 
 			[Fact]
-			public async Task Throws_when_maxLeaseAttempts_is_too_large()
+			public async Task Throws_when_maxAttempts_is_too_large()
 			{
 				// Arrange
 				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlobClient.Object.TryAcquireLeaseAsync(maxLeaseAttempts: 11)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentOutOfRangeException>(() => mockBlobClient.Object.TryAcquireLeaseAsync(maxAttempts: 11)).ConfigureAwait(false);
 			}
 
 			//[Fact]
@@ -494,27 +494,27 @@ namespace Picton.UnitTests.Extensions
 		public class UploadStreamAsync
 		{
 			[Fact]
-			public async Task Throws_when_blob_is_null()
+			public async Task Throws_when_PageBlob_is_null()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
-				var streamContent = "Hello World".ToBytes();
-				var stream = new MemoryStream(streamContent);
+				var newContent = "xyz123";
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((PageBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
-			public async Task Throws_when_stream_is_null()
+			public async Task Throws_when_PageBlob_stream_is_null()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
 				var stream = (Stream)null;
 
-				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
 				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
@@ -528,6 +528,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
@@ -555,7 +556,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -569,6 +570,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
@@ -596,20 +598,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_PageBlob_without_lease()
+			public async Task Overwrite_existing_PageBlob_without_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
@@ -633,20 +636,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_PageBlob_with_lease()
+			public async Task Overwrite_existing_PageBlob_with_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
@@ -670,10 +674,37 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_BlockBlob_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var streamContent = "Hello World".ToBytes();
+				var stream = new MemoryStream(streamContent);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlockBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_BlockBlob_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var blobClient = new BlockBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -684,6 +715,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
@@ -702,7 +734,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -716,6 +748,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
@@ -734,7 +767,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -749,6 +782,7 @@ namespace Picton.UnitTests.Extensions
 				var existingContent = "Hello World";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, existingContent.ToMD5Hash(), null, 1);
 
@@ -767,7 +801,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -782,6 +816,7 @@ namespace Picton.UnitTests.Extensions
 				var existingContent = "Hello World";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, existingContent.ToMD5Hash(), null, 1);
 
@@ -800,10 +835,37 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_AppendBlob_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var streamContent = "Hello World".ToBytes();
+				var stream = new MemoryStream(streamContent);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((AppendBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_AppendBlob_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var blobClient = new AppendBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -814,6 +876,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
@@ -833,7 +896,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -847,6 +910,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
@@ -870,20 +934,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_AppenBlob_without_lease()
+			public async Task Overwrite_existing_AppenBlob_without_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
@@ -894,20 +959,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_AppenBlob_with_lease()
+			public async Task Overwrite_existing_AppenBlob_with_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
@@ -918,10 +984,37 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_BlobClient_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var streamContent = "Hello World".ToBytes();
+				var stream = new MemoryStream(streamContent);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_BlobClient_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var blobClient = new BlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -932,6 +1025,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
@@ -950,7 +1044,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -964,6 +1058,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
@@ -982,20 +1077,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_BlobClient_without_lease()
+			public async Task Overwrite_existing_BlobClient_without_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
@@ -1014,20 +1110,21 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
 			}
 
 			[Fact]
-			public async Task Append_to_existing_BlobClient_with_lease()
+			public async Task Overwrite_existing_BlobClient_with_lease()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = "abc123";
 				var newContent = "xyz123";
 				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
@@ -1046,7 +1143,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1059,11 +1156,12 @@ namespace Picton.UnitTests.Extensions
 				var cancellationToken = CancellationToken.None;
 				var leaseId = "abc123";
 				var newContent = "xyz123";
+				var stream = new MemoryStream(newContent.ToBytes());
 
 				var mockBlob = new Mock<BlobBaseClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<Exception>(async () => await mockBlob.Object.UploadStreamAsync(new MemoryStream(newContent.ToBytes()), null, null, null, leaseId, cancellationToken).ConfigureAwait(false), "Unknow blob type: BlobBaseClientProxy").ConfigureAwait(false);
+				await Should.ThrowAsync<Exception>(async () => await mockBlob.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false), "Unknow blob type: BlobBaseClientProxy").ConfigureAwait(false);
 			}
 		}
 
@@ -1079,64 +1177,541 @@ namespace Picton.UnitTests.Extensions
 				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).DownloadTextAsync(cancellationToken)).ConfigureAwait(false);
 			}
 
-			//[Fact]
-			//public async Task Success()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var expected = "Hello World";
+			[Fact]
+			public async Task Success()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var expected = "Hello World";
+				var content = new MemoryStream(expected.ToBytes());
+				var blobUri = new Uri(BLOB_ITEM_URL);
 
-			//	var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadAsync(It.IsAny<HttpRange>(), It.IsAny<BlobRequestConditions>(), It.IsAny<bool>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobDownloadInfo()))
-			//		.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
-			//		{
-			//			var buffer = expected.ToBytes();
-			//			await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-			//		})
-			//		.Verifiable();
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: content);
 
-			//	// Act
-			//	var result = await mockBlobClient.Object.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobBaseClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//	result.ShouldBe(expected);
-			//}
+				// Act
+				var result = await mockBlobClient.Object.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+				result.ShouldBe(expected);
+			}
 		}
 
 		public class UploadTextAsync
 		{
-			//[Fact]
-			//public async Task Success()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var content = "Hello World";
+			[Fact]
+			public async Task Success_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "Hello World";
+				var blobUri = new Uri(BLOB_ITEM_URL);
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
 
-			//	// Act
-			//	await mockBlobClient.Object.UploadTextAsync(content, null, null, null, null, cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
+					.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				// Act
+				await mockBlobClient.Object.UploadTextAsync(newContent, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Success_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var newContent = "Hello World";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
+
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
+					.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.UploadTextAsync(newContent, null, null, null, null, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
 		}
 
 		public class AppendStreamAsync
 		{
 			[Fact]
-			public async Task Throws_when_blob_is_null()
+			public async Task Throws_when_PageBlob_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((PageBlobClient)null).AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_PageBlob_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Create_new_PageBlob_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
+
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.CreateAsync(5 * 1024 * 1024, null, It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadPagesAsync(It.IsAny<Stream>(), 0, null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.PageBlobPageBytes)
+					.Returns(512)
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Create_new_PageBlob_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
+
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.CreateAsync(5 * 1024 * 1024, null, It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadPagesAsync(It.IsAny<Stream>(), 0, null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.PageBlobPageBytes)
+					.Returns(512)
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Append_to_existing_PageBlob_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
+
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadPagesAsync(It.IsAny<Stream>(), pageRangesInfo.BlobContentLength - 1, null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.PageBlobPageBytes)
+					.Returns(512)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Append_to_existing_PageBlob_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
+				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
+
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadPagesAsync(It.IsAny<Stream>(), pageRangesInfo.BlobContentLength - 1, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(pageInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.PageBlobPageBytes)
+					.Returns(512)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_BlockBlob_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var streamContent = "Hello World".ToBytes();
+				var stream = new MemoryStream(streamContent);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlockBlobClient)null).AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_BlockBlob_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var blobClient = new BlockBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Create_new_BlockBlob_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Create_new_BlockBlob_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Append_to_existing_BlockBlob_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Append_to_existing_BlockBlob_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
+
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_AppendBlob_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var streamContent = "Hello World".ToBytes();
+				var stream = new MemoryStream(streamContent);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => ((AppendBlobClient)null).AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Throws_when_AppendBlob_stream_is_null()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var stream = (Stream)null;
+
+				var blobClient = new AppendBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+
+				// Act
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+			}
+
+			[Fact]
+			public async Task Create_new_or_append_to_existing_AppendBlob_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
+				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
+
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.CreateIfNotExistsAsync(It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobAppendInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Create_new_or_append_to_existing_AppendBlob_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
+
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
+				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
+
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.CreateIfNotExistsAsync(It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, It.Is<AppendBlobRequestConditions>(rc => rc.LeaseId == leaseId), null, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobAppendInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
+
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
+
+			[Fact]
+			public async Task Throws_when_BlobClient_is_null()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
@@ -1149,298 +1724,169 @@ namespace Picton.UnitTests.Extensions
 			}
 
 			[Fact]
-			public async Task Throws_when_stream_is_null()
+			public async Task Throws_when_BlobClient_stream_is_null()
 			{
 				// Arrange
 				var cancellationToken = CancellationToken.None;
 				var leaseId = (string)null;
 				var stream = (Stream)null;
 
-				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				var blobClient = new BlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
 			}
 
-			//[Fact]
-			//public async Task Without_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = (string)null;
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+			[Fact]
+			public async Task Append_to_existing_BlobClient_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//	// Act
-			//	await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlob.Verify();
-			//}
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			//[Fact]
-			//public async Task With_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+				// Assert
+				mockBlobClient.Verify();
+			}
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+			[Fact]
+			public async Task Append_to_existing_BlobClient_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//[Fact]
-			//public async Task Blob_does_not_exist()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				// Assert
+				mockBlobClient.Verify();
+			}
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+			[Fact]
+			public async Task Create_new_or_append_to_existing_BlobClient_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//[Fact]
-			//public async Task To_AppendBlob_without_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = (string)null;
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+				// Assert
+				mockBlobClient.Verify();
+			}
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+			[Fact]
+			public async Task Create_new_or_append_to_existing_BlobClient_with_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//[Fact]
-			//public async Task To_AppendBlob_with_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
+					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
+				// Act
+				await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				// Assert
+				mockBlobClient.Verify();
+			}
 
-			//[Fact]
-			//public async Task To_AppendBlob_blob_does_not_exist()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
+			[Fact]
+			public async Task Throws_when_unknown_blob_type()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = "abc123";
+				var newContent = "xyz123";
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var mockBlob = new Mock<BlobBaseClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
-
-			//[Fact]
-			//public async Task To_PageBlobClient_without_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = (string)null;
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
-
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
-
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
-
-			//[Fact]
-			//public async Task To_PageBlobClient_with_lease()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
-
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
-
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
-
-			//[Fact]
-			//public async Task To_PageBlobClient_blob_does_not_exist()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
-
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
-
-			//	// Act
-			//	await mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false);
-
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
-
-			//[Fact]
-			//public async Task Throws_when_unknown_blob_type()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = "abc123";
-			//	var streamContent = "Hello World".ToBytes();
-			//	var stream = new MemoryStream(streamContent);
-
-			//	var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-
-			//	// Act
-			//	var e = await Should.ThrowAsync<Exception>(() => mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
-
-			//	// Assert
-			//	e.Message.ShouldStartWith("Unknow blob type: ");
-			//}
+				// Act
+				await Should.ThrowAsync<Exception>(async () => await mockBlob.Object.AppendStreamAsync(stream, leaseId, cancellationToken).ConfigureAwait(false), "Unknow blob type: BlobBaseClientProxy").ConfigureAwait(false);
+			}
 		}
 
 		public class AppendBytesAsync

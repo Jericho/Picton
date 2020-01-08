@@ -28,6 +28,7 @@ namespace Picton
 		private const long DEFAULT_PAGE_BLOB_SIZE = 5 * MB;
 
 		private static readonly Stream EmptyStream = new MemoryStream();
+		private static readonly IDictionary<string, string> EmptyDictionary = new Dictionary<string, string>();
 
 		#region PUBLIC EXTENSION METHODS
 
@@ -39,16 +40,16 @@ namespace Picton
 		/// <param name="maxLeaseAttempts">The maximum number of attempts.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
-		public static async Task<string> TryAcquireLeaseAsync(this BlobBaseClient blob, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
+		public static async Task<string> TryAcquireLeaseAsync(this BlobBaseClient blob, TimeSpan? leaseTime = null, int maxAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
+			if (maxAttempts < 1 || maxAttempts > 10)
 			{
-				throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "The number of attempts must be between 1 and 10");
+				throw new ArgumentOutOfRangeException(nameof(maxAttempts), "The number of attempts must be between 1 and 10");
 			}
 
 			var leaseId = (string)null;
-			for (var attempts = 0; attempts < maxLeaseAttempts; attempts++)
+			for (var attempts = 0; attempts < maxAttempts; attempts++)
 			{
 				try
 				{
@@ -57,7 +58,7 @@ namespace Picton
 				}
 				catch (RequestFailedException e) when (e.ErrorCode == "LeaseAlreadyPresent")
 				{
-					if (attempts < maxLeaseAttempts - 1)
+					if (attempts < maxAttempts - 1)
 					{
 						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
 					}
@@ -110,7 +111,7 @@ namespace Picton
 		/// <param name="leaseId">The lease Id.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task ReleaseLeaseAsync(this BlobBaseClient blob, string leaseId, CancellationToken cancellationToken = default)
+		public static Task ReleaseLeaseAsync(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -126,7 +127,7 @@ namespace Picton
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		/// <exception cref="ArgumentNullException">blob.</exception>
-		public static Task RenewLeaseAsync(this BlobBaseClient blob, string leaseId, CancellationToken cancellationToken = default)
+		public static Task RenewLeaseAsync(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
@@ -141,7 +142,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="bool">boolean</see> value indicating if the lease was obtained.</returns>
-		public static async Task<bool> TryRenewLeaseAsync(this BlobBaseClient blob, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task<bool> TryRenewLeaseAsync(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -185,7 +186,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(alignedContent, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -219,11 +220,11 @@ namespace Picton
 					ContentType = properties?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata ?? new Dictionary<string, string>(), requestConditions, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata ?? BlobClientExtensions.EmptyDictionary, requestConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -254,7 +255,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -276,15 +277,15 @@ namespace Picton
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
-			BlobRequestConditions accessConditions = null;
+			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+				requestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
 			try
 			{
-				BlobProperties properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
+				BlobProperties properties = await blob.GetPropertiesAsync(requestConditions, cancellationToken).ConfigureAwait(false);
 
 				var headers = new BlobHttpHeaders()
 				{
@@ -293,11 +294,11 @@ namespace Picton
 					ContentEncoding = contentEncoding ?? properties?.ContentEncoding
 				};
 
-				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata, accessConditions, null, null, default, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(content ?? BlobClientExtensions.EmptyStream, headers, properties?.Metadata, requestConditions, null, null, default, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -357,7 +358,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task AppendStreamAsync(this PageBlobClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task AppendStreamAsync(this PageBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -381,7 +382,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(alignedContent, null, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -393,7 +394,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task AppendStreamAsync(this BlockBlobClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task AppendStreamAsync(this BlockBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -424,11 +425,11 @@ namespace Picton
 					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 				};
 
-				await blob.UploadAsync(combinedContent ?? BlobClientExtensions.EmptyStream, headers, null, blobRequestConditions, null, null, cancellationToken).ConfigureAwait(false);
+				await blob.UploadAsync(combinedContent ?? BlobClientExtensions.EmptyStream, headers, BlobClientExtensions.EmptyDictionary, blobRequestConditions, null, null, cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -440,12 +441,17 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task AppendStreamAsync(this AppendBlobClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task AppendStreamAsync(this AppendBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
+
+			var headers = new BlobHttpHeaders()
+			{
+				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+			};
 
 			AppendBlobRequestConditions appendBlobRequestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
@@ -453,7 +459,7 @@ namespace Picton
 				appendBlobRequestConditions = new AppendBlobRequestConditions { LeaseId = leaseId };
 			}
 
-			await blob.CreateIfNotExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
+			await blob.CreateIfNotExistsAsync(headers, BlobClientExtensions.EmptyDictionary, cancellationToken).ConfigureAwait(false);
 			await blob.AppendBlockAsync(content, null, appendBlobRequestConditions, null, cancellationToken).ConfigureAwait(false);
 		}
 
@@ -465,7 +471,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task AppendStreamAsync(this BlobClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task AppendStreamAsync(this BlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -478,29 +484,37 @@ namespace Picton
 				blobRequestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
+			var combinedContent = new MultiStream();
+
+			var headers = new BlobHttpHeaders()
+			{
+				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+			};
+
 			try
 			{
 				BlobDownloadInfo downloadInfo = await blob.DownloadAsync(conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-				// The content in downloadInfo is non-seekable. Therfeore, must make a copy
+				headers.ContentType = downloadInfo?.ContentType ?? headers.ContentType;
+
+				// The content in downloadInfo is non-seekable. Therfore, must make a copy
 				var memStream = new MemoryStream();
 				downloadInfo.Content.CopyTo(memStream);
 
-				// Combined the existing and the new content
-				var combinedContent = new MultiStream();
+				// Combine the existing and the new content
 				combinedContent.AddStream(memStream);
-				combinedContent.AddStream(content);
-
-				var headers = new BlobHttpHeaders()
-				{
-					ContentType = downloadInfo?.ContentType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
-				};
-
-				await blob.UploadAsync(content: combinedContent ?? BlobClientExtensions.EmptyStream, httpHeaders: headers, conditions: blobRequestConditions, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, new Dictionary<string, string>(), true, cancellationToken).ConfigureAwait(false);
+				// The blob does not exist. We will therefore create a new one.
+			}
+			finally
+			{
+				// Combine the existing and the new content
+				combinedContent.AddStream(content);
+
+				// Overwrite the content of the existing blob (or create a new blob) with the combined content
+				await blob.UploadAsync(combinedContent ?? BlobClientExtensions.EmptyStream, headers, BlobClientExtensions.EmptyDictionary, blobRequestConditions, null, null, default, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -512,7 +526,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task AppendStreamAsync(this BlobBaseClient blob, Stream content, string leaseId, CancellationToken cancellationToken = default)
+		public static Task AppendStreamAsync(this BlobBaseClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -532,7 +546,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task AppendBytesAsync(this BlobBaseClient blob, byte[] buffer, string leaseId, CancellationToken cancellationToken = default)
+		public static Task AppendBytesAsync(this BlobBaseClient blob, byte[] buffer, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(buffer);
 			return blob.AppendStreamAsync(stream, leaseId, cancellationToken);
@@ -546,7 +560,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task AppendTextAsync(this BlobBaseClient blob, string content, string leaseId, CancellationToken cancellationToken = default)
+		public static Task AppendTextAsync(this BlobBaseClient blob, string content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return blob.AppendBytesAsync(buffer, leaseId, cancellationToken);
@@ -560,17 +574,17 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task SetMetadataAsync(this BlobBaseClient blob, IDictionary<string, string> metadata, string leaseId, CancellationToken cancellationToken = default)
+		public static Task SetMetadataAsync(this BlobBaseClient blob, IDictionary<string, string> metadata, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			BlobRequestConditions accessConditions = null;
+			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+				requestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
-			return blob.SetMetadataAsync(metadata, accessConditions, cancellationToken);
+			return blob.SetMetadataAsync(metadata, requestConditions, cancellationToken);
 		}
 
 		/// <summary>
@@ -841,17 +855,17 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task<BlobProperties> GetProperties(this BlobBaseClient blob, string leaseId, CancellationToken cancellationToken = default)
+		public static async Task<BlobProperties> GetProperties(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
-			BlobRequestConditions accessConditions = null;
+			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
 			{
-				accessConditions = new BlobRequestConditions { LeaseId = leaseId };
+				requestConditions = new BlobRequestConditions { LeaseId = leaseId };
 			}
 
-			BlobProperties properties = await blob.GetPropertiesAsync(accessConditions, cancellationToken).ConfigureAwait(false);
+			BlobProperties properties = await blob.GetPropertiesAsync(requestConditions, cancellationToken).ConfigureAwait(false);
 			return properties;
 		}
 
