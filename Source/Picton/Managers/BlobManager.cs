@@ -232,7 +232,7 @@ namespace Picton.Managers
 			}
 			else
 			{
-				await blob.CreateIfNotExistsAsync(null, null, cancellationToken).ConfigureAwait(false);
+				await blob.CreateIfNotExistsAsync(null, null, null, null, null, cancellationToken).ConfigureAwait(false);
 			}
 
 			await _blobContainer.CopyAsync(cleanSourceName, cleanDestinationName, leaseId, true, cancellationToken).ConfigureAwait(false);
