@@ -37,7 +37,7 @@ namespace Picton
 		/// </summary>
 		/// <param name="blob">The blob.</param>
 		/// <param name="leaseTime">The lease duration. If specified, this value must be between 15 and 60 seconds.</param>
-		/// <param name="maxLeaseAttempts">The maximum number of attempts.</param>
+		/// <param name="maxAttempts">The maximum number of attempts.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The lease Id.</returns>
 		public static async Task<string> TryAcquireLeaseAsync(this BlobBaseClient blob, TimeSpan? leaseTime = null, int maxAttempts = 1, CancellationToken cancellationToken = default)
@@ -97,7 +97,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(null, null, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(null, null, true, cancellationToken: cancellationToken).ConfigureAwait(false);
 				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), null, cancellationToken).ConfigureAwait(false);
 
 				return response.Value.LeaseId;
@@ -161,9 +161,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The stream.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this PageBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this PageBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -186,7 +189,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, mimeType, cacheControl, contentEncoding, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -196,9 +199,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The stream.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this BlockBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this BlockBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -224,7 +230,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, mimeType, cacheControl, contentEncoding, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -234,9 +240,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The stream.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this AppendBlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this AppendBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -255,7 +264,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, mimeType, cacheControl, contentEncoding, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -298,7 +307,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, mimeType, cacheControl, contentEncoding, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -308,9 +317,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The stream.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadStreamAsync(this BlobBaseClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadStreamAsync(this BlobBaseClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -328,9 +340,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The byte array.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadBytesAsync(this BlobBaseClient blob, byte[] content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadBytesAsync(this BlobBaseClient blob, byte[] content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(content);
 			return blob.UploadStreamAsync(stream, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
@@ -342,9 +357,12 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The content.</param>
 		/// <param name="leaseId">The lease identifier.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static Task UploadTextAsync(this BlobBaseClient blob, string content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static Task UploadTextAsync(this BlobBaseClient blob, string content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return blob.UploadBytesAsync(buffer, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
@@ -382,7 +400,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(alignedContent, BlobClientExtensions.EmptyDictionary, true, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -429,7 +447,7 @@ namespace Picton
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
-				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, BlobClientExtensions.EmptyDictionary, true, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -639,6 +657,7 @@ namespace Picton
 		/// Creates a Shared Access Signature URI for the blob.
 		/// </summary>
 		/// <param name="blob">The blob to be shared.</param>
+		/// <param name="sharedKeyCredential">The storage account's shared key credential.</param>
 		/// <param name="permissions">The permissions granted to the shared access signature.</param>
 		/// <param name="duration">The period of time the shared access signature is valid for. If this parameter is omited, it defaults to 15 minutes.</param>
 		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
@@ -692,30 +711,38 @@ namespace Picton
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static Task CreateAsync(this PageBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static Task CreateAsync(this PageBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			return blob.CreateAsync(DEFAULT_PAGE_BLOB_SIZE, content, metadata, overwriteIfExists, cancellationToken);
+			return blob.CreateAsync(DEFAULT_PAGE_BLOB_SIZE, content, metadata, overwriteIfExists, mimeType, cacheControl, contentEncoding, cancellationToken);
 		}
 
 		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>
+		/// <param name="blobSize">The maximum size for the page blob, up to 8 TB. The size must be aligned to a 512-byte boundary.</param>
 		/// <param name="content">The content.</param>
-		/// <param name="blobSize">The blob size.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static async Task CreateAsync(this PageBlobClient blob, long blobSize, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static async Task CreateAsync(this PageBlobClient blob, long blobSize, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var headers = new BlobHttpHeaders()
 			{
-				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+				CacheControl = cacheControl,
+				ContentEncoding = contentEncoding,
+				ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
 			PageBlobRequestConditions requestConditions = null;
@@ -742,15 +769,20 @@ namespace Picton
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static async Task CreateAsync(this BlockBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static async Task CreateAsync(this BlockBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var headers = new BlobHttpHeaders()
 			{
-				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+				CacheControl = cacheControl,
+				ContentEncoding = contentEncoding,
+				ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
 			BlobRequestConditions requestConditions = null;
@@ -772,15 +804,20 @@ namespace Picton
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static async Task CreateAsync(this AppendBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static async Task CreateAsync(this AppendBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var headers = new BlobHttpHeaders()
 			{
-				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+				CacheControl = cacheControl,
+				ContentEncoding = contentEncoding,
+				ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
 			AppendBlobRequestConditions requestConditions = null;
@@ -807,15 +844,20 @@ namespace Picton
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static async Task CreateAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static async Task CreateAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			var headers = new BlobHttpHeaders()
 			{
-				ContentType = MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
+				CacheControl = cacheControl,
+				ContentEncoding = contentEncoding,
+				ContentType = mimeType ?? MimeTypesMap.GetMimeType(Path.GetExtension(blob.Uri.LocalPath))
 			};
 
 			BlobRequestConditions requestConditions = null;
@@ -837,14 +879,17 @@ namespace Picton
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">Custom metadata to set for this blob.</param>
 		/// <param name="overwriteIfExists">Indicates if existing blob should be overwritten.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
-		public static Task CreateAsync(this BlobBaseClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, CancellationToken cancellationToken = default)
+		public static Task CreateAsync(this BlobBaseClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob is PageBlobClient pageBlob) return pageBlob.CreateAsync(content, metadata, overwriteIfExists, cancellationToken);
-			else if (blob is BlockBlobClient blockBlob) return blockBlob.CreateAsync(content, metadata, overwriteIfExists, cancellationToken);
-			else if (blob is AppendBlobClient appendBlob) return appendBlob.CreateAsync(content, metadata, overwriteIfExists, cancellationToken);
-			else if (blob is BlobClient blobClient) return blobClient.CreateAsync(content, metadata, overwriteIfExists, cancellationToken);
+			if (blob is PageBlobClient pageBlob) return pageBlob.CreateAsync(content, metadata, overwriteIfExists, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is BlockBlobClient blockBlob) return blockBlob.CreateAsync(content, metadata, overwriteIfExists, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is AppendBlobClient appendBlob) return appendBlob.CreateAsync(content, metadata, overwriteIfExists, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is BlobClient blobClient) return blobClient.CreateAsync(content, metadata, overwriteIfExists, mimeType, cacheControl, contentEncoding, cancellationToken);
 			else throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 		}
 
@@ -875,15 +920,18 @@ namespace Picton
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The content.</param>
 		/// <param name="metadata">The metadata.</param>
+		/// <param name="mimeType">The MIME content type of the blob.</param>
+		/// <param name="cacheControl">Specify directives for caching mechanisms.</param>
+		/// <param name="contentEncoding">Specifies which content encoding has been applied to the blob.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>true if the blob was created; false otherwise.</returns>
-		public static async Task<bool> CreateIfNotExistsAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, CancellationToken cancellationToken = default)
+		public static async Task<bool> CreateIfNotExistsAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 
 			try
 			{
-				await blob.CreateAsync(content, metadata, false, cancellationToken).ConfigureAwait(false);
+				await blob.CreateAsync(content, metadata, false, mimeType, cacheControl, contentEncoding, cancellationToken).ConfigureAwait(false);
 				return true; // True indicates that blob was created
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobAlreadyExists")
