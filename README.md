@@ -72,11 +72,11 @@ Fist of all, some boilerplate code necessary for the code samples below:
 
 ```
 var cancellationToken = CancellationToken.None;
-var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
-var blobClient = storageAccount.CreateCloudBlobClient();
-var container = blobClient.GetContainerReference("mycontainer");
-await container.CreateIfNotExistsAsync().ConfigureAwait(false);
-var blob = container.GetBlockBlobReference("MyBlob.txt");
+var connectionString = "UseDevelopmentStorage=true";
+
+var container = new BlobContainerClient(connectionString, "mycontainer");
+await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken).ConfigureAwait(false);
+var blob = container.GetBlockBlobClient("MyBlob.txt");
 ```
 
 Here are a few examples how to use the extension methods:
@@ -98,54 +98,12 @@ var accessUri = await blob.GetSharedAccessSignatureUri(permission, duration).Con
 ```
 
 
-#### 2) Abstractions
-PLEASE NOTE: this section is now obsolete. 
-The interfaces and wrapper classes have been removed from Picton in version 3.0 since the classes in Azure Storage library are now unsealed and/or methods are now marked as 'Virtual'.
-
-Let's assume you have the following class:
-```
-public class Foo
-{
-    private readonly CloudStorageAccount _cloudStorageAccount;
-    public Foo(CloudStorageAccount cloudStorageAccount)
-    {
-        _cloudStorageAccount = cloudStorageAccount;
-    }
-}
-```
-This seems reasonable since the dependency is injected and presumably can be mocked for unit testing. Unfortunately, CloudStorageAccount is `sealed` and cannot be mocked.
-
-Picton solves this problems by including an interface and a concrete implementation of the StorageAccount class. This means that you can rewrite the above example like so:
+#### 2) Managers
 
 ```
-public class Foo1
-{
-    private readonly IStorageAccount _storageAccount;
-    public Foo(IStorageAccount storageAccount)
-    {
-        _storageAccount = storageAccount;
-    }
-}
-```
+var connectionString = "UseDevelopmentStorage=true";
+var blobManager = new BlobManager(connectionString, "mycontainer");
 
-You can use your favorite mocking tool to inject a mocked instance of IStorageAccount and IBlobClient in your unit tests and also you can pass a concrete instance like so:
-```
-var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
-var storageAccount = new StorageAccount(cloudStorageAccount);
-var myFoo1 = new Foo1(storageAccount);
-
-var blobClient = storageAccount.CreateCloudBlobClient();
-var myFoo2 = new Foo2(blobClient);
-
-```
-
-
-#### 3) Managers
-
-```
-var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
-var storageAccount = new StorageAccount(cloudStorageAccount);
-var blobManager = new BlobManager("mycontainer", storageAccount);
 await blobManager.CopyBlobAsync("test.txt", "test - Copy of.txt", cancellationToken).ConfigureAwait(false);
 
 await blobManager.UploadTextAsync("test2.txt", "Hello World", cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -160,7 +118,7 @@ await blobManager.DeleteBlobAsync("test - Copy of.txt", cancellationToken).Confi
 await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
 ```
 
-#### 4) Misc
+#### 3) Misc
 
 ```
 class Program
@@ -169,10 +127,10 @@ class Program
     {
         AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
-        var cloudStorageAccount = CloudStorageAccount.DevelopmentStorageAccount;
-        var blobClient = cloudStorageAccount.CreateCloudBlobClient();
-        var container = blobClient.GetContainerReference("mycontainer");
-        await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+        var cancellationToken = CancellationToken.None;
+        var connectionString = "UseDevelopmentStorage=true";
+        var container = new BlobContainerClient(connectionString, "mycontainer");
+		await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken).ConfigureAwait(false);
     }
 }
 ```
