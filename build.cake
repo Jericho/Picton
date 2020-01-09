@@ -195,6 +195,7 @@ Task("Run-Unit-Tests")
 	DotNetCoreTest(unitTestsProject, new DotNetCoreTestSettings
 	{
 		NoBuild = true,
+		NoRestore = true,
 		Configuration = configuration
 	});
 });
@@ -206,6 +207,7 @@ Task("Run-Code-Coverage")
 	Action<ICakeContext> testAction = ctx => ctx.DotNetCoreTest(unitTestsProject, new DotNetCoreTestSettings
 	{
 		NoBuild = true,
+		NoRestore = true,
 		Configuration = configuration
 	});
 
@@ -252,6 +254,7 @@ Task("Create-NuGet-Package")
 		IncludeSource = false,
 		IncludeSymbols = true,
 		NoBuild = true,
+		NoRestore = true,
 		NoDependencies = true,
 		OutputDirectory = outputDir,
 		ArgumentCustomization = (args) =>
