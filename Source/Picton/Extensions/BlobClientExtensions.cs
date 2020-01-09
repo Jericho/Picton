@@ -273,10 +273,10 @@ namespace Picton
 		/// </summary>
 		/// <param name="blob">The blob.</param>
 		/// <param name="content">The stream.</param>
+		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="mimeType">The MIME type.</param>
 		/// <param name="cacheControl">The directives for caching mechanisms.</param>
 		/// <param name="contentEncoding">The content encoding.</param>
-		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
