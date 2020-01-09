@@ -279,7 +279,7 @@ namespace Picton
 		/// <param name="leaseId">The lease identifier.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
-		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string mimeType = null, string cacheControl = null, string contentEncoding = null, string leaseId = null, CancellationToken cancellationToken = default)
+		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
@@ -327,10 +327,10 @@ namespace Picton
 			if (blob == null) throw new ArgumentNullException(nameof(blob));
 			if (content == null) throw new ArgumentNullException(nameof(content));
 
-			if (blob is PageBlobClient pageBlob) return pageBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
-			else if (blob is BlockBlobClient blockBlob) return blockBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
-			else if (blob is AppendBlobClient appendBlob) return appendBlob.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
-			else if (blob is BlobClient blobClient) return blobClient.UploadStreamAsync(content, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			if (blob is PageBlobClient pageBlob) return pageBlob.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is BlockBlobClient blockBlob) return blockBlob.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is AppendBlobClient appendBlob) return appendBlob.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
+			else if (blob is BlobClient blobClient) return blobClient.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
 			else throw new Exception($"Unknow blob type: {blob.GetType().Name}");
 		}
 
@@ -348,7 +348,7 @@ namespace Picton
 		public static Task UploadBytesAsync(this BlobBaseClient blob, byte[] content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			var stream = new MemoryStream(content);
-			return blob.UploadStreamAsync(stream, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			return blob.UploadStreamAsync(stream, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
 		}
 
 		/// <summary>
@@ -365,7 +365,7 @@ namespace Picton
 		public static Task UploadTextAsync(this BlobBaseClient blob, string content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
-			return blob.UploadBytesAsync(buffer, mimeType, cacheControl, contentEncoding, leaseId, cancellationToken);
+			return blob.UploadBytesAsync(buffer, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
 		}
 
 		/// <summary>

@@ -50,7 +50,7 @@ namespace Picton.IntegrationTests
 			// BlobClient
 			var blob1 = new BlobClient(connectionString, containerName, "test1.txt");
 			var exists1 = await blob1.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (!exists1) await blob1.CreateAsync(null, null, false, cancellationToken).ConfigureAwait(false);
+			if (!exists1) await blob1.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			var leaseId1 = await blob1.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 			await blob1.UploadTextAsync("Hello World", leaseId: leaseId1, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -67,7 +67,7 @@ namespace Picton.IntegrationTests
 			// BlockBlobClient
 			var blob2 = new BlockBlobClient(connectionString, containerName, "test2.txt");
 			var exists2 = await blob2.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (!exists2) await blob2.CreateAsync(null, null, false, cancellationToken).ConfigureAwait(false);
+			if (!exists2) await blob2.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			var leaseId2 = await blob2.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 			await blob2.UploadTextAsync("Hello World", leaseId: leaseId2, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -84,7 +84,7 @@ namespace Picton.IntegrationTests
 			// PageBlobClient
 			var blob3 = new PageBlobClient(connectionString, containerName, "test3.txt");
 			var exists3 = await blob3.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (!exists3) await blob3.CreateAsync(null, null, false, cancellationToken).ConfigureAwait(false);
+			if (!exists3) await blob3.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			var leaseId3 = await blob3.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 			await blob3.UploadTextAsync(new string('A', 535), leaseId: leaseId3, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -102,7 +102,7 @@ namespace Picton.IntegrationTests
 			/*
 			var blob4 = new AppendBlobClient(connectionString, containerName, "test4.txt");
 			var exists1 = await blob4.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (!exists4) await blob4.CreateAsync(null, null, false, cancellationToken).ConfigureAwait(false);
+			if (!exists4) await blob4.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			var leaseId4 = await blob4.AcquireLeaseAsync(TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
 			await blob4.UploadTextAsync("Hello World", leaseId: leaseId4, cancellationToken: cancellationToken).ConfigureAwait(false);

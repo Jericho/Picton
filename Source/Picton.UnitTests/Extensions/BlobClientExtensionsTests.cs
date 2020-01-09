@@ -503,7 +503,7 @@ namespace Picton.UnitTests.Extensions
 				var stream = new MemoryStream(newContent.ToBytes());
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((PageBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((PageBlobClient)null).UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -517,7 +517,7 @@ namespace Picton.UnitTests.Extensions
 				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -556,7 +556,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -598,7 +598,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -636,7 +636,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -674,7 +674,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -690,7 +690,7 @@ namespace Picton.UnitTests.Extensions
 				var stream = new MemoryStream(streamContent);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((BlockBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlockBlobClient)null).UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -704,7 +704,7 @@ namespace Picton.UnitTests.Extensions
 				var blobClient = new BlockBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -734,7 +734,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -767,7 +767,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -801,7 +801,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -835,7 +835,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -851,7 +851,7 @@ namespace Picton.UnitTests.Extensions
 				var stream = new MemoryStream(streamContent);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((AppendBlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((AppendBlobClient)null).UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -865,7 +865,7 @@ namespace Picton.UnitTests.Extensions
 				var blobClient = new AppendBlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -896,7 +896,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -934,7 +934,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -959,7 +959,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -984,7 +984,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1000,7 +1000,7 @@ namespace Picton.UnitTests.Extensions
 				var stream = new MemoryStream(streamContent);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -1014,7 +1014,7 @@ namespace Picton.UnitTests.Extensions
 				var blobClient = new BlobClient(new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => blobClient.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
 			}
 
 			[Fact]
@@ -1044,7 +1044,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1077,7 +1077,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1110,7 +1110,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1143,7 +1143,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
@@ -1161,7 +1161,7 @@ namespace Picton.UnitTests.Extensions
 				var mockBlob = new Mock<BlobBaseClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
 
 				// Act
-				await Should.ThrowAsync<Exception>(async () => await mockBlob.Object.UploadStreamAsync(stream, null, null, null, leaseId, cancellationToken).ConfigureAwait(false), "Unknow blob type: BlobBaseClientProxy").ConfigureAwait(false);
+				await Should.ThrowAsync<Exception>(async () => await mockBlob.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken).ConfigureAwait(false), "Unknow blob type: BlobBaseClientProxy").ConfigureAwait(false);
 			}
 		}
 
@@ -1232,7 +1232,7 @@ namespace Picton.UnitTests.Extensions
 					.Verifiable();
 
 				// Act
-				await mockBlobClient.Object.UploadTextAsync(newContent, null, null, null, leaseId, cancellationToken).ConfigureAwait(false);
+				await mockBlobClient.Object.UploadTextAsync(newContent, leaseId, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// Assert
 				mockBlobClient.Verify();
