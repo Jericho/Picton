@@ -1891,66 +1891,78 @@ namespace Picton.UnitTests.Extensions
 
 		public class AppendBytesAsync
 		{
-			//[Fact]
-			//public async Task Success()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = (string)null;
-			//	var buffer = "Hello World".ToBytes();
+			[Fact]
+			public async Task Append_to_existing_BlobClient_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobRequestConditions>(), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendBytesAsync(buffer, leaseId, cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				// Act
+				await mockBlobClient.Object.AppendBytesAsync(newContent.ToBytes(), leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
 		}
 
 		public class AppendTextAsync
 		{
-			//[Fact]
-			//public async Task Success()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var leaseId = (string)null;
-			//	var content = "Hello World";
+			[Fact]
+			public async Task Append_to_existing_BlobClient_without_lease()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var leaseId = (string)null;
+				var currentContent = "Hello World";
+				var newContent = "xyz123";
+				var blobUri = new Uri(BLOB_ITEM_URL);
+				var stream = new MemoryStream(newContent.ToBytes());
 
-			//	var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	mockBlobClient
-			//		.Setup(c => c.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.DownloadToAsync(It.IsAny<Stream>(), null, It.IsAny<StorageTransferOptions>(), cancellationToken))
-			//		.ReturnsAsync(new MockAzureResponse(200, "ok"))
-			//		.Verifiable();
-			//	mockBlobClient
-			//		.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), It.IsAny<AccessTier>(), It.IsAny<IProgress<long>>(), cancellationToken))
-			//		.ReturnsAsync(Response.FromValue(new BlobContentInfo()))
-			//		.Verifiable();
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
+				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 
-			//	// Act
-			//	await mockBlobClient.Object.AppendTextAsync(content, leaseId, cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.Setup(c => c.UploadAsync(It.IsAny<Stream>(), It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), null, null, null, default, cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+				mockBlobClient
+					.SetupGet(c => c.Uri)
+					.Returns(blobUri)
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//}
+				// Act
+				await mockBlobClient.Object.AppendTextAsync(newContent, leaseId, cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+			}
 		}
 
 		public class DownloadByteArrayAsync
@@ -1962,34 +1974,33 @@ namespace Picton.UnitTests.Extensions
 				var cancellationToken = CancellationToken.None;
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobClient)null).DownloadByteArrayAsync(cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobBaseClient)null).DownloadByteArrayAsync(cancellationToken)).ConfigureAwait(false);
 			}
 
-			//[Fact]
-			//public async Task Success()
-			//{
-			//	// Arrange
-			//	var cancellationToken = CancellationToken.None;
-			//	var expected = "Hello World";
+			[Fact]
+			public async Task Success()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var expected = "Hello World";
+				var content = new MemoryStream(expected.ToBytes());
+				var blobUri = new Uri(BLOB_ITEM_URL);
 
-			//	var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
-			//	//mockBlobClient
-			//	//	.Setup(c => c.DownloadToStreamAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
-			//	//	.Returns(Task.FromResult(true))
-			//	//	.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions bro, OperationContext oc, CancellationToken ct) =>
-			//	//	{
-			//	//		var buffer = expected.ToBytes();
-			//	//		await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-			//	//	})
-			//	//	.Verifiable();
+				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: content);
 
-			//	// Act
-			//	var result = await mockBlobClient.Object.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+				var mockBlobClient = new Mock<BlobBaseClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				mockBlobClient
+					.Setup(c => c.DownloadAsync(cancellationToken))
+					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
 
-			//	// Assert
-			//	mockBlobClient.Verify();
-			//	result.ShouldBe(expected.ToBytes());
-			//}
+				// Act
+				var result = await mockBlobClient.Object.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+
+				// Assert
+				mockBlobClient.Verify();
+				result.ShouldBe(expected.ToBytes());
+			}
 		}
 
 		public class GetSharedAccessSignatureUri
