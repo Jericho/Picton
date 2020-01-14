@@ -1,68 +1,37 @@
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Moq;
+using Picton.Managers;
+using System.Threading;
+using Xunit;
+
 namespace Picton.UnitTests.Managers
 {
 	public class BlobManagerTests
 	{
-		//[Fact]
-		//public void Null_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var containerName = "mycontainer";
-		//		var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var blobManager = new BlobManager(null, mockBlobClient.Object);
-		//	});
-		//}
+		public class Constructor
+		{
+			[Fact]
+			public void Creates_container_if_does_not_exist()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var connectionString = "UseDevelopmentStorage=true";
+				var containerName = "mycontainer";
+				var accessType = PublicAccessType.BlobContainer;
+				var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
+				mockBlobContainer
+					.Setup(c => c.CreateIfNotExistsAsync(accessType, cancellationToken))
+					.ReturnsAsync(true)
+					.Verifiable();
 
-		//[Fact]
-		//public void Empty_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var containerName = "mycontainer";
-		//		var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var blobManager = new BlobManager("", mockBlobClient.Object);
-		//	});
-		//}
+				// Act
+				new BlobManager(mockBlobContainer.Object, accessType);
 
-		//[Fact]
-		//public void Blank_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var containerName = "mycontainer";
-		//		var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var blobManager = new BlobManager(" ", mockBlobClient.Object);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Null_StorageAccount_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var storageAccount = (CloudStorageAccount)null;
-		//		var blobManager = new BlobManager("mycontainer", storageAccount);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Initialization()
-		//{
-		//	// Arrange
-		//	var containerName = "mycontainer";
-		//	var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-
-		//	// Act
-		//	new BlobManager(containerName, mockBlobClient.Object);
-
-		//	// Assert
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+				// Assert
+				mockBlobContainer.Verify();
+			}
+		}
 
 		//[Fact]
 		//public void GetBlobContentAsync_blob_does_not_exist()
