@@ -2,6 +2,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,19 +17,23 @@ namespace Picton.Managers
 
 		private const string PATH_SEPARATOR = "/";
 
-		private readonly string _containerName;
 		private readonly BlobContainerClient _blobContainer;
 
 		#endregion
 
 		#region CONSTRUCTORS
 
+		[ExcludeFromCodeCoverage]
 		public BlobManager(string connectionString, string containerName, PublicAccessType accessType = PublicAccessType.None)
 		{
-			_containerName = !string.IsNullOrWhiteSpace(containerName) ? containerName : throw new ArgumentNullException(nameof(containerName));
+			_blobContainer = new BlobContainerClient(connectionString, containerName);
+			_blobContainer.CreateIfNotExists(accessType);
+		}
 
-			_blobContainer = new BlobContainerClient(connectionString, _containerName);
-			_blobContainer.CreateIfNotExistsAsync(accessType).Wait();
+		public BlobManager(BlobContainerClient blobContainer, PublicAccessType accessType = PublicAccessType.None)
+		{
+			_blobContainer = blobContainer;
+			_blobContainer.CreateIfNotExists(accessType);
 		}
 
 		#endregion
@@ -248,7 +253,7 @@ namespace Picton.Managers
 				.Replace("#", "_") // Azure supports the # character but it leads to problems in URLs
 				.Replace("'", "_") // Azure supports quotes but it leads to problems in URLs
 				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
-				.TrimStart($"{PATH_SEPARATOR}{_containerName}")
+				.TrimStart($"{PATH_SEPARATOR}{_blobContainer.Name}")
 				.TrimStart(PATH_SEPARATOR);
 
 			if (!allowEmptyName && string.IsNullOrWhiteSpace(blobName)) throw new ArgumentException("Name cannot be empty");
