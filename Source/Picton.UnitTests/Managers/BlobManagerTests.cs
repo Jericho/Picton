@@ -1,7 +1,9 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Moq;
 using Picton.Managers;
+using System;
 using System.Threading;
 using Xunit;
 
@@ -19,10 +21,13 @@ namespace Picton.UnitTests.Managers
 				var connectionString = "UseDevelopmentStorage=true";
 				var containerName = "mycontainer";
 				var accessType = PublicAccessType.BlobContainer;
+
+				var blobContainerInfo = BlobsModelFactory.BlobContainerInfo(ETag.All, DateTimeOffset.UtcNow);
+
 				var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
 				mockBlobContainer
-					.Setup(c => c.CreateIfNotExistsAsync(accessType, cancellationToken))
-					.ReturnsAsync(true)
+					.Setup(c => c.CreateIfNotExists(accessType, null, default))
+					.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")))
 					.Verifiable();
 
 				// Act
