@@ -5,6 +5,7 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
 using Picton.Interfaces;
+using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace Picton.Managers
 		#region CONSTRUCTORS
 
 		/// <summary>
-		/// 
+		/// Initializes a new instance of the <see cref="QueueManager"/> class.
 		/// </summary>
 		/// <param name="connectionString">
 		/// A connection string includes the authentication information
@@ -38,23 +39,29 @@ namespace Picton.Managers
 		/// For more information, <see href="https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string"/>.
 		/// </param>
 		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
+		[ExcludeFromCodeCoverage]
 		public QueueManager(string connectionString, string queueName)
 		{
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
 			_blobContainer = new BlobContainerClient(connectionString, "oversizedqueuemessages");
-			_blobContainer.CreateIfNotExists();
-
 			_queue = new QueueClient(connectionString, queueName);
-			try
-			{
-				_queue.Create(null);
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "QueueAlreadyExists")
-			{
-				// Queue already exists. It's safe to ignore this exception.
-			}
+
+			Init();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="QueueManager"/> class.
+		/// </summary>
+		/// <param name="blobContainer">The blob container.</param>
+		/// <param name="queueClient">The queue client.</param>
+		public QueueManager(BlobContainerClient blobContainer, QueueClient queueClient)
+		{
+			_blobContainer = blobContainer ?? throw new ArgumentNullException(nameof(blobContainer)); ;
+			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+
+			Init();
 		}
 
 		#endregion
@@ -204,21 +211,21 @@ namespace Picton.Managers
 			return _queue.SetAccessPolicyAsync(permissions, cancellationToken);
 		}
 
-		///* For the time being, we don't support updating the content of a message due to complexity
-		//	In order to support updating content we need to consider the following scenarios
-		//		1) Previous content was smaller than max size and we are updating with content that is also smaller than max size. This is a trivial scenario. We simply need to update the content in the Azure queue.
-		//		2) Previous content exceeded max size and we are updating with content that also exceeds max size. This is also a trivial scenario. We simply need to update the content in the blob.
-		//		3) Previous content was smaller than max size and we are updating with content that exceeds max size. We need to save the new content in a blob, and the queue message must be updated with a 'LargeMessageEnvelope'.
-		//		4) Previous content exceeded max size and we are updating with content smaller than max size. We need to delete the blob item and update the queue message.
+		/* For the time being, we don't support updating the content of a message due to complexity
+			In order to support updating content we need to consider the following scenarios
+				1) Previous content was smaller than max size and we are updating with content that is also smaller than max size. This is a trivial scenario. We simply need to update the content in the Azure queue.
+				2) Previous content exceeded max size and we are updating with content that also exceeds max size. This is also a trivial scenario. We simply need to update the content in the blob.
+				3) Previous content was smaller than max size and we are updating with content that exceeds max size. We need to save the new content in a blob, and the queue message must be updated with a 'LargeMessageEnvelope'.
+				4) Previous content exceeded max size and we are updating with content smaller than max size. We need to delete the blob item and update the queue message.
 
-		//	Determining if the new content exceeds max size or not is easy (see AddMessageAsync) but how can we determine if previous content exceeded the max size?
+			Determining if the new content exceeds max size or not is easy (see AddMessageAsync) but how can we determine if previous content exceeded the max size?
 
-		//public Task UpdateMessageAsync(CloudMessage message, TimeSpan visibilityTimeout, MessageUpdateFields updateFields, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
-		//{
-		//	var cloudMessage = new CloudQueueMessage(message.Id, message.PopReceipt);
-		//	return _queue.UpdateMessageAsync(cloudMessage, visibilityTimeout, updateFields, options, operationContext, cancellationToken);
-		//}
-		//*/
+		public Task UpdateMessageAsync(CloudMessage message, TimeSpan visibilityTimeout, MessageUpdateFields updateFields, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		{
+			var cloudMessage = new CloudQueueMessage(message.Id, message.PopReceipt);
+			return _queue.UpdateMessageAsync(cloudMessage, visibilityTimeout, updateFields, options, operationContext, cancellationToken);
+		}
+		*/
 
 		public Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, CancellationToken cancellationToken = default)
 		{
@@ -234,6 +241,21 @@ namespace Picton.Managers
 		#endregion
 
 		#region PRIVATE METHODS
+
+		// This method has to be synchronous because it's invoked from the constructors
+		private void Init()
+		{
+			_blobContainer.CreateIfNotExists();
+
+			try
+			{
+				_queue.Create();
+			}
+			catch (RequestFailedException e) when (e.ErrorCode == "QueueAlreadyExists")
+			{
+				// Queue already exists. It's safe to ignore this exception.
+			}
+		}
 
 		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)
 		{
