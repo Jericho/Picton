@@ -1,4 +1,12 @@
+using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Queues;
+using Moq;
+using Picton.Managers;
 using System;
+using System.Threading;
+using Xunit;
 
 namespace Picton.UnitTests.Managers
 {
@@ -12,6 +20,37 @@ namespace Picton.UnitTests.Managers
 
 	public class QueueMangerTests
 	{
+		public class Constructor
+		{
+			[Fact]
+			public void Creates_container_and_queue_if_they_do_not_exist()
+			{
+				// Arrange
+				var cancellationToken = CancellationToken.None;
+				var connectionString = "UseDevelopmentStorage=true";
+				var containerName = "mycontainer";
+
+				var blobContainerInfo = BlobsModelFactory.BlobContainerInfo(ETag.All, DateTimeOffset.UtcNow);
+
+				var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
+				mockBlobContainer
+					.Setup(c => c.CreateIfNotExists(PublicAccessType.None, null, default))
+					.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")))
+					.Verifiable();
+
+				var mockQueueClient = new Mock<QueueClient>(MockBehavior.Strict, connectionString, containerName);
+				mockQueueClient
+					.Setup(c => c.Create(null, default))
+					.Returns(new MockAzureResponse(200, "ok"))
+					.Verifiable();
+
+				// Act
+				new QueueManager(mockBlobContainer.Object, mockQueueClient.Object);
+
+				// Assert
+				mockBlobContainer.Verify();
+			}
+		}
 		//[Fact]
 		//public void Null_queueName_throws()
 		//{
