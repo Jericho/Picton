@@ -54,11 +54,11 @@ namespace Picton.Managers
 		/// <summary>
 		/// Initializes a new instance of the <see cref="QueueManager"/> class.
 		/// </summary>
-		/// <param name="blobContainer">The blob container.</param>
+		/// <param name="blobContainerClient">The blob container.</param>
 		/// <param name="queueClient">The queue client.</param>
-		public QueueManager(BlobContainerClient blobContainer, QueueClient queueClient)
+		public QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient)
 		{
-			_blobContainer = blobContainer ?? throw new ArgumentNullException(nameof(blobContainer)); ;
+			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
 			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
 
 			Init();
