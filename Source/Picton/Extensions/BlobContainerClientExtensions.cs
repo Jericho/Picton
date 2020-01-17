@@ -139,27 +139,6 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Indicates if a container exists.
-		/// </summary>
-		/// <param name="container">The container.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>true if the container exists; false otherwise.</returns>
-		public static async Task<bool> ExistsAsync(this BlobContainerClient container, CancellationToken cancellationToken = default)
-		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
-
-			try
-			{
-				var properties = await container.GetPropertiesAsync(null, cancellationToken).ConfigureAwait(false);
-				return true;
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "ContainerNotFound")
-			{
-				return false;
-			}
-		}
-
-		/// <summary>
 		/// Creates a container if it doesn't already exists.
 		/// </summary>
 		/// <param name="container">The container.</param>
