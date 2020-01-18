@@ -1,10 +1,13 @@
 using Azure;
-using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Moq;
 using Picton.Managers;
+using Shouldly;
 using System;
+using System.IO;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Picton.UnitTests.Managers
@@ -17,101 +20,70 @@ namespace Picton.UnitTests.Managers
 			public void Creates_container_if_does_not_exist()
 			{
 				// Arrange
-				var cancellationToken = CancellationToken.None;
-				var connectionString = "UseDevelopmentStorage=true";
 				var containerName = "mycontainer";
-				var accessType = PublicAccessType.BlobContainer;
-
-				var blobContainerInfo = BlobsModelFactory.BlobContainerInfo(ETag.All, DateTimeOffset.UtcNow);
-
-				var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
-				mockBlobContainer
-					.Setup(c => c.CreateIfNotExists(accessType, null, default))
-					.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")))
-					.Verifiable();
+				var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName);
 
 				// Act
-				new BlobManager(mockBlobContainer.Object, accessType);
+				new BlobManager(mockBlobContainer.Object, PublicAccessType.None);
 
 				// Assert
 				mockBlobContainer.Verify();
 			}
 		}
 
-		//[Fact]
-		//public void GetBlobContentAsync_blob_does_not_exist()
-		//{
-		//	// Arrange
-		//	var containerName = "mycontainer";
-		//	var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var blobName = "myblob.txt";
-		//	var mockBlobUri = new Uri(Misc.BLOB_STORAGE_URL + blobName);
+		[Fact]
+		public async Task GetBlobContentAsync_blob_does_not_exist()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var containerName = "mycontainer";
+			var blobName = "myBlob.txt";
 
-		//	var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobUri);
-		//	mockBlob
-		//		.Setup(b => b.ExistsAsync(It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.ReturnsAsync(false)
-		//		.Verifiable();
+			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
+			mockBlobClient
+				.Setup(b => b.DownloadAsync(cancellationToken))
+				.ThrowsAsync(new RequestFailedException(404, "Blob does not exist", "BlobNotFound", new Exception("???")))
+				.Verifiable();
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlobReference(blobName))
-		//		.Returns(mockBlob.Object)
-		//		.Verifiable();
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
 
-		//	// Act
-		//	var blobManager = new BlobManager(containerName, mockBlobClient.Object);
-		//	var result = blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
-		//	result.Wait();
-		//	var content = result.Result;
+			// Act
+			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.None);
+			var content = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
 
-		//	// Assert
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	mockBlob.Verify();
-		//	content.ShouldBeNull();
-		//}
+			// Assert
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			content.ShouldBeNull();
+		}
 
-		//[Fact]
-		//public void GetBlobContentAsync_blob_exists()
-		//{
-		//	// Arrange
-		//	var containerName = "mycontainer";
-		//	var mockBlobContainer = Misc.GetMockBlobContainer(containerName);
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var blobName = "myblob.txt";
-		//	var mockBlobUri = new Uri(Misc.BLOB_STORAGE_URL + blobName);
-		//	var expected = "Hello World!";
+		[Fact]
+		public async Task GetBlobContentAsync_blob_exists()
+		{
+			// Arrange
+			var cancellationToken = CancellationToken.None;
+			var containerName = "mycontainer";
+			var blobName = "myBlob.txt";
+			var expected = "Hello World!";
 
-		//	var mockBlob = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobUri);
-		//	mockBlob
-		//		.Setup(b => b.ExistsAsync(It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.ReturnsAsync(true)
-		//		.Verifiable();
-		//	mockBlob
-		//		.Setup(b => b.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Callback(async (Stream s, AccessCondition ac, BlobRequestOptions o, OperationContext oc, CancellationToken ct) =>
-		//		{
-		//			var buffer = expected.ToBytes();
-		//			await s.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-		//		})
-		//		.Verifiable();
+			var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(expected.ToBytes()));
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlobReference(blobName))
-		//		.Returns(mockBlob.Object)
-		//		.Verifiable();
+			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
+			mockBlobClient
+				.Setup(b => b.DownloadAsync(cancellationToken))
+				.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
+				.Verifiable();
 
-		//	// Act
-		//	var blobManager = new BlobManager(containerName, mockBlobClient.Object);
-		//	var result = Encoding.UTF8.GetString(blobManager.GetBlobContentAsync(blobName).Result);
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
 
-		//	// Assert
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	mockBlob.Verify();
-		//	result.ShouldBe(expected);
-		//}
+			// Act
+			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.BlobContainer);
+			var result = Encoding.UTF8.GetString(await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false));
+
+			// Assert
+			mockBlobContainer.Verify();
+			mockBlobClient.Verify();
+			result.ShouldBe(expected);
+		}
 	}
 }
