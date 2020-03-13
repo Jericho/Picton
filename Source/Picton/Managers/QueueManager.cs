@@ -111,14 +111,16 @@ namespace Picton.Managers
 			return _queue.CreateAsync(null, cancellationToken);
 		}
 
-		public Task<bool> CreateIfNotExistsAsync(CancellationToken cancellationToken = default)
+		public async Task<bool> CreateIfNotExistsAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.CreateIfNotExistsAsync(null, cancellationToken);
+			var response = await _queue.CreateIfNotExistsAsync(null, cancellationToken).ConfigureAwait(false);
+			return true;
 		}
 
-		public Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken = default)
+		public async Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.DeleteIfExistsAsync(cancellationToken);
+			var response = await _queue.DeleteIfExistsAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
 		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
@@ -134,14 +136,16 @@ namespace Picton.Managers
 			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, cancellationToken).ConfigureAwait(false);
 		}
 
-		public Task<bool> ExistsAsync(CancellationToken cancellationToken = default)
+		public async Task<bool> ExistsAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.ExistsAsync(cancellationToken);
+			var response = await _queue.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
-		public Task<Response<QueueProperties>> GetPropertiesAsync(CancellationToken cancellationToken = default)
+		public async Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.GetPropertiesAsync(cancellationToken);
+			var response = await _queue.GetPropertiesAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
 		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
@@ -170,9 +174,10 @@ namespace Picton.Managers
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
-		public Task<Response<IEnumerable<QueueSignedIdentifier>>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.GetAccessPolicyAsync(cancellationToken);
+			var response = await _queue.GetAccessPolicyAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
 		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
