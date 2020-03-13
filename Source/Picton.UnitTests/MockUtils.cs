@@ -53,25 +53,15 @@ namespace Picton.UnitTests
 			return mockBlobClient;
 		}
 
-		internal static Mock<QueueClient> GetMockQueueClient(string queueName = "myqueue", bool queueAlreadyExists = true)
+		internal static Mock<QueueClient> GetMockQueueClient(string queueName = "myqueue")
 		{
 			var mockQueueStorageUri = new Uri(QUEUE_STORAGE_URL + queueName);
 			var mockQueueClient = new Mock<QueueClient>(MockBehavior.Strict, mockQueueStorageUri, (QueueClientOptions)null);
 
-			if (queueAlreadyExists)
-			{
-				mockQueueClient
-					.Setup(c => c.Create(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
-					.Throws(new RequestFailedException(400, "Queue already exists", "QueueAlreadyExists", new Exception("???")))
-					.Verifiable();
-			}
-			else
-			{
-				mockQueueClient
-					.Setup(c => c.Create(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
-					.Returns(new MockAzureResponse(200, "ok"))
-					.Verifiable();
-			}
+			mockQueueClient
+				.Setup(c => c.CreateIfNotExists(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+				.Returns((Response)null)
+				.Verifiable();
 
 			return mockQueueClient;
 		}

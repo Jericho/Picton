@@ -1,4 +1,3 @@
-using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
@@ -45,7 +44,7 @@ namespace Picton.Managers
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
-			_blobContainer = new BlobContainerClient(connectionString, "oversizedqueuemessages");
+			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
 			_queue = new QueueClient(connectionString, queueName);
 
 			Init();
@@ -106,21 +105,11 @@ namespace Picton.Managers
 			return _queue.ClearMessagesAsync(cancellationToken);
 		}
 
-		public Task CreateAsync(CancellationToken cancellationToken = default)
+		public async Task DeleteAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.CreateAsync(null, cancellationToken);
-		}
-
-		public async Task<bool> CreateIfNotExistsAsync(CancellationToken cancellationToken = default)
-		{
-			var response = await _queue.CreateIfNotExistsAsync(null, cancellationToken).ConfigureAwait(false);
-			return true;
-		}
-
-		public async Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken = default)
-		{
-			var response = await _queue.DeleteIfExistsAsync(cancellationToken).ConfigureAwait(false);
-			return response.Value;
+			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
+			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
+			Task.WaitAll(deleteQueueTask, deleteBlobContainerTask);
 		}
 
 		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
@@ -134,12 +123,6 @@ namespace Picton.Managers
 			}
 
 			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, cancellationToken).ConfigureAwait(false);
-		}
-
-		public async Task<bool> ExistsAsync(CancellationToken cancellationToken = default)
-		{
-			var response = await _queue.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			return response.Value;
 		}
 
 		public async Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default)
@@ -251,15 +234,7 @@ namespace Picton.Managers
 		private void Init()
 		{
 			_blobContainer.CreateIfNotExists();
-
-			try
-			{
-				_queue.Create();
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "QueueAlreadyExists")
-			{
-				// Queue already exists. It's safe to ignore this exception.
-			}
+			_queue.CreateIfNotExists();
 		}
 
 		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)

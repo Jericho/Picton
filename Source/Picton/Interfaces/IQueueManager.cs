@@ -12,15 +12,9 @@ namespace Picton.Interfaces
 
 		Task ClearAsync(CancellationToken cancellationToken = default);
 
-		Task CreateAsync(CancellationToken cancellationToken = default);
-
-		Task<bool> CreateIfNotExistsAsync(CancellationToken cancellationToken = default);
-
-		Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken = default);
+		Task DeleteAsync(CancellationToken cancellationToken = default);
 
 		Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default);
-
-		Task<bool> ExistsAsync(CancellationToken cancellationToken = default);
 
 		Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default);
 

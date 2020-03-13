@@ -139,49 +139,6 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Creates a container if it doesn't already exists.
-		/// </summary>
-		/// <param name="container">The container.</param>
-		/// <param name="accessType">The access type.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>true if the container was created; false otherwise.</returns>
-		public static async Task<bool> CreateIfNotExistsAsync(this BlobContainerClient container, PublicAccessType accessType = PublicAccessType.None, CancellationToken cancellationToken = default)
-		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
-
-			try
-			{
-				await container.CreateAsync(accessType, null, cancellationToken).ConfigureAwait(false);
-				return true; // True indicates that container was deleted
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "ContainerExists")
-			{
-				return false; // False indicates that container was not deleted
-			}
-		}
-
-		/// <summary>
-		/// Deletes a container if it exists.
-		/// </summary>
-		/// <param name="container">The container.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>true if the container was deleted; false otherwise.</returns>
-		public static async Task<bool> DeleteIfExistsAsync(this BlobContainerClient container, CancellationToken cancellationToken = default)
-		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
-
-			try
-			{
-				await container.DeleteAsync(null, cancellationToken).ConfigureAwait(false);
-				return true; // True indicates that container was deleted
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "ContainerNotFound")
-			{
-				return false; // False indicates that container was not deleted
-			}
-		}
-
-		/// <summary>
 		/// Asynchronously copy a blob.
 		/// </summary>
 		/// <param name="container">The container.</param>

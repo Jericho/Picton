@@ -46,16 +46,16 @@ namespace Picton.UnitTests.Managers
 					new QueueManager(mockBlobContainer.Object, queueClient);
 				});
 			}
+
 			[Fact]
 			public void Creates_container_and_queue_if_they_do_not_exist()
 			{
 				// Arrange
 				var containerName = "mycontainer";
 				var queueName = "myqueue";
-				var queueAlreadyExists = false;
 
 				var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
-				var mockQueueClient = MockUtils.GetMockQueueClient(queueName, queueAlreadyExists);
+				var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 				// Act
 				new QueueManager(mockBlobContainer.Object, mockQueueClient.Object);
