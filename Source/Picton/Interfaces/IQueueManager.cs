@@ -1,4 +1,3 @@
-using Azure;
 using Azure.Storage.Queues.Models;
 using System;
 using System.Collections.Generic;
@@ -13,23 +12,17 @@ namespace Picton.Interfaces
 
 		Task ClearAsync(CancellationToken cancellationToken = default);
 
-		Task CreateAsync(CancellationToken cancellationToken = default);
-
-		Task<bool> CreateIfNotExistsAsync(CancellationToken cancellationToken = default);
-
-		Task<bool> DeleteIfExistsAsync(CancellationToken cancellationToken = default);
+		Task DeleteAsync(CancellationToken cancellationToken = default);
 
 		Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default);
 
-		Task<bool> ExistsAsync(CancellationToken cancellationToken = default);
-
-		Task<Response<QueueProperties>> GetPropertiesAsync(CancellationToken cancellationToken = default);
+		Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default);
 
 		Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
 		Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
-		Task<Response<IEnumerable<QueueSignedIdentifier>>> GetAccessPolicyAsync(CancellationToken cancellationToken = default);
+		Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default);
 
 		Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default);
 

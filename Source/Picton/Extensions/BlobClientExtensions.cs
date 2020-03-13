@@ -684,27 +684,6 @@ namespace Picton
 		}
 
 		/// <summary>
-		/// Indicates if a blob exists.
-		/// </summary>
-		/// <param name="blob">The blob.</param>
-		/// <param name="cancellationToken">The cancellation token.</param>
-		/// <returns>true if the blob exists; false otherwise.</returns>
-		public static async Task<bool> ExistsAsync(this BlobBaseClient blob, CancellationToken cancellationToken = default)
-		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-
-			try
-			{
-				await blob.GetPropertiesAsync(null, cancellationToken).ConfigureAwait(false);
-				return true;
-			}
-			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound" || e.ErrorCode == "ResourceNotFound")
-			{
-				return false;
-			}
-		}
-
-		/// <summary>
 		/// Creates a blob.
 		/// </summary>
 		/// <param name="blob">The blob.</param>

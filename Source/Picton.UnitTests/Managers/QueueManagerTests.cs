@@ -1,11 +1,8 @@
-using Azure;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
-using Moq;
 using Picton.Managers;
+using Shouldly;
 using System;
-using System.Threading;
 using Xunit;
 
 namespace Picton.UnitTests.Managers
@@ -23,129 +20,51 @@ namespace Picton.UnitTests.Managers
 		public class Constructor
 		{
 			[Fact]
+			public void Null_blobContainerClient_throws()
+			{
+				Should.Throw<ArgumentNullException>(() =>
+				{
+					// Arrange
+					var blobContainer = (BlobContainerClient)null;
+					var mockQueueClient = MockUtils.GetMockQueueClient();
+
+					// Act
+					new QueueManager(blobContainer, mockQueueClient.Object);
+				});
+			}
+
+			[Fact]
+			public void Null_queueClient_throws()
+			{
+				Should.Throw<ArgumentNullException>(() =>
+				{
+					// Arrange
+					var mockBlobContainer = MockUtils.GetMockBlobContainerClient();
+					var queueClient = (QueueClient)null;
+
+					// Act
+					new QueueManager(mockBlobContainer.Object, queueClient);
+				});
+			}
+
+			[Fact]
 			public void Creates_container_and_queue_if_they_do_not_exist()
 			{
 				// Arrange
-				var cancellationToken = CancellationToken.None;
-				var connectionString = "UseDevelopmentStorage=true";
 				var containerName = "mycontainer";
+				var queueName = "myqueue";
 
-				var blobContainerInfo = BlobsModelFactory.BlobContainerInfo(ETag.All, DateTimeOffset.UtcNow);
-
-				var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, connectionString, containerName);
-				mockBlobContainer
-					.Setup(c => c.CreateIfNotExists(PublicAccessType.None, null, default))
-					.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")))
-					.Verifiable();
-
-				var mockQueueClient = new Mock<QueueClient>(MockBehavior.Strict, connectionString, containerName);
-				mockQueueClient
-					.Setup(c => c.Create(null, default))
-					.Returns(new MockAzureResponse(200, "ok"))
-					.Verifiable();
+				var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+				var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 				// Act
 				new QueueManager(mockBlobContainer.Object, mockQueueClient.Object);
 
 				// Assert
 				mockBlobContainer.Verify();
+				mockQueueClient.Verify();
 			}
 		}
-		//[Fact]
-		//public void Null_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var queueName = "myqueue";
-		//		var mockQueue = Misc.GetMockQueue(queueName);
-		//		var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//		var mockBlobContainer = Misc.GetMockBlobContainer();
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var queueManager = new QueueManager(null, mockQueueClient.Object, mockBlobClient.Object);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Empty_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var queueName = "myqueue";
-		//		var mockQueue = Misc.GetMockQueue(queueName);
-		//		var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//		var mockBlobContainer = Misc.GetMockBlobContainer();
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var queueManager = new QueueManager("", mockQueueClient.Object, mockBlobClient.Object);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Blank_queueName_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var queueName = "myqueue";
-		//		var mockQueue = Misc.GetMockQueue(queueName);
-		//		var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//		var mockBlobContainer = Misc.GetMockBlobContainer();
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var queueManager = new QueueManager(" ", mockQueueClient.Object, mockBlobClient.Object);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Null_StorageAccount_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var storageAccount = (CloudStorageAccount)null;
-		//		var queueManager = new QueueManager("myqueue", storageAccount);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Null_QueueClient_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var queueName = "myqueue";
-		//		var mockBlobContainer = Misc.GetMockBlobContainer();
-		//		var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//		var queueManager = new QueueManager(queueName, null, mockBlobClient.Object);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Null_BlobClient_throws()
-		//{
-		//	Should.Throw<ArgumentNullException>(() =>
-		//	{
-		//		var queueName = "myqueue";
-		//		var mockQueue = Misc.GetMockQueue(queueName);
-		//		var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//		var queueManager = new QueueManager(queueName, mockQueueClient.Object, null);
-		//	});
-		//}
-
-		//[Fact]
-		//public void Initialization()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-
-		//	// Act
-		//	new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
 
 		//[Fact]
 		//public void AddMessageAsync_small_message()
