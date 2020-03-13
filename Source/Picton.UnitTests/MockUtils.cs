@@ -26,7 +26,7 @@ namespace Picton.UnitTests
 				.Returns(containerName);
 
 			mockBlobContainer
-				.Setup(c => c.CreateIfNotExists(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+				.Setup(c => c.CreateIfNotExists(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
 				.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")))
 				.Verifiable();
 
