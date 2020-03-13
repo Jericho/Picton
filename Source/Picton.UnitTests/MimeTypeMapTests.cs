@@ -1,4 +1,4 @@
-﻿using HeyRed.Mime;
+using HeyRed.Mime;
 using Shouldly;
 using System;
 using Xunit;

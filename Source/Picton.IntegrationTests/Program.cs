@@ -1,10 +1,7 @@
-﻿using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
-using Microsoft.Azure.Storage.Queue;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using Picton.Managers;
 using System;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +9,7 @@ namespace Picton.IntegrationTests
 {
 	class Program
 	{
-		static void Main()
+		static async Task Main()
 		{
 			// Make sure the emulators are started
 			Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
@@ -22,19 +19,23 @@ namespace Picton.IntegrationTests
 			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
 			var cancellationToken = CancellationToken.None;
-			var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
+			var connectionString = "UseDevelopmentStorage=true";
 			var containerName = "mycontainer";
 			var queueName = "myqueue";
 
+			// Make sure the container is created
+			var container = new BlobContainerClient(connectionString, containerName);
+			await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+
 			// Run the integration tests (they are dependant on the Azure Storage emulator)
 			Console.WriteLine("Running blob extension methods tests...");
-			RunCloudBlobExtensionsTests(storageAccount, containerName, cancellationToken).Wait();
+			await RunCloudBlobExtensionsTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
 
 			Console.WriteLine("Running blob manager tests...");
-			RunBlobManagerTests(storageAccount, containerName, cancellationToken).Wait();
+			await RunBlobManagerTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
 
 			Console.WriteLine("Running queue manager tests...");
-			RunQueueManagerTests(storageAccount, queueName, cancellationToken).Wait();
+			await RunQueueManagerTests(connectionString, queueName, cancellationToken).ConfigureAwait(false);
 
 			// Flush the console key buffer
 			while (Console.KeyAvailable) Console.ReadKey(true);
@@ -44,56 +45,94 @@ namespace Picton.IntegrationTests
 			Console.ReadKey();
 		}
 
-		private static async Task RunCloudBlobExtensionsTests(CloudStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunCloudBlobExtensionsTests(string connectionString, string containerName, CancellationToken cancellationToken)
 		{
-			var blobClient = storageAccount.CreateCloudBlobClient();
-			var container = blobClient.GetContainerReference(containerName);
-			await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+			// BlobClient
+			var blob1 = new BlobClient(connectionString, containerName, "test1.txt");
+			var exists1 = await blob1.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			if (!exists1) await blob1.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
-			var blob1 = container.GetBlockBlobReference("test1.txt");
-			var leaseId1 = (await blob1.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false) ? await blob1.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
-			await blob1.UploadTextAsync("Hello World", leaseId1, cancellationToken).ConfigureAwait(false);
-			await blob1.UploadTextAsync("qwerty", leaseId1, cancellationToken).ConfigureAwait(false);
-			await blob1.AppendTextAsync("azerty", leaseId1, cancellationToken).ConfigureAwait(false);
+			var leaseId1 = await blob1.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+			await blob1.UploadTextAsync("Hello World", leaseId: leaseId1, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob1.UploadTextAsync("qwerty", leaseId: leaseId1, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob1.AppendTextAsync("azerty", leaseId: leaseId1, cancellationToken: cancellationToken).ConfigureAwait(false);
+			var secondLeaseId1 = await blob1.TryAcquireLeaseAsync(TimeSpan.FromSeconds(30), 1, cancellationToken).ConfigureAwait(false);
+			if (secondLeaseId1 != null) throw new Exception("Getting a second lease on a blob should not work.");
 			if (!string.IsNullOrEmpty(leaseId1)) await blob1.ReleaseLeaseAsync(leaseId1, cancellationToken).ConfigureAwait(false);
-			var content1 = await blob1.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
-			Console.WriteLine(content1);
+			var content1a = await blob1.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+			var content1b = await blob1.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+			Console.WriteLine($"Content of BlobClient: {content1a}");
 
-			var blob2 = container.GetPageBlobReference("test2.txt");
-			var leaseId2 = (await blob2.ExistsAsync(null, null, cancellationToken).ConfigureAwait(false) ? await blob2.TryAcquireLeaseAsync(null, 3, cancellationToken).ConfigureAwait(false) : null);
-			await blob2.UploadTextAsync(new string('A', 512), leaseId2, cancellationToken).ConfigureAwait(false);
-			await blob2.UploadTextAsync(new string('B', 512), leaseId2, cancellationToken).ConfigureAwait(false);
-			await blob2.AppendTextAsync(new string('C', 512), leaseId2, cancellationToken).ConfigureAwait(false);
+
+			// BlockBlobClient
+			var blob2 = new BlockBlobClient(connectionString, containerName, "test2.txt");
+			var exists2 = await blob2.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			if (!exists2) await blob2.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+			var leaseId2 = await blob2.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+			await blob2.UploadTextAsync("Hello World", leaseId: leaseId2, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob2.UploadTextAsync("qwerty", leaseId: leaseId2, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob2.AppendTextAsync("azerty", leaseId: leaseId2, cancellationToken: cancellationToken).ConfigureAwait(false);
+			var secondLeaseId2 = await blob2.TryAcquireLeaseAsync(TimeSpan.FromSeconds(30), 3, cancellationToken).ConfigureAwait(false);
+			if (secondLeaseId2 != null) throw new Exception("Getting a second lease on a blob should not work.");
 			if (!string.IsNullOrEmpty(leaseId2)) await blob2.ReleaseLeaseAsync(leaseId2, cancellationToken).ConfigureAwait(false);
-			var content2 = await blob2.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
-			Console.WriteLine(content2);
+			var content2a = await blob2.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+			var content2b = await blob2.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+			Console.WriteLine($"Content of BlockBlob: {content2a}");
 
-			// Unfortunately, the emulator does not support CloudAppendBlob
-			//var blob3 = container.GetAppendBlobReference("test3.txt");
-			//blob3.UploadTextAsync("Hello World", null, cancellationToken).Wait();
-			//blob3.UploadTextAsync("\r\nqwerty", null, cancellationToken).Wait();
-			//blob3.AppendTextAsync("azerty", null, cancellationToken).Wait();
-			//var task3 = blob3.DownloadTextAsync(cancellationToken);
-			//task3.Wait();
-			//var content3 = task3.Result;
-			//Console.WriteLine(content3);
+
+			// PageBlobClient
+			var blob3 = new PageBlobClient(connectionString, containerName, "test3.txt");
+			var exists3 = await blob3.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			if (!exists3) await blob3.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+			var leaseId3 = await blob3.AcquireLeaseAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+			await blob3.UploadTextAsync(new string('A', 535), leaseId: leaseId3, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob3.UploadTextAsync(new string('B', blob3.PageBlobPageBytes), leaseId: leaseId3, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob3.AppendTextAsync(new string('C', blob3.PageBlobPageBytes), leaseId: leaseId3, cancellationToken: cancellationToken).ConfigureAwait(false);
+			var secondLeaseId3 = await blob3.TryAcquireLeaseAsync(TimeSpan.FromSeconds(30), 3, cancellationToken).ConfigureAwait(false);
+			if (secondLeaseId3 != null) throw new Exception("Getting a second lease on a blob should not work.");
+			if (!string.IsNullOrEmpty(leaseId3)) await blob3.ReleaseLeaseAsync(leaseId3, cancellationToken).ConfigureAwait(false);
+			var content3a = await blob3.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+			var content3b = await blob3.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+			Console.WriteLine($"Content of PageBlob: {content3a.Trim('\0')}"); // Trimming the content before writing to console is important because page blobs are padded with null characters.
+
+			//===========================================================================================
+			// Unfortunately, the emulator does not support AppendBlob
+			/*
+			var blob4 = new AppendBlobClient(connectionString, containerName, "test4.txt");
+			var exists1 = await blob4.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			if (!exists4) await blob4.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+			var leaseId4 = await blob4.AcquireLeaseAsync(TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
+			await blob4.UploadTextAsync("Hello World", leaseId: leaseId4, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob4.UploadTextAsync("qwerty", leaseId: leaseId4, cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blob4.AppendTextAsync("azerty", leaseId: leaseId4, cancellationToken: cancellationToken).ConfigureAwait(false);
+			var secondLeaseId4 = await blob4.TryAcquireLeaseAsync(TimeSpan.FromSeconds(40), 4, cancellationToken).ConfigureAwait(false);
+			if (secondLeaseId4 != null) throw new Exception("Getting a second lease on a blob should not work.");
+			if (!string.IsNullOrEmpty(leaseId4)) await blob4.ReleaseLeaseAsync(leaseId4, cancellationToken).ConfigureAwait(false);
+			var content4a = await blob4.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+			var content4b = await blob4.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
+			Console.WriteLine($"Content of AppendBlob: {content4a}");
+			*/
+			//===========================================================================================
 		}
 
-		private static async Task RunBlobManagerTests(CloudStorageAccount storageAccount, string containerName, CancellationToken cancellationToken)
+		private static async Task RunBlobManagerTests(string connectionString, string containerName, CancellationToken cancellationToken)
 		{
-			var blobManager = new BlobManager(containerName, storageAccount);
+			var blobManager = new BlobManager(connectionString, containerName);
 
-			await blobManager.CopyBlobAsync("test1.txt", "test1 - Copy of.txt", cancellationToken).ConfigureAwait(false);
-			await blobManager.CopyBlobAsync("test2.txt", "test2 - Copy of.txt", cancellationToken).ConfigureAwait(false);
+			await blobManager.CopyBlobAsync("test1.txt", "test1 - Copy of.txt", cancellationToken: cancellationToken).ConfigureAwait(false);
+			await blobManager.CopyBlobAsync("test2.txt", "test2 - Copy of.txt", cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			await blobManager.UploadTextAsync("test4.txt", "Hello World", cancellationToken: cancellationToken).ConfigureAwait(false);
 			await blobManager.AppendTextAsync("test4.txt", "\r\nqwerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 			await blobManager.AppendTextAsync("test4.txt", "\r\nazerty", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-			var blobs = await blobManager.ListBlobsAsync("test1", false, false, null, cancellationToken).ConfigureAwait(false);
+			var blobs = blobManager.ListBlobs("test", false, cancellationToken);
 			foreach (var blob in blobs)
 			{
-				Console.WriteLine(blob.Uri.AbsoluteUri);
+				Console.WriteLine(blob.Name);
 			}
 
 			await blobManager.DeleteBlobAsync("test1 - Copy of.txt", cancellationToken).ConfigureAwait(false);
@@ -102,20 +141,20 @@ namespace Picton.IntegrationTests
 			await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
 		}
 
-		private static async Task RunQueueManagerTests(CloudStorageAccount storageAccount, string queueName, CancellationToken cancellationToken)
+		private static async Task RunQueueManagerTests(string connectionString, string queueName, CancellationToken cancellationToken)
 		{
-			var queueManager = new QueueManager(queueName, storageAccount);
+			var queueManager = new QueueManager(connectionString, queueName);
 
 			// Empty the queue
-			await queueManager.ClearAsync(null, null, cancellationToken).ConfigureAwait(false);
+			await queueManager.ClearAsync(cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
 			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
-			//-----------------------------------------------------------------
-			// Send a simple message
+			////-----------------------------------------------------------------
+			//// Send a simple message
 			var sample = new SampleMessageType
 			{
 				StringProp = "abc123",
@@ -130,7 +169,7 @@ namespace Picton.IntegrationTests
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
-			var message1 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			var message1 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
 			if (message1.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
 			var receivedMessage = (SampleMessageType)message1.Content;
 			if (receivedMessage.StringProp != sample.StringProp) throw new Exception("Did not receive the expected message");
@@ -151,7 +190,7 @@ namespace Picton.IntegrationTests
 			int characterCount = 100000;
 			var largeSample = new SampleMessageType
 			{
-				StringProp = new string('x', characterCount)
+				StringProp = RandomGenerator.GenerateString(characterCount)
 			};
 			await queueManager.AddMessageAsync(largeSample).ConfigureAwait(false);
 
@@ -160,7 +199,7 @@ namespace Picton.IntegrationTests
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
-			var message2 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			var message2 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
 			if (message2.Content.GetType() != typeof(SampleMessageType)) throw new Exception("The type of the received message does not match the expected type");
 			var largeMessage = (SampleMessageType)message2.Content;
 			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
@@ -173,53 +212,53 @@ namespace Picton.IntegrationTests
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
-			//-----------------------------------------------------------------
-			// Send a simple string
-			await queueManager.AddMessageAsync("Hello World").ConfigureAwait(false);
+			////-----------------------------------------------------------------
+			//// Send a simple string
+			//await queueManager.AddMessageAsync("Hello World").ConfigureAwait(false);
 
-			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
-			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
+			//// Check that there is one message in the queue
+			//queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			//if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
-			// Get the message
-			var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
-			if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
-			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
+			//// Get the message
+			//var message3 = await queueManager.GetMessageAsync(TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false);
+			//if (message3.Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			//if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
 
-			// Delete the message from the queue
-			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
+			//// Delete the message from the queue
+			//await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
 
-			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
-			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
+			//// Check that the queue is empty
+			//queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			//if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
-			//-----------------------------------------------------------------
-			// Send messages using the Azure CloudQueue class
-			// thereby bypassing Picton's queue manager serialization
-			var queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
+			////-----------------------------------------------------------------
+			//// Send messages using the Azure CloudQueue class
+			//// thereby bypassing Picton's queue manager serialization
+			//var queue = storageAccount.CreateCloudQueueClient().GetQueueReference(queueName);
 
-			var cloudMessage = new CloudQueueMessage("Hello World STRING");
-			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+			//var cloudMessage = new CloudQueueMessage("Hello World STRING");
+			//await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
-			cloudMessage = new CloudQueueMessage(Encoding.UTF8.GetBytes("Hello World BINARY"));
-			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+			//cloudMessage = new CloudQueueMessage(Encoding.UTF8.GetBytes("Hello World BINARY"));
+			//await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
-			cloudMessage = new CloudQueueMessage(BitConverter.GetBytes(1234567890));
-			await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
+			//cloudMessage = new CloudQueueMessage(BitConverter.GetBytes(1234567890));
+			//await queue.AddMessageAsync(cloudMessage, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
-			// Check that there are three messages in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
-			if (queuedMessagesCount != 3) throw new Exception($"We expected three messages in the queue but we found {queuedMessagesCount} messages.");
+			//// Check that there are three messages in the queue
+			//queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			//if (queuedMessagesCount != 3) throw new Exception($"We expected three messages in the queue but we found {queuedMessagesCount} messages.");
 
-			// Get the messages
-			var messages = (await queueManager.GetMessagesAsync(10, TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false)).ToArray();
-			if (messages[0].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
-			if ((string)messages[0].Content != "Hello World STRING") throw new Exception("Did not receive the expected message");
-			if (messages[1].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
-			if ((string)messages[1].Content != "Hello World BINARY") throw new Exception("Did not receive the expected message");
-			if (messages[2].Content.GetType() != typeof(byte[])) throw new Exception("The type of the received message does not match the expected type");
-			if (BitConverter.ToInt32((byte[])messages[2].Content, 0) != 1234567890) throw new Exception("Did not receive the expected message");
+			//// Get the messages
+			//var messages = (await queueManager.GetMessagesAsync(10, TimeSpan.FromMinutes(5), null, null, cancellationToken).ConfigureAwait(false)).ToArray();
+			//if (messages[0].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			//if ((string)messages[0].Content != "Hello World STRING") throw new Exception("Did not receive the expected message");
+			//if (messages[1].Content.GetType() != typeof(string)) throw new Exception("The type of the received message does not match the expected type");
+			//if ((string)messages[1].Content != "Hello World BINARY") throw new Exception("Did not receive the expected message");
+			//if (messages[2].Content.GetType() != typeof(byte[])) throw new Exception("The type of the received message does not match the expected type");
+			//if (BitConverter.ToInt32((byte[])messages[2].Content, 0) != 1234567890) throw new Exception("Did not receive the expected message");
 
 			// Clear the queue
 			await queueManager.ClearAsync().ConfigureAwait(false);

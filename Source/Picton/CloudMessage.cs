@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Picton
@@ -14,15 +14,15 @@ namespace Picton
 
 		#region PROPERTIES
 
-		public int DequeueCount { get; internal set; }
+		public long DequeueCount { get; internal set; }
 
-		public DateTimeOffset? ExpirationTime { get; internal set; }
+		public DateTimeOffset? ExpiresOn { get; internal set; }
 
 		public string Id { get; internal set; }
 
-		public DateTimeOffset? InsertionTime { get; internal set; }
+		public DateTimeOffset? InsertedOn { get; internal set; }
 
-		public DateTimeOffset? NextVisibleTime { get; internal set; }
+		public DateTimeOffset? NextVisibleOn { get; internal set; }
 
 		public string PopReceipt { get; internal set; }
 

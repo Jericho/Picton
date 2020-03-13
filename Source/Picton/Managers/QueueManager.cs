@@ -1,15 +1,13 @@
-﻿using MessagePack;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
-using Microsoft.Azure.Storage.Queue;
-using Microsoft.Azure.Storage.Queue.Protocol;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Queues;
+using Azure.Storage.Queues.Models;
+using MessagePack;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,78 +20,69 @@ namespace Picton.Managers
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
 
-		private static readonly long MAX_MESSAGE_CONTENT_SIZE = (CloudQueueMessage.MaxMessageSize - 1) / 4 * 3;
-		private static readonly UTF8Encoding UTF8_ENCODER = new UTF8Encoding(false, true);
-
-		private readonly CloudQueue _queue;
-		private readonly CloudBlobContainer _blobContainer;
-
-		#endregion
-
-		#region PROPERTIES
-
-		public IDictionary<string, string> Metadata
-		{
-			get
-			{
-				return _queue.Metadata;
-			}
-		}
+		private readonly QueueClient _queue;
+		private readonly BlobContainerClient _blobContainer;
 
 		#endregion
 
 		#region CONSTRUCTORS
 
-		// This constructor must be excluded from code covereage because CreateCloudQueueClient and
-		// CreateCloudBlobClient are extension methods since Microsoft.Azure.Storage.Blob 9.4 and
-		// extension methods cannot be mocked.
+		/// <summary>
+		/// Initializes a new instance of the <see cref="QueueManager"/> class.
+		/// </summary>
+		/// <param name="connectionString">
+		/// A connection string includes the authentication information
+		/// required for your application to access data in an Azure Storage
+		/// account at runtime.
+		///
+		/// For more information, <see href="https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string"/>.
+		/// </param>
+		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string queueName, CloudStorageAccount storageAccount)
+		public QueueManager(string connectionString, string queueName)
 		{
-			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
-			if (storageAccount == null) throw new ArgumentNullException(nameof(storageAccount));
+			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
-			var queueClient = storageAccount.CreateCloudQueueClient();
-			var blobClient = storageAccount.CreateCloudBlobClient();
+			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
+			_queue = new QueueClient(connectionString, queueName);
 
-			_queue = queueClient.GetQueueReference(queueName);
-			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
-
-			InitQueueManager();
+			Init();
 		}
 
-		public QueueManager(string queueName, CloudQueueClient queueClient, CloudBlobClient blobClient)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="QueueManager"/> class.
+		/// </summary>
+		/// <param name="blobContainerClient">The blob container.</param>
+		/// <param name="queueClient">The queue client.</param>
+		public QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient)
 		{
-			if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentNullException(nameof(queueName));
-			if (queueClient == null) throw new ArgumentNullException(nameof(queueClient));
-			if (blobClient == null) throw new ArgumentNullException(nameof(blobClient));
+			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
+			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
 
-			_queue = queueClient.GetQueueReference(queueName);
-			_blobContainer = blobClient.GetContainerReference("oversizedqueuemessages");
-
-			InitQueueManager();
+			Init();
 		}
 
 		#endregion
 
 		#region PUBLIC METHODS
 
-		public async Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, CancellationToken cancellationToken = default)
 		{
 			if (message == null) return;
 
 			var data = Serialize(message, metadata);
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
-			if (data.Length > MAX_MESSAGE_CONTENT_SIZE)
+			if (data.Length > _queue.MessageMaxBytes)
 			{
 				// The message is too large. Therefore we must save the content to blob storage and
 				// send a smaller message indicating where the actual message was saved
 
 				// 1) Save the large message to blob storage
-				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd")}-{RandomGenerator.GenerateString(32)}";
-				var blob = _blobContainer.GetBlobReference(blobName);
-				await blob.UploadBytesAsync(data, null, cancellationToken).ConfigureAwait(false);
+				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss")}-{RandomGenerator.GenerateString(32)}";
+				var blob = _blobContainer.GetBlobClient(blobName);
+				await blob.UploadTextAsync(data, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
 				// 2) Send a smaller message
 				var largeEnvelope = new LargeMessageEnvelope
@@ -102,64 +91,51 @@ namespace Picton.Managers
 				};
 				data = Serialize(largeEnvelope, null);
 
-				var cloudMessage = new CloudQueueMessage(data);
-				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
+				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				var cloudMessage = new CloudQueueMessage(data);
-				await _queue.AddMessageAsync(cloudMessage, timeToLive, initialVisibilityDelay, options, operationContext, cancellationToken).ConfigureAwait(false);
+				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
-		public Task ClearAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public Task ClearAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.ClearAsync(options, operationContext, cancellationToken);
+			return _queue.ClearMessagesAsync(cancellationToken);
 		}
 
-		public Task CreateAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task DeleteAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.CreateAsync(options, operationContext, cancellationToken);
+			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
+			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
+			Task.WaitAll(deleteQueueTask, deleteBlobContainerTask);
 		}
 
-		public Task<bool> CreateIfNotExistsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
-		{
-			return _queue.CreateIfNotExistsAsync(options, operationContext, cancellationToken);
-		}
-
-		public Task<bool> DeleteIfExistsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
-		{
-			return _queue.DeleteIfExistsAsync(options, operationContext, cancellationToken);
-		}
-
-		public async Task DeleteMessageAsync(CloudMessage message, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
 		{
 			var isLargeMessage = message.Metadata.TryGetValue(CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA, out string largeContentBlobName);
 
 			if (isLargeMessage)
 			{
-				var blob = _blobContainer.GetBlobReference(largeContentBlobName);
-				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null, cancellationToken).ConfigureAwait(false);
+				var blob = _blobContainer.GetBlobClient(largeContentBlobName);
+				await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, cancellationToken).ConfigureAwait(false);
 			}
 
-			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, options, operationContext, cancellationToken).ConfigureAwait(false);
+			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, cancellationToken).ConfigureAwait(false);
 		}
 
-		public Task<bool> ExistsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.ExistsAsync(options, operationContext, cancellationToken);
+			var response = await _queue.GetPropertiesAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
-		public Task FetchAttributesAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
-		{
-			return _queue.FetchAttributesAsync(options, operationContext, cancellationToken);
-		}
-
-		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			// Get the next message from the queue
-			var cloudMessage = await _queue.GetMessageAsync(visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
+			var response = await _queue.ReceiveMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
+			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
 			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
@@ -167,35 +143,31 @@ namespace Picton.Managers
 			return message;
 		}
 
-		public async Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
-			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
+			if (messageCount > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {_queue.MaxPeekableMessages}");
 
 			// Get the messages from the queue
-			var cloudMessages = await _queue.GetMessagesAsync(messageCount, visibilityTimeout, options, operationContext, cancellationToken).ConfigureAwait(false);
+			var response = await _queue.ReceiveMessagesAsync(messageCount, visibilityTimeout, cancellationToken).ConfigureAwait(false);
+			var cloudMessages = response.Value;
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
-		public Task<QueuePermissions> GetPermissionsAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
 		{
-			return _queue.GetPermissionsAsync(options, operationContext, cancellationToken);
+			var response = await _queue.GetAccessPolicyAsync(cancellationToken).ConfigureAwait(false);
+			return response.Value;
 		}
 
-		// GetSharedAccessSignature is not virtual therefore we can't mock it.
-		[ExcludeFromCodeCoverage]
-		public string GetSharedAccessSignature(SharedAccessQueuePolicy policy, string accessPolicyIdentifier, SharedAccessProtocol? protocols = null, IPAddressOrRange ipAddressOrRange = null)
-		{
-			return _queue.GetSharedAccessSignature(policy, accessPolicyIdentifier, protocols, ipAddressOrRange);
-		}
-
-		public async Task<CloudMessage> PeekMessageAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
 		{
 			// Peek at the next message in the queue
-			var cloudMessage = await _queue.PeekMessageAsync(options, operationContext, cancellationToken).ConfigureAwait(false);
+			var response = await _queue.PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
+			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
 			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
@@ -203,26 +175,28 @@ namespace Picton.Managers
 			return message;
 		}
 
-		public async Task<IEnumerable<CloudMessage>> PeekMessagesAsync(int messageCount, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public async Task<IEnumerable<CloudMessage>> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
-			if (messageCount > CloudQueueMessage.MaxNumberOfMessagesToPeek) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greather than {CloudQueueMessage.MaxNumberOfMessagesToPeek}");
+			if (messageCount > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {_queue.MaxPeekableMessages}");
 
 			// Peek at the messages from the queue
-			var cloudMessages = await _queue.PeekMessagesAsync(messageCount, options, operationContext, cancellationToken).ConfigureAwait(false);
+			var response = await _queue.PeekMessagesAsync(messageCount, cancellationToken).ConfigureAwait(false);
+			var cloudMessages = response.Value;
 
 			// Convert the Azure SDK messages into Picton messages
+			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
 		}
 
-		public Task SetMetadataAsync(QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public Task SetMetadataAsync(IDictionary<string, string> metadata, CancellationToken cancellationToken = default)
 		{
-			return _queue.SetMetadataAsync(options, operationContext, cancellationToken);
+			return _queue.SetMetadataAsync(metadata, cancellationToken);
 		}
 
-		public Task SetPermissionsAsync(QueuePermissions permissions, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public Task SetAccessPolicyAsync(IEnumerable<QueueSignedIdentifier> permissions, CancellationToken cancellationToken = default)
 		{
-			return _queue.SetPermissionsAsync(permissions, options, operationContext, cancellationToken);
+			return _queue.SetAccessPolicyAsync(permissions, cancellationToken);
 		}
 
 		/* For the time being, we don't support updating the content of a message due to complexity
@@ -241,111 +215,101 @@ namespace Picton.Managers
 		}
 		*/
 
-		public Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default)
+		public Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, CancellationToken cancellationToken = default)
 		{
-			var cloudMessage = new CloudQueueMessage(message.Id, message.PopReceipt);
-			return _queue.UpdateMessageAsync(cloudMessage, visibilityTimeout, MessageUpdateFields.Visibility, options, operationContext, cancellationToken);
+			return _queue.UpdateMessageAsync(message.Id, message.PopReceipt, null, visibilityTimeout, cancellationToken);
 		}
 
 		public async Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default)
 		{
-			await _queue.FetchAttributesAsync(null, null, cancellationToken).ConfigureAwait(false);
-			return _queue.ApproximateMessageCount ?? 0;
+			var properties = await _queue.GetPropertiesAsync(cancellationToken).ConfigureAwait(false);
+			return properties.Value.ApproximateMessagesCount;
 		}
 
 		#endregion
 
 		#region PRIVATE METHODS
 
-		private void InitQueueManager()
+		// This method has to be synchronous because it's invoked from the constructors
+		private void Init()
 		{
-			var tasks = new List<Task>()
-			{
-				_queue.CreateIfNotExistsAsync(null, null, CancellationToken.None),
-				_blobContainer.CreateIfNotExistsAsync(BlobContainerPublicAccessType.Off, null, null, CancellationToken.None)
-			};
-			Task.WaitAll(tasks.ToArray());
+			_blobContainer.CreateIfNotExists();
+			_queue.CreateIfNotExists();
 		}
 
-		private async Task<MessageEnvelope> DeserializeAsync(byte[] serializedContent, CancellationToken cancellationToken)
+		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)
 		{
-			var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
-			if (code == MessagePackType.Extension)
+			try
 			{
-				// The message was added to the queue using Picton's QueueManager.
-				// Therefore we know exactly how to deserialize the content.
-				var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
-				if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
+				var serializedContent = Convert.FromBase64String(messageContent);
+				var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
+				if (code == MessagePackType.Extension)
 				{
-					var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
-
-					// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-					if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+					// The message was added to the queue using Picton's QueueManager.
+					// Therefore we know exactly how to deserialize the content.
+					var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
+					if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
 					{
-						var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-						var blob = _blobContainer.GetBlobReference(largeEnvelope.BlobName);
+						var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
 
-						// Get the binary content from blob item
-						byte[] buffer;
-						using (var ms = new MemoryStream())
+						// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+						if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
 						{
-							await blob.DownloadToStreamAsync(ms, null, null, null, cancellationToken).ConfigureAwait(false);
-							buffer = ms.ToArray();
+							var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+							var blob = _blobContainer.GetBlobClient(largeEnvelope.BlobName);
+
+							// Get the content from blob item
+							var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+
+							// Deserialize the binary content
+							var messageEnvelope = await DeserializeAsync(blobContent, cancellationToken).ConfigureAwait(false);
+
+							// Add the name of the blob item to metadata
+							if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
+							messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
+
+							// Return the envelope
+							return messageEnvelope;
 						}
-
-						// Deserialize the binary content
-						var messageEnvelope = await DeserializeAsync(buffer, cancellationToken).ConfigureAwait(false);
-
-						// Add the name of the blob item to metadata
-						if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
-						messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
-
-						// Return the envelope
-						return messageEnvelope;
-					}
-					else if (deserializedContent.GetType() == typeof(MessageEnvelope))
-					{
-						return (MessageEnvelope)deserializedContent;
+						else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+						{
+							return (MessageEnvelope)deserializedContent;
+						}
+						else
+						{
+							throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+						}
 					}
 					else
 					{
-						throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+						throw new Exception($"Picton is unable to deserialize content using serialization method '{header.TypeCode}'");
 					}
 				}
 				else
 				{
-					throw new Exception($"Picton is unable to deserialize content using serialization method '{header.TypeCode}'");
+					throw new Exception("Picton is unable to figure out how to deserialize this message.");
 				}
 			}
-			else
+			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
 			{
-				// The message was added to the queue using the CloudQueue class in Microsoft's Azure Storage nuget package
-				// Therefore we can't be sure if the content is a string or binary.
-				try
+				// The message was presumably added to the queue using the
+				// CloudQueue class in Microsoft's Azure Storage nuget package.
+				return new MessageEnvelope()
 				{
-					return new MessageEnvelope()
-					{
-						Content = UTF8_ENCODER.GetString(serializedContent, 0, serializedContent.Length),
-						Metadata = new Dictionary<string, string>()
-					};
-				}
-				catch
-				{
-					return new MessageEnvelope()
-					{
-						Content = serializedContent,
-						Metadata = new Dictionary<string, string>()
-					};
-				}
+					Content = messageContent,
+					Metadata = new Dictionary<string, string>()
+				};
 			}
 		}
 
-		private static byte[] Serialize<T>(T message, IDictionary<string, string> metadata)
+		private static string Serialize<T>(T message, IDictionary<string, string> metadata)
 		{
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				return LZ4MessagePackSerializer.Typeless.Serialize(message);
+				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(message);
+				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
+				return messageAsString;
 			}
 			else
 			{
@@ -355,29 +319,49 @@ namespace Picton.Managers
 					Metadata = metadata
 				};
 
-				return LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
+				return messageAsString;
 			}
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessageAsync(CloudQueueMessage cloudMessage, CancellationToken cancellationToken)
+		private async Task<CloudMessage> ConvertToPictonMessageAsync(QueueMessage cloudMessage, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
-			if (cloudMessage == null)
-			{
-				return null;
-			}
+			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.AsBytes, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
 				DequeueCount = cloudMessage.DequeueCount,
-				ExpirationTime = cloudMessage.ExpirationTime,
-				Id = cloudMessage.Id,
-				InsertionTime = cloudMessage.InsertionTime,
-				NextVisibleTime = cloudMessage.NextVisibleTime,
+				ExpiresOn = cloudMessage.ExpiresOn,
+				Id = cloudMessage.MessageId,
+				InsertedOn = cloudMessage.InsertedOn,
+				NextVisibleOn = cloudMessage.NextVisibleOn,
 				PopReceipt = cloudMessage.PopReceipt,
+				Metadata = messageEnvelope.Metadata ?? new Dictionary<string, string>()
+			};
+			return message;
+		}
+
+		private async Task<CloudMessage> ConvertToPictonMessageAsync(PeekedMessage cloudMessage, CancellationToken cancellationToken)
+		{
+			// We get a null value when the queue is empty
+			if (cloudMessage == null) return null;
+
+			// Deserialize the content of the cloud message
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
+
+			var message = new CloudMessage(messageEnvelope.Content)
+			{
+				DequeueCount = cloudMessage.DequeueCount,
+				ExpiresOn = cloudMessage.ExpiresOn,
+				Id = cloudMessage.MessageId,
+				InsertedOn = cloudMessage.InsertedOn,
+				NextVisibleOn = null,
+				PopReceipt = null,
 				Metadata = messageEnvelope.Metadata ?? new Dictionary<string, string>()
 			};
 			return message;
