@@ -3,11 +3,13 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
+using MessagePack.Resolvers;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,6 +21,10 @@ namespace Picton.Managers
 
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
+
+		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
+			.WithResolver(TypelessContractlessStandardResolver.Instance)
+			.WithCompression(MessagePackCompression.Lz4Block);
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;
@@ -87,7 +93,8 @@ namespace Picton.Managers
 				// 2) Send a smaller message
 				var largeEnvelope = new LargeMessageEnvelope
 				{
-					BlobName = blobName
+					BlobName = blobName,
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 				data = Serialize(largeEnvelope, null);
 
@@ -105,11 +112,11 @@ namespace Picton.Managers
 			return _queue.ClearMessagesAsync(cancellationToken);
 		}
 
-		public async Task DeleteAsync(CancellationToken cancellationToken = default)
+		public Task DeleteAsync(CancellationToken cancellationToken = default)
 		{
 			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
 			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
-			Task.WaitAll(deleteQueueTask, deleteBlobContainerTask);
+			return Task.WhenAll(deleteQueueTask, deleteBlobContainerTask);
 		}
 
 		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
@@ -138,7 +145,7 @@ namespace Picton.Managers
 			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -154,7 +161,7 @@ namespace Picton.Managers
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public async Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
@@ -170,7 +177,7 @@ namespace Picton.Managers
 			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -186,7 +193,7 @@ namespace Picton.Managers
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task SetMetadataAsync(IDictionary<string, string> metadata, CancellationToken cancellationToken = default)
@@ -230,64 +237,62 @@ namespace Picton.Managers
 
 		#region PRIVATE METHODS
 
-		// This method has to be synchronous because it's invoked from the constructors
-		private void Init()
+		private static async Task<MessageEnvelope> DeserializeAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
-			_blobContainer.CreateIfNotExists();
-			_queue.CreateIfNotExists();
-		}
+			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
+			{
+				var reader = new MessagePackReader(memory);
 
-		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)
-		{
+				if (reader.NextMessagePackType != MessagePackType.Extension)
+				{
+					throw new Exception("Picton is unable to figure out how this message was serialized and how to deserialize it.");
+				}
+
+				var extensionHeader = reader.ReadExtensionFormatHeader();
+
+				if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
+				{
+					throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
+				}
+
+				return true;
+			}
+
 			try
 			{
 				var serializedContent = Convert.FromBase64String(messageContent);
-				var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
-				if (code == MessagePackType.Extension)
+
+				// Perform sanity-check to ensure we are able to deserialize the content
+				CheckSerializationType(serializedContent);
+
+				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard);
+
+				// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
 				{
-					// The message was added to the queue using Picton's QueueManager.
-					// Therefore we know exactly how to deserialize the content.
-					var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
-					if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
-					{
-						var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
+					var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+					var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
 
-						// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-						if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
-						{
-							var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-							var blob = _blobContainer.GetBlobClient(largeEnvelope.BlobName);
+					// Get the content from blob item
+					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 
-							// Get the content from blob item
-							var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+					// Deserialize the binary content
+					var messageEnvelope = await DeserializeAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
-							// Deserialize the binary content
-							var messageEnvelope = await DeserializeAsync(blobContent, cancellationToken).ConfigureAwait(false);
+					// Add the name of the blob item to metadata
+					if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
+					messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
 
-							// Add the name of the blob item to metadata
-							if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
-							messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
-
-							// Return the envelope
-							return messageEnvelope;
-						}
-						else if (deserializedContent.GetType() == typeof(MessageEnvelope))
-						{
-							return (MessageEnvelope)deserializedContent;
-						}
-						else
-						{
-							throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
-						}
-					}
-					else
-					{
-						throw new Exception($"Picton is unable to deserialize content using serialization method '{header.TypeCode}'");
-					}
+					// Return the envelope
+					return messageEnvelope;
+				}
+				else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+				{
+					return (MessageEnvelope)deserializedContent;
 				}
 				else
 				{
-					throw new Exception("Picton is unable to figure out how to deserialize this message.");
+					throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
 				}
 			}
 			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
@@ -297,7 +302,8 @@ namespace Picton.Managers
 				return new MessageEnvelope()
 				{
 					Content = messageContent,
-					Metadata = new Dictionary<string, string>()
+					Metadata = new Dictionary<string, string>(),
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 			}
 		}
@@ -307,7 +313,7 @@ namespace Picton.Managers
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(message);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Standard);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
@@ -316,22 +322,23 @@ namespace Picton.Managers
 				var envelope = new MessageEnvelope()
 				{
 					Content = message,
-					Metadata = metadata
+					Metadata = metadata,
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
-				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessageAsync(QueueMessage cloudMessage, CancellationToken cancellationToken)
+		private static async Task<CloudMessage> ConvertToPictonMessageAsync(QueueMessage cloudMessage, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
@@ -346,13 +353,13 @@ namespace Picton.Managers
 			return message;
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessageAsync(PeekedMessage cloudMessage, CancellationToken cancellationToken)
+		private static async Task<CloudMessage> ConvertToPictonMessageAsync(PeekedMessage cloudMessage, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
@@ -365,6 +372,13 @@ namespace Picton.Managers
 				Metadata = messageEnvelope.Metadata ?? new Dictionary<string, string>()
 			};
 			return message;
+		}
+
+		// This method has to be synchronous because it's invoked from the constructors
+		private void Init()
+		{
+			_blobContainer.CreateIfNotExists();
+			_queue.CreateIfNotExists();
 		}
 
 		#endregion
