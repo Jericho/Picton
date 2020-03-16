@@ -32,9 +32,9 @@ namespace Picton.Interfaces
 
 		Task SetAccessPolicyAsync(IEnumerable<QueueSignedIdentifier> permissions, CancellationToken cancellationToken = default);
 
-		///* Currently, we don't support updating message content due to complexity. See the comment in QueueManager.cs for more details
-		//Task UpdateMessageAsync(CloudMessage message, TimeSpan visibilityTimeout, MessageUpdateFields updateFields, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default);
-		//*/
+		/* Currently, we don't support updating message content due to complexity. See the comment in QueueManager.cs for more details
+		Task UpdateMessageAsync(CloudMessage message, TimeSpan visibilityTimeout, MessageUpdateFields updateFields, QueueRequestOptions options = null, OperationContext operationContext = null, CancellationToken cancellationToken = default);
+		*/
 
 		Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, CancellationToken cancellationToken = default);
 
