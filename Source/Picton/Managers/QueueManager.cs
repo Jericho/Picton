@@ -237,13 +237,6 @@ namespace Picton.Managers
 
 		#region PRIVATE METHODS
 
-		// This method has to be synchronous because it's invoked from the constructors
-		private void Init()
-		{
-			_blobContainer.CreateIfNotExists();
-			_queue.CreateIfNotExists();
-		}
-
 		private static async Task<MessageEnvelope> DeserializeAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
@@ -379,6 +372,13 @@ namespace Picton.Managers
 				Metadata = messageEnvelope.Metadata ?? new Dictionary<string, string>()
 			};
 			return message;
+		}
+
+		// This method has to be synchronous because it's invoked from the constructors
+		private void Init()
+		{
+			_blobContainer.CreateIfNotExists();
+			_queue.CreateIfNotExists();
 		}
 
 		#endregion
