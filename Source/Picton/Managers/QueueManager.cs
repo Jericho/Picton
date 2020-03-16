@@ -3,6 +3,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
+using MessagePack.Resolvers;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
@@ -20,6 +21,10 @@ namespace Picton.Managers
 
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
+
+		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
+			.WithResolver(TypelessContractlessStandardResolver.Instance)
+			.WithCompression(MessagePackCompression.Lz4Block);
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;
@@ -241,55 +246,60 @@ namespace Picton.Managers
 
 		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)
 		{
+			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
+			{
+				var reader = new MessagePackReader(memory);
+
+				if (reader.NextMessagePackType != MessagePackType.Extension)
+				{
+					throw new Exception("Picton is unable to figure out how this message was serialized and how to deserialize it.");
+				}
+
+				var extensionHeader = reader.ReadExtensionFormatHeader();
+
+				if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
+				{
+					throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
+				}
+
+				return true;
+			}
+
 			try
 			{
 				var serializedContent = Convert.FromBase64String(messageContent);
-				var code = MessagePackBinary.GetMessagePackType(serializedContent, 0);
-				if (code == MessagePackType.Extension)
+
+				// Perform sanity-check to ensure we are able to deserialize the content
+				CheckSerializationType(serializedContent);
+
+				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard);
+
+				// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
 				{
-					// The message was added to the queue using Picton's QueueManager.
-					// Therefore we know exactly how to deserialize the content.
-					var header = MessagePackBinary.ReadExtensionFormatHeader(serializedContent, 0, out var _);
-					if (header.TypeCode == LZ4_MESSAGEPACK_SERIALIZATION || header.TypeCode == TYPELESS_MESSAGEPACK_SERIALIZATION)
-					{
-						var deserializedContent = LZ4MessagePackSerializer.Typeless.Deserialize(serializedContent);
+					var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+					var blob = _blobContainer.GetBlobClient(largeEnvelope.BlobName);
 
-						// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-						if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
-						{
-							var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-							var blob = _blobContainer.GetBlobClient(largeEnvelope.BlobName);
+					// Get the content from blob item
+					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 
-							// Get the content from blob item
-							var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+					// Deserialize the binary content
+					var messageEnvelope = await DeserializeAsync(blobContent, cancellationToken).ConfigureAwait(false);
 
-							// Deserialize the binary content
-							var messageEnvelope = await DeserializeAsync(blobContent, cancellationToken).ConfigureAwait(false);
+					// Add the name of the blob item to metadata
+					if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
+					messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
 
-							// Add the name of the blob item to metadata
-							if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
-							messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
-
-							// Return the envelope
-							return messageEnvelope;
-						}
-						else if (deserializedContent.GetType() == typeof(MessageEnvelope))
-						{
-							return (MessageEnvelope)deserializedContent;
-						}
-						else
-						{
-							throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
-						}
-					}
-					else
-					{
-						throw new Exception($"Picton is unable to deserialize content using serialization method '{header.TypeCode}'");
-					}
+					// Return the envelope
+					return messageEnvelope;
+				}
+				else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+				{
+					return (MessageEnvelope)deserializedContent;
 				}
 				else
 				{
-					throw new Exception("Picton is unable to figure out how to deserialize this message.");
+					throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
 				}
 			}
 			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
@@ -310,7 +320,7 @@ namespace Picton.Managers
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(message);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Standard);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
@@ -323,7 +333,7 @@ namespace Picton.Managers
 					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
-				var lz4SerializedMessage = LZ4MessagePackSerializer.Typeless.Serialize(envelope);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
