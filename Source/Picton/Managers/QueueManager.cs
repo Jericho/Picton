@@ -145,7 +145,7 @@ namespace Picton.Managers
 			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -161,7 +161,7 @@ namespace Picton.Managers
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public async Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
@@ -177,7 +177,7 @@ namespace Picton.Managers
 			var cloudMessage = response.Value?.First();
 
 			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, cancellationToken).ConfigureAwait(false);
+			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
 
 			return message;
 		}
@@ -193,7 +193,7 @@ namespace Picton.Managers
 
 			// Convert the Azure SDK messages into Picton messages
 			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
-			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, cancellationToken)).ConfigureAwait(false);
+			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
 		public Task SetMetadataAsync(IDictionary<string, string> metadata, CancellationToken cancellationToken = default)
@@ -244,7 +244,7 @@ namespace Picton.Managers
 			_queue.CreateIfNotExists();
 		}
 
-		private async Task<MessageEnvelope> DeserializeAsync(string messageContent, CancellationToken cancellationToken)
+		private static async Task<MessageEnvelope> DeserializeAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
 			{
@@ -278,13 +278,13 @@ namespace Picton.Managers
 				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
 				{
 					var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-					var blob = _blobContainer.GetBlobClient(largeEnvelope.BlobName);
+					var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
 
 					// Get the content from blob item
 					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 
 					// Deserialize the binary content
-					var messageEnvelope = await DeserializeAsync(blobContent, cancellationToken).ConfigureAwait(false);
+					var messageEnvelope = await DeserializeAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 					// Add the name of the blob item to metadata
 					if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
@@ -339,13 +339,13 @@ namespace Picton.Managers
 			}
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessageAsync(QueueMessage cloudMessage, CancellationToken cancellationToken)
+		private static async Task<CloudMessage> ConvertToPictonMessageAsync(QueueMessage cloudMessage, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
@@ -360,13 +360,13 @@ namespace Picton.Managers
 			return message;
 		}
 
-		private async Task<CloudMessage> ConvertToPictonMessageAsync(PeekedMessage cloudMessage, CancellationToken cancellationToken)
+		private static async Task<CloudMessage> ConvertToPictonMessageAsync(PeekedMessage cloudMessage, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			// We get a null value when the queue is empty
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
