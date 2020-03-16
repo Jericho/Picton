@@ -107,11 +107,11 @@ namespace Picton.Managers
 			return _queue.ClearMessagesAsync(cancellationToken);
 		}
 
-		public async Task DeleteAsync(CancellationToken cancellationToken = default)
+		public Task DeleteAsync(CancellationToken cancellationToken = default)
 		{
 			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
 			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
-			Task.WaitAll(deleteQueueTask, deleteBlobContainerTask);
+			return Task.WhenAll(deleteQueueTask, deleteBlobContainerTask);
 		}
 
 		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
