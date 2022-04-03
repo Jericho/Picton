@@ -7,7 +7,7 @@ namespace Picton.Utilities
 	{
 		#region FIELDS
 
-		private ArrayList streamList = new ArrayList();
+		private readonly ArrayList streamList = new ArrayList();
 		private long position = 0;
 
 		#endregion

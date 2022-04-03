@@ -514,7 +514,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var stream = (Stream)null;
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 
 				// Act
 				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.UploadStreamAsync(stream, leaseId, null, null, null, cancellationToken)).ConfigureAwait(false);
@@ -533,7 +533,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -575,7 +575,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -617,7 +617,7 @@ namespace Picton.UnitTests.Extensions
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
 					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
@@ -655,7 +655,7 @@ namespace Picton.UnitTests.Extensions
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
@@ -719,7 +719,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPropertiesAsync(null, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -752,7 +752,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPropertiesAsync(It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -786,7 +786,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, existingContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPropertiesAsync(null, cancellationToken))
 					.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
@@ -820,7 +820,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, existingContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPropertiesAsync(It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ReturnsAsync(Response.FromValue(new BlobProperties(), new MockAzureResponse(200, "ok")))
@@ -881,7 +881,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.SetupSequence(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 						.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -915,7 +915,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, It.Is<AppendBlobRequestConditions>(rc => rc.LeaseId == leaseId), null, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -952,7 +952,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, null, null, cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobAppendInfo, new MockAzureResponse(200, "ok")))
@@ -977,7 +977,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.AppendBlockAsync(It.IsAny<Stream>(), null, It.Is<AppendBlobRequestConditions>(rc => rc.LeaseId == leaseId), null, cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobAppendInfo, new MockAzureResponse(200, "ok")))
@@ -1294,7 +1294,7 @@ namespace Picton.UnitTests.Extensions
 				var leaseId = (string)null;
 				var stream = (Stream)null;
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, new Uri(BLOB_ITEM_URL), (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 
 				// Act
 				await Should.ThrowAsync<ArgumentNullException>(() => mockBlobClient.Object.AppendStreamAsync(stream, leaseId, cancellationToken)).ConfigureAwait(false);
@@ -1313,7 +1313,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -1355,7 +1355,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -1397,7 +1397,7 @@ namespace Picton.UnitTests.Extensions
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, null, cancellationToken))
 					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
@@ -1431,7 +1431,7 @@ namespace Picton.UnitTests.Extensions
 				var pageRangesInfo = BlobsModelFactory.PageRangesInfo(DateTimeOffset.UtcNow, ETag.All, 222, new[] { new HttpRange(0, 221) }, new[] { new HttpRange(0, 221) });
 				var pageInfo = BlobsModelFactory.PageInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1, null);
 
-				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<PageBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.GetPageRangesAsync(null, null, It.Is<PageBlobRequestConditions>(rc => rc.LeaseId == leaseId), cancellationToken))
 					.ReturnsAsync(Response.FromValue(pageRangesInfo, new MockAzureResponse(200, "ok")))
@@ -1491,7 +1491,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -1524,7 +1524,7 @@ namespace Picton.UnitTests.Extensions
 
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
 					.ThrowsAsync(new RequestFailedException(404, "Blob not found", "BlobNotFound", new Exception("???")))
@@ -1559,7 +1559,7 @@ namespace Picton.UnitTests.Extensions
 				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.DownloadAsync(default, null, false, cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
@@ -1594,7 +1594,7 @@ namespace Picton.UnitTests.Extensions
 				var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(content: new MemoryStream(currentContent.ToBytes()));
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, 1);
 
-				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<BlockBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.DownloadAsync(default, It.Is<BlobRequestConditions>(rc => rc.LeaseId == leaseId), false, cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
@@ -1655,7 +1655,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.CreateIfNotExistsAsync(It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))
@@ -1689,7 +1689,7 @@ namespace Picton.UnitTests.Extensions
 				var blobContentInfo = BlobsModelFactory.BlobContentInfo(ETag.All, DateTimeOffset.UtcNow, null, null, 1);
 				var blobAppendInfo = BlobsModelFactory.BlobAppendInfo(ETag.All, DateTimeOffset.UtcNow, newContent.ToMD5Hash(), null, null, 1, false, null);
 
-				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict, blobUri, (BlobClientOptions)null);
+				var mockBlobClient = new Mock<AppendBlobClient>(MockBehavior.Strict);
 				mockBlobClient
 					.Setup(c => c.CreateIfNotExistsAsync(It.Is<BlobHttpHeaders>(headers => headers.ContentType == "text/plain"), It.Is<IDictionary<string, string>>(metadata => metadata.Count == 0), cancellationToken))
 					.ReturnsAsync(Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok")))

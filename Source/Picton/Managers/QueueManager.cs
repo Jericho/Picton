@@ -86,7 +86,7 @@ namespace Picton.Managers
 				// send a smaller message indicating where the actual message was saved
 
 				// 1) Save the large message to blob storage
-				var blobName = $"{DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss")}-{RandomGenerator.GenerateString(32)}";
+				var blobName = $"{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}-{RandomGenerator.GenerateString(32)}";
 				var blob = _blobContainer.GetBlobClient(blobName);
 				await blob.UploadTextAsync(data, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
@@ -224,7 +224,7 @@ namespace Picton.Managers
 
 		public Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, CancellationToken cancellationToken = default)
 		{
-			return _queue.UpdateMessageAsync(message.Id, message.PopReceipt, null, visibilityTimeout, cancellationToken);
+			return _queue.UpdateMessageAsync(message.Id, message.PopReceipt, (BinaryData)null, visibilityTimeout, cancellationToken);
 		}
 
 		public async Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default)
@@ -265,7 +265,7 @@ namespace Picton.Managers
 				// Perform sanity-check to ensure we are able to deserialize the content
 				CheckSerializationType(serializedContent);
 
-				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard);
+				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard, cancellationToken);
 
 				// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
 				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))

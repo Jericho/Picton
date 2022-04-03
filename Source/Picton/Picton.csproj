@@ -32,10 +32,10 @@
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.4.1" />
-    <PackageReference Include="Azure.Storage.Queues" Version="12.3.0" />
-    <PackageReference Include="MessagePack" Version="2.1.115" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.11.0" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.9.0" />
+    <PackageReference Include="MessagePack" Version="2.3.85" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="MimeTypesMap" Version="1.0.8" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.113" PrivateAssets="All" />
   </ItemGroup>

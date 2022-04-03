@@ -48,7 +48,7 @@ namespace Picton.Managers
 			return blob;
 		}
 
-		public async Task<BlobDownloadInfo> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default)
+		public async Task<BlobDownloadInfo> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -56,8 +56,6 @@ namespace Picton.Managers
 				var blob = _blobContainer.GetBlobClient(cleanBlobName);
 
 				var response = await blob.DownloadAsync(cancellationToken).ConfigureAwait(false);
-				outputStream = response.Value.Content;
-
 				return response.Value;
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
@@ -66,7 +64,7 @@ namespace Picton.Managers
 			}
 		}
 
-		public async Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default)
+		public async Task<byte[]> GetBlobBinaryContentAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			try
 			{

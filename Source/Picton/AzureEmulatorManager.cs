@@ -33,6 +33,8 @@ namespace Picton
 	/// - 5.10 was released in August 2019 as a separate download
 	///
 	/// Storage emulator can be downloaded <a href="https://go.microsoft.com/fwlink/?linkid=717179&amp;clcid=0x409">here</a>.
+	///
+	/// Azure Storage Emulator is now deprecated and Azurite is the now prefered emulator.
 	/// </summary>
 	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a>.</remarks>
 	public static class AzureEmulatorManager
