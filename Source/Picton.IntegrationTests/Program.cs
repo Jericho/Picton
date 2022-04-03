@@ -14,30 +14,33 @@ namespace Picton.IntegrationTests
 		static async Task Main()
 		{
 			// Make sure the emulators are started
-			Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
-			AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
+			//Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
+			//AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
 
 			//Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
 			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
-			var cancellationToken = CancellationToken.None;
-			var connectionString = "UseDevelopmentStorage=true";
-			var containerName = "mycontainer";
-			var queueName = "myqueue";
+			using (var emulator = new AzuriteManager())
+			{
+				var cancellationToken = CancellationToken.None;
+				var connectionString = "UseDevelopmentStorage=true";
+				var containerName = "mycontainer";
+				var queueName = "myqueue";
 
-			// Make sure the container is created
-			var container = new BlobContainerClient(connectionString, containerName);
-			await container.CreateIfNotExistsAsync().ConfigureAwait(false);
+				// Make sure the container is created
+				var container = new BlobContainerClient(connectionString, containerName);
+				await container.CreateIfNotExistsAsync().ConfigureAwait(false);
 
-			// Run the integration tests (they are dependant on the Azure Storage emulator)
-			Console.WriteLine("Running blob extension methods tests...");
-			await RunCloudBlobExtensionsTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
+				// Run the integration tests (they are dependant on the Azure Storage emulator)
+				Console.WriteLine("Running blob extension methods tests...");
+				await RunCloudBlobExtensionsTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
 
-			Console.WriteLine("Running blob manager tests...");
-			await RunBlobManagerTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
+				Console.WriteLine("Running blob manager tests...");
+				await RunBlobManagerTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
 
-			Console.WriteLine("Running queue manager tests...");
-			await RunQueueManagerTests(connectionString, queueName, cancellationToken).ConfigureAwait(false);
+				Console.WriteLine("Running queue manager tests...");
+				await RunQueueManagerTests(connectionString, queueName, cancellationToken).ConfigureAwait(false);
+			}
 
 			// Flush the console key buffer
 			while (Console.KeyAvailable) Console.ReadKey(true);
