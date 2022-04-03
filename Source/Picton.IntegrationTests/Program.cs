@@ -20,6 +20,7 @@ namespace Picton.IntegrationTests
 			//Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
 			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
 
+			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
 			using (var emulator = new AzuriteManager())
 			{
 				var cancellationToken = CancellationToken.None;
