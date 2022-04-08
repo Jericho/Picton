@@ -50,8 +50,9 @@ namespace Picton.Managers
 		/// For more information, <see href="https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string"/>.
 		/// </param>
 		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
+		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string connectionString, string queueName)
+		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true)
 		{
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
@@ -59,7 +60,7 @@ namespace Picton.Managers
 			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
 			_queue = new QueueClient(connectionString, queueName);
 
-			Init();
+			if (autoCreateResources) Init();
 		}
 
 		/// <summary>
@@ -67,12 +68,13 @@ namespace Picton.Managers
 		/// </summary>
 		/// <param name="blobContainerClient">The blob container.</param>
 		/// <param name="queueClient">The queue client.</param>
-		public QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient)
+		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
+		public QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true)
 		{
 			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
 			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
 
-			Init();
+			if (autoCreateResources) Init();
 		}
 
 		#endregion
