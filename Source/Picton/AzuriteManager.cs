@@ -76,7 +76,6 @@ namespace Picton
 				UseShellExecute = true,
 				Arguments = "--skipApiVersionCheck",
 				FileName = azuriteLocation,
-				Verb = "runas"
 			};
 
 			_process = Process.Start(start);
