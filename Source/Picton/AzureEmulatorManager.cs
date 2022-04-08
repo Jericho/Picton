@@ -37,6 +37,7 @@ namespace Picton
 	/// Azure Storage Emulator is now deprecated and Azurite is the now prefered emulator.
 	/// </summary>
 	/// <remarks>Inspired by <a href="http://stackoverflow.com/questions/7547567/how-to-start-azure-storage-emulator-from-within-a-program">this StackOverflow discussion</a>.</remarks>
+	[Obsolete("The Azure Emulator has been obsolete since 2021 and has been replaced by Azurite. Please use the AzuriteManager instead of the AzureEmulatorManager.")]
 	public static class AzureEmulatorManager
 	{
 		private class EmulatorVersionInfo
