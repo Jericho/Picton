@@ -15,9 +15,38 @@ namespace Picton
 			StartEmulator();
 		}
 
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
 		public void Dispose()
 		{
+			// Stop the Azurite process
 			StopEmulator();
+
+			// Call 'Dispose' to release resources
+			Dispose(true);
+
+			// Tell the GC that we have done the cleanup and there is nothing left for the Finalizer to do
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				ReleaseManagedResources();
+			}
+			else
+			{
+				// The object went out of scope and the Finalizer has been called.
+				// The GC will take care of releasing managed resources, therefore there is nothing to do here.
+			}
+
+			ReleaseUnmanagedResources();
 		}
 
 		private static string LaunchVswhere(string arguments)
@@ -91,6 +120,20 @@ namespace Picton
 			catch
 			{
 			}
+		}
+
+		private void ReleaseManagedResources()
+		{
+			if (_process != null)
+			{
+				_process.Dispose();
+				_process = null;
+			}
+		}
+
+		private void ReleaseUnmanagedResources()
+		{
+			// We do not hold references to unmanaged resources
 		}
 	}
 }
