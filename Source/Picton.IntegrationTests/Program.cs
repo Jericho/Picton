@@ -13,13 +13,6 @@ namespace Picton.IntegrationTests
 	{
 		static async Task Main()
 		{
-			// Make sure the emulators are started
-			//Console.WriteLine("Please wait: making sure the Storage emulator is started. This is typically very quick.");
-			//AzureEmulatorManager.EnsureStorageEmulatorIsStarted();
-
-			//Console.WriteLine("Please wait: making sure the DocumentDB emulator is started. This can take several seconds.");
-			//AzureEmulatorManager.EnsureDocumentDbEmulatorIsStarted();
-
 			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
 			using (var emulator = new AzuriteManager())
 			{
