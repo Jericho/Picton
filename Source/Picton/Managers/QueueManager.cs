@@ -31,6 +31,12 @@ namespace Picton.Managers
 
 		#endregion
 
+		#region PROPERTIES
+
+		public string QueueName { get => _queue.Name; }
+
+		#endregion
+
 		#region CONSTRUCTORS
 
 		/// <summary>

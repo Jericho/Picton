@@ -8,6 +8,8 @@ namespace Picton.Interfaces
 {
 	public interface IQueueManager
 	{
+		string QueueName { get; }
+
 		Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = default, TimeSpan? initialVisibilityDelay = default, CancellationToken cancellationToken = default);
 
 		Task ClearAsync(CancellationToken cancellationToken = default);
