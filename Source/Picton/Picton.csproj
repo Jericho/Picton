@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net48;netstandard2.1;net5.0;net6.0</TargetFrameworks>
-    <PlatformTarget>anycpu</PlatformTarget>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <OutputType>Library</OutputType>
     <Version>$(SemVer)</Version>
