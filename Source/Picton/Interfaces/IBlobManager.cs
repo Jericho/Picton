@@ -22,9 +22,9 @@ namespace Picton.Interfaces
 
 		Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default);
 
-		Task<byte[]> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default);
+		Task<byte[]> GetBlobBinaryContentAsync(string blobName, CancellationToken cancellationToken = default);
 
-		Task<BlobDownloadInfo> GetBlobContentAsync(string blobName, Stream outputStream, CancellationToken cancellationToken = default);
+		Task<BlobDownloadInfo> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default);
 
 		BlobClient GetBlobReference(string blobName);
 

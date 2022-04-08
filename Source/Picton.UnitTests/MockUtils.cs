@@ -19,11 +19,15 @@ namespace Picton.UnitTests
 		{
 			var mockContainerUri = new Uri(BLOB_STORAGE_URL + containerName);
 			var blobContainerInfo = BlobsModelFactory.BlobContainerInfo(ETag.All, DateTimeOffset.UtcNow);
-			var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict, mockContainerUri, (BlobClientOptions)null);
+			var mockBlobContainer = new Mock<BlobContainerClient>(MockBehavior.Strict);
 
 			mockBlobContainer
 				.SetupGet(m => m.Name)
 				.Returns(containerName);
+
+			mockBlobContainer
+				.SetupGet(m => m.Uri)
+				.Returns(mockContainerUri);
 
 			mockBlobContainer
 				.Setup(c => c.CreateIfNotExists(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
@@ -44,11 +48,15 @@ namespace Picton.UnitTests
 		internal static Mock<BlobClient> GetMockBlobClient(string blobName)
 		{
 			var mockBlobUri = new Uri(BLOB_STORAGE_URL + blobName);
-			var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict, mockBlobUri, (BlobClientOptions)null);
+			var mockBlobClient = new Mock<BlobClient>(MockBehavior.Strict);
 
 			mockBlobClient
 				.SetupGet(m => m.Name)
 				.Returns(blobName);
+
+			mockBlobClient
+				.SetupGet(m => m.Uri)
+				.Returns(mockBlobUri);
 
 			return mockBlobClient;
 		}
@@ -56,7 +64,11 @@ namespace Picton.UnitTests
 		internal static Mock<QueueClient> GetMockQueueClient(string queueName = "myqueue")
 		{
 			var mockQueueStorageUri = new Uri(QUEUE_STORAGE_URL + queueName);
-			var mockQueueClient = new Mock<QueueClient>(MockBehavior.Strict, mockQueueStorageUri, (QueueClientOptions)null);
+			var mockQueueClient = new Mock<QueueClient>(MockBehavior.Strict);
+
+			mockQueueClient
+				.SetupGet(m => m.Uri)
+				.Returns(mockQueueStorageUri);
 
 			mockQueueClient
 				.Setup(c => c.CreateIfNotExists(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))

@@ -1,0 +1,139 @@
+using System;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Threading;
+
+namespace Picton
+{
+	public class AzuriteManager : IDisposable
+	{
+		private Process _process;
+
+		public AzuriteManager()
+		{
+			StartEmulator();
+		}
+
+		/// <summary>
+		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+		/// </summary>
+		public void Dispose()
+		{
+			// Stop the Azurite process
+			StopEmulator();
+
+			// Call 'Dispose' to release resources
+			Dispose(true);
+
+			// Tell the GC that we have done the cleanup and there is nothing left for the Finalizer to do
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				ReleaseManagedResources();
+			}
+			else
+			{
+				// The object went out of scope and the Finalizer has been called.
+				// The GC will take care of releasing managed resources, therefore there is nothing to do here.
+			}
+
+			ReleaseUnmanagedResources();
+		}
+
+		private static string LaunchVswhere(string arguments)
+		{
+			const string VswhereRelativePath = @"Microsoft Visual Studio\Installer\vswhere.exe";
+
+			var start = new ProcessStartInfo
+			{
+				CreateNoWindow = true,
+				UseShellExecute = false,
+				Arguments = arguments,
+				RedirectStandardOutput = true,
+				FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), VswhereRelativePath)
+			};
+
+			var exitCode = 0;
+			var retMessage = string.Empty;
+
+			using (var proc = new Process { EnableRaisingEvents = true, StartInfo = start })
+			using (ManualResetEvent mreOut = new ManualResetEvent(false))
+			{
+				proc.Start();
+				proc.OutputDataReceived += (o, e) => { if (e.Data == null) mreOut.Set(); else retMessage = e.Data; };
+				proc.BeginOutputReadLine();
+
+				proc.WaitForExit();
+
+				mreOut.WaitOne();
+
+				exitCode = proc.ExitCode;
+			}
+
+			if (exitCode != 0)
+			{
+				var message = string.Format(
+					CultureInfo.InvariantCulture,
+					"Error {0} executing {1} {2}",
+					exitCode,
+					start.FileName,
+					start.Arguments);
+				throw new InvalidOperationException(message);
+			}
+
+			return retMessage;
+		}
+
+		private void StartEmulator()
+		{
+			var azuriteLocation = LaunchVswhere("-find **\\azurite.exe");
+			if (string.IsNullOrEmpty(azuriteLocation)) throw new Exception("Unable to locate Azurite on this machine");
+
+			var start = new ProcessStartInfo
+			{
+				CreateNoWindow = true,
+				WindowStyle = ProcessWindowStyle.Hidden,
+				UseShellExecute = true,
+				Arguments = "--skipApiVersionCheck",
+				FileName = azuriteLocation,
+			};
+
+			_process = Process.Start(start);
+		}
+
+		private void StopEmulator()
+		{
+			try
+			{
+				_process.Kill();
+				_process.WaitForExit();
+			}
+			catch
+			{
+			}
+		}
+
+		private void ReleaseManagedResources()
+		{
+			if (_process != null)
+			{
+				_process.Dispose();
+				_process = null;
+			}
+		}
+
+		private void ReleaseUnmanagedResources()
+		{
+			// We do not hold references to unmanaged resources
+		}
+	}
+}

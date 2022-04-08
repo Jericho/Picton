@@ -5,7 +5,6 @@ using Picton.Managers;
 using Shouldly;
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -49,12 +48,12 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.None);
-			var content = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
+			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
 
 			// Assert
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			content.ShouldBeNull();
+			downloadInfo.ShouldBeNull();
 		}
 
 		[Fact]
@@ -78,12 +77,14 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.BlobContainer);
-			var result = Encoding.UTF8.GetString(await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false));
+			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
+			var reader = new StreamReader(downloadInfo.Content);
+			var content = reader.ReadToEnd();
 
 			// Assert
 			mockBlobContainer.Verify();
 			mockBlobClient.Verify();
-			result.ShouldBe(expected);
+			content.ShouldBe(expected);
 		}
 	}
 }
