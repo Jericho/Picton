@@ -27,7 +27,7 @@ namespace Picton.IntegrationTests
 			_loggerFactory = loggerFactory;
 		}
 
-		public async Task<int> RunAsync()
+		public async Task<int> RunAsync(CancellationToken cancellationToken = default)
 		{
 			// Configure Console
 			var source = new CancellationTokenSource();
@@ -46,7 +46,6 @@ namespace Picton.IntegrationTests
 			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
 			using (var emulator = new AzuriteManager())
 			{
-				var cancellationToken = CancellationToken.None;
 				var connectionString = "UseDevelopmentStorage=true";
 				var containerName = "mycontainer";
 				var queueName = "myqueue";
@@ -56,11 +55,7 @@ namespace Picton.IntegrationTests
 
 				// Run the integration tests
 				await RunCloudBlobExtensionsTests(log, connectionString, containerName, cancellationToken).ConfigureAwait(false);
-
-				log.LogInformation("Running blob manager tests...");
 				await RunBlobManagerTests(log, connectionString, containerName, cancellationToken).ConfigureAwait(false);
-
-				log.LogInformation("Running queue manager tests...");
 				await RunQueueManagerTests(log, connectionString, queueName, cancellationToken).ConfigureAwait(false);
 			}
 
@@ -69,7 +64,6 @@ namespace Picton.IntegrationTests
 			await promptLog.WriteLineAsync("\n\n**************************************************").ConfigureAwait(false);
 			await promptLog.WriteLineAsync("Press any key to exit...").ConfigureAwait(false);
 			Utils.Prompt(promptLog.ToString());
-
 
 			// Return code indicating success/failure
 			var resultCode = (int)ResultCodes.Success;
@@ -155,6 +149,9 @@ namespace Picton.IntegrationTests
 
 		private static async Task RunBlobManagerTests(ILogger log, string connectionString, string containerName, CancellationToken cancellationToken)
 		{
+			log.LogInformation("**************************************************");
+			log.LogInformation("Running blob manager tests...");
+
 			var blobManager = new BlobManager(connectionString, containerName);
 
 			await blobManager.CopyBlobAsync("test1.txt", "test1 - Copy of.txt", cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -178,6 +175,9 @@ namespace Picton.IntegrationTests
 
 		private static async Task RunQueueManagerTests(ILogger log, string connectionString, string queueName, CancellationToken cancellationToken)
 		{
+			log.LogInformation("**************************************************");
+			log.LogInformation("Running queue manager tests...");
+
 			var queueManager = new QueueManager(connectionString, queueName);
 
 			// Empty the queue
