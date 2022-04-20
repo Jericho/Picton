@@ -28,6 +28,8 @@ namespace Picton.Managers
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;
+		private readonly ISystemClock _systemClock;
+		private readonly IRandomGenerator _randomGenerator;
 
 		#endregion
 
@@ -59,6 +61,8 @@ namespace Picton.Managers
 
 			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
 			_queue = new QueueClient(connectionString, queueName);
+			_systemClock = SystemClock.Instance;
+			_randomGenerator = RandomGenerator.Instance;
 
 			if (autoCreateResources) Init();
 		}
@@ -73,6 +77,26 @@ namespace Picton.Managers
 		{
 			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
 			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+			_systemClock = SystemClock.Instance;
+			_randomGenerator = RandomGenerator.Instance;
+
+			if (autoCreateResources) Init();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="QueueManager"/> class.
+		/// </summary>
+		/// <param name="blobContainerClient">The blob container.</param>
+		/// <param name="queueClient">The queue client.</param>
+		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
+		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
+		[ExcludeFromCodeCoverage]
+		internal QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true, ISystemClock systemClock = null, IRandomGenerator randomGenerator = null)
+		{
+			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
+			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+			_systemClock = systemClock ?? SystemClock.Instance;
+			_randomGenerator = randomGenerator ?? RandomGenerator.Instance;
 
 			if (autoCreateResources) Init();
 		}
@@ -85,7 +109,7 @@ namespace Picton.Managers
 		{
 			if (message == null) return;
 
-			var data = Serialize(message, metadata);
+			var data = SerializeMessage(message, metadata);
 
 			// Check if the message exceeds the size allowed by Azure Storage queues
 			if (data.Length > _queue.MessageMaxBytes)
@@ -94,7 +118,7 @@ namespace Picton.Managers
 				// send a smaller message indicating where the actual message was saved
 
 				// 1) Save the large message to blob storage
-				var blobName = $"{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}-{RandomGenerator.GenerateString(32)}";
+				var blobName = $"{_systemClock.UtcNow:yyyy-MM-dd-HH-mm-ss}-{_randomGenerator.GenerateString(32)}";
 				var blob = _blobContainer.GetBlobClient(blobName);
 				await blob.UploadTextAsync(data, null, null, null, null, cancellationToken).ConfigureAwait(false);
 
@@ -104,7 +128,7 @@ namespace Picton.Managers
 					BlobName = blobName,
 					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
-				data = Serialize(largeEnvelope, null);
+				data = SerializeMessage(largeEnvelope, null);
 
 				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
@@ -148,17 +172,11 @@ namespace Picton.Managers
 
 		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
-			// Get the next message from the queue
-			var response = await _queue.ReceiveMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
-			var cloudMessage = response.Value?.First();
-
-			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
-
-			return message;
+			var messages = await GetMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
+			return messages.FirstOrDefault();
 		}
 
-		public async Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
+		public async Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
 			if (messageCount > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {_queue.MaxPeekableMessages}");
@@ -168,7 +186,7 @@ namespace Picton.Managers
 			var cloudMessages = response.Value;
 
 			// Convert the Azure SDK messages into Picton messages
-			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
+			if (cloudMessages == null) return Array.Empty<CloudMessage>();
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
@@ -180,17 +198,11 @@ namespace Picton.Managers
 
 		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
 		{
-			// Peek at the next message in the queue
-			var response = await _queue.PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
-			var cloudMessage = response.Value?.First();
-
-			// Convert the Azure SDK message into a Picton message
-			var message = await ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken).ConfigureAwait(false);
-
-			return message;
+			var messages = await PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
+			return messages.FirstOrDefault();
 		}
 
-		public async Task<IEnumerable<CloudMessage>> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default)
+		public async Task<CloudMessage[]> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
 			if (messageCount > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {_queue.MaxPeekableMessages}");
@@ -200,7 +212,7 @@ namespace Picton.Managers
 			var cloudMessages = response.Value;
 
 			// Convert the Azure SDK messages into Picton messages
-			if (cloudMessages == null) return Enumerable.Empty<CloudMessage>();
+			if (cloudMessages == null) return Array.Empty<CloudMessage>();
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
@@ -245,7 +257,7 @@ namespace Picton.Managers
 
 		#region PRIVATE METHODS
 
-		private static async Task<MessageEnvelope> DeserializeAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
+		internal static async Task<MessageEnvelope> DeserializeMessageAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
 			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
 			{
@@ -285,7 +297,7 @@ namespace Picton.Managers
 					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 
 					// Deserialize the binary content
-					var messageEnvelope = await DeserializeAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
+					var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 					// Add the name of the blob item to metadata
 					if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
@@ -303,6 +315,10 @@ namespace Picton.Managers
 					throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
 				}
 			}
+			catch (Exception e) when (e.GetType().FullName.StartsWith("Moq."))
+			{
+				throw;
+			}
 			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
 			{
 				// The message was presumably added to the queue using the
@@ -316,7 +332,7 @@ namespace Picton.Managers
 			}
 		}
 
-		private static string Serialize<T>(T message, IDictionary<string, string> metadata)
+		internal static string SerializeMessage<T>(T message, IDictionary<string, string> metadata)
 		{
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
@@ -346,7 +362,7 @@ namespace Picton.Managers
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeMessageAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{
@@ -367,7 +383,7 @@ namespace Picton.Managers
 			if (cloudMessage == null) return null;
 
 			// Deserialize the content of the cloud message
-			var messageEnvelope = await DeserializeAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
+			var messageEnvelope = await DeserializeMessageAsync(cloudMessage.MessageText, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 			var message = new CloudMessage(messageEnvelope.Content)
 			{

@@ -12,8 +12,8 @@ namespace Picton.UnitTests
 {
 	internal static class MockUtils
 	{
-		private static readonly string QUEUE_STORAGE_URL = "http://bogus:10001/devstoreaccount1/";
-		private static readonly string BLOB_STORAGE_URL = "http://bogus:10002/devstoreaccount1/";
+		internal static readonly string QUEUE_STORAGE_URL = "http://bogus:10001/devstoreaccount1/";
+		internal static readonly string BLOB_STORAGE_URL = "http://bogus:10002/devstoreaccount1/";
 
 		internal static Mock<BlobContainerClient> GetMockBlobContainerClient(string containerName = "mycontainer", IEnumerable<Mock<BlobClient>> mockBlobClients = null)
 		{
@@ -69,6 +69,14 @@ namespace Picton.UnitTests
 			mockQueueClient
 				.SetupGet(m => m.Uri)
 				.Returns(mockQueueStorageUri);
+
+			mockQueueClient
+				.SetupGet(q => q.MessageMaxBytes)
+				.Returns(65536);
+
+			mockQueueClient
+				.SetupGet(q => q.MaxPeekableMessages)
+				.Returns(32);
 
 			mockQueueClient
 				.Setup(c => c.CreateIfNotExists(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))

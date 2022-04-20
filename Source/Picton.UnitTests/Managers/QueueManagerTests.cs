@@ -1,8 +1,22 @@
+using Azure;
+using Azure.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
+using Azure.Storage.Queues.Models;
+using MessagePack;
+using MessagePack.Resolvers;
+using Moq;
+using Picton.Interfaces;
 using Picton.Managers;
 using Shouldly;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Picton.UnitTests.Managers
@@ -17,348 +31,261 @@ namespace Picton.UnitTests.Managers
 
 	public class QueueMangerTests
 	{
-		public class Constructor
+		[Fact]
+		public void Null_blobContainerClient_throws()
 		{
-			[Fact]
-			public void Null_blobContainerClient_throws()
-			{
-				Should.Throw<ArgumentNullException>(() =>
-				{
-					// Arrange
-					var blobContainer = (BlobContainerClient)null;
-					var mockQueueClient = MockUtils.GetMockQueueClient();
-
-					// Act
-					new QueueManager(blobContainer, mockQueueClient.Object);
-				});
-			}
-
-			[Fact]
-			public void Null_queueClient_throws()
-			{
-				Should.Throw<ArgumentNullException>(() =>
-				{
-					// Arrange
-					var mockBlobContainer = MockUtils.GetMockBlobContainerClient();
-					var queueClient = (QueueClient)null;
-
-					// Act
-					new QueueManager(mockBlobContainer.Object, queueClient);
-				});
-			}
-
-			[Fact]
-			public void Creates_container_and_queue_if_they_do_not_exist()
+			Should.Throw<ArgumentNullException>(() =>
 			{
 				// Arrange
-				var containerName = "mycontainer";
-				var queueName = "myqueue";
-
-				var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
-				var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+				var blobContainer = (BlobContainerClient)null;
+				var mockQueueClient = MockUtils.GetMockQueueClient();
 
 				// Act
-				new QueueManager(mockBlobContainer.Object, mockQueueClient.Object);
-
-				// Assert
-				mockBlobContainer.Verify();
-				mockQueueClient.Verify();
-			}
+				new QueueManager(blobContainer, mockQueueClient.Object, false);
+			});
 		}
 
-		//[Fact]
-		//public void AddMessageAsync_small_message()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+		[Fact]
+		public void Null_queueClient_throws()
+		{
+			Should.Throw<ArgumentNullException>(() =>
+			{
+				// Arrange
+				var mockBlobContainer = MockUtils.GetMockBlobContainerClient();
+				var queueClient = (QueueClient)null;
 
-		//	mockQueue
-		//		.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+				// Act
+				new QueueManager(mockBlobContainer.Object, queueClient, false);
+			});
+		}
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.AddMessageAsync("Hello world!").Wait();
+		[Fact]
+		public void Creates_container_and_queue_if_they_do_not_exist()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Act
+			new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
 
-		//[Fact]
-		//public void AddMessageAsync_large_message_is_compressed()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Assert
+			mockBlobContainer.Verify();
+			mockQueueClient.Verify();
+		}
 
-		//	mockQueue
-		//		.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+		[Fact]
+		public async Task Small_message()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Act
-		//	var largeContentWillBeCompressed = new String('z', (int)CloudQueueMessage.MaxMessageSize * 2);
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.AddMessageAsync(largeContentWillBeCompressed).Wait();
+			mockQueueClient
+				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				{
+					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
+					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.AddMessageAsync("Hello world!").ConfigureAwait(false);
 
-		//[Fact]
-		//public void ClearAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//	mockQueue
-		//		.Setup(c => c.ClearAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+		[Fact]
+		public async Task Large_message_is_compressed()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.ClearAsync().Wait();
+			mockQueueClient
+				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				{
+					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
+					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
+				})
+				  .Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// This string is highly "compressible" because it contains only one character repeated numerous times
+			var largeContentWillBeCompressed = new String('z', (int)mockQueueClient.Object.MessageMaxBytes * 2);
 
-		//[Fact]
-		//public void CreateAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.AddMessageAsync(largeContentWillBeCompressed).ConfigureAwait(false);
 
-		//	mockQueue
-		//		.Setup(c => c.CreateAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.CreateAsync().Wait();
+		[Fact]
+		public async Task Clear_the_queue()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			mockQueueClient
+				.Setup(q => q.ClearMessagesAsync(It.IsAny<CancellationToken>()))
+				.ReturnsAsync((CancellationToken cancellationToken) =>
+				{
+					var mockResponse = new Mock<Response>();
+					mockResponse.SetupGet(r => r.Status).Returns(200);
+					return mockResponse.Object;
+				})
+				  .Verifiable();
 
-		//[Fact]
-		//public void CreateIfNotExistsAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.ClearAsync().ConfigureAwait(false);
 
-		//	mockQueue
-		//		.Setup(c => c.CreateIfNotExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.CreateIfNotExistsAsync().Wait();
+		[Fact]
+		public async Task DeleteIfExistsAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			mockBlobContainer
+				.Setup(c => c.DeleteIfExistsAsync(null, It.IsAny<CancellationToken>()))
+				.ReturnsAsync((BlobRequestConditions conditions, CancellationToken cancellationToken) =>
+				{
+					return Response.FromValue(true, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//[Fact]
-		//public void DeleteIfExistsAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			mockQueueClient
+				.Setup(c => c.DeleteIfExistsAsync(It.IsAny<CancellationToken>()))
+				.ReturnsAsync((CancellationToken cancellationToken) =>
+				{
+					return Response.FromValue(true, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	mockQueue
-		//		.Setup(c => c.DeleteIfExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.DeleteAsync().ConfigureAwait(false);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.DeleteIfExistsAsync().Wait();
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+		[Fact]
+		public async Task DeleteMessageAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var message = new CloudMessage("Hello world");
 
-		//[Fact]
-		//public void DeleteMessageAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var message = new CloudMessage("Hello world");
+			mockQueueClient
+				.Setup(c => c.DeleteMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageId, string popReceipt, CancellationToken cancellationToken) =>
+				{
+					var mockResponse = new Mock<Response>();
+					mockResponse.SetupGet(r => r.Status).Returns(200);
+					return mockResponse.Object;
+				})
+				.Verifiable();
 
-		//	mockQueue
-		//		.Setup(c => c.DeleteMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.DeleteMessageAsync(message).ConfigureAwait(false);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.DeleteMessageAsync(message).Wait();
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+		[Fact]
+		public async Task GetMessageAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageContent = "Message 1";
 
-		//[Fact]
-		//public void ExistsAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			var LZ4Standard = MessagePackSerializerOptions.Standard
+				.WithResolver(TypelessContractlessStandardResolver.Instance)
+				.WithCompression(MessagePackCompression.Lz4Block);
 
-		//	mockQueue
-		//		.Setup(c => c.ExistsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					var serializedMessage = QueueManager.SerializeMessage(messageContent, ImmutableDictionary<string, string>.Empty);
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(serializedMessage), 0, null, null, null);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.ExistsAsync().Result;
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.ShouldBeTrue();
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
 
-		//[Fact]
-		//public void FetchAttributesAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.Content.GetType().ShouldBe(typeof(string));
+			((string)result.Content).ShouldBe(messageContent);
+		}
 
-		//	mockQueue
-		//		.Setup(c => c.FetchAttributesAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+		[Fact]
+		public async Task GetMessageAsync_when_queue_is_empty()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.FetchAttributesAsync().Wait();
+			mockQueueClient
+				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					return Response.FromValue(Array.Empty<QueueMessage>(), new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
 
-		//[Fact]
-		//public void GetMessageAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var cloudMessage = new CloudQueueMessage("Hello world");
-		//	var message = new CloudMessage("Hello world");
-
-		//	mockQueue
-		//		.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(cloudMessage))
-		//		.Verifiable();
-
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.GetMessageAsync().Result;
-
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.Content.GetType().ShouldBe(message.Content.GetType());
-		//	result.Content.ShouldBe(message.Content);
-		//}
-
-		//[Fact]
-		//public void GetMessageAsync_when_queue_is_empty()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-
-		//	mockQueue
-		//		.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult((CloudQueueMessage)null))
-		//		.Verifiable();
-
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.GetMessageAsync().Result;
-
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.ShouldBeNull();
-		//}
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.ShouldBeNull();
+		}
 
 		//[Fact]
 		//// Serializing and deserializing an instance of an internal class didn't work in MessagePack version 1.7.0 until 1.7.3.
@@ -382,432 +309,430 @@ namespace Picton.UnitTests.Managers
 		//	deserializedMessage.StringProp.ShouldBe(sampleMessage.StringProp);
 		//}
 
-		//[Fact]
-		//public void GetMessagesAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var cloudMessages = new[]
-		//	{
-		//		new CloudQueueMessage("Message 1"),
-		//		new CloudQueueMessage("Message 2")
-		//	};
+		[Fact]
+		public async Task GetMessagesAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = 5;
+			var messageContent1 = "Message 1";
+			var messageContent2 = "Message 2";
 
-		//	mockQueue
-		//		.Setup(c => c.GetMessagesAsync(It.IsAny<int>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.ReturnsAsync((IEnumerable<CloudQueueMessage>)cloudMessages)
-		//		.Verifiable();
+			var LZ4Standard = MessagePackSerializerOptions.Standard
+				.WithResolver(TypelessContractlessStandardResolver.Instance)
+				.WithCompression(MessagePackCompression.Lz4Block);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.GetMessagesAsync(5).Result.ToArray();
+			mockQueueClient
+				.Setup(c => c.ReceiveMessagesAsync(messageCount, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					var serializedMessage1 = QueueManager.SerializeMessage(messageContent1, ImmutableDictionary<string, string>.Empty);
+					var queueMessage1 = QueuesModelFactory.QueueMessage("myMessageId1", "myPopReceipt1", new BinaryData(serializedMessage1), 0, null, null, null);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.Length.ShouldBe(cloudMessages.Length);
-		//}
+					var serializedMessage2 = QueueManager.SerializeMessage(messageContent2, ImmutableDictionary<string, string>.Empty);
+					var queueMessage2 = QueuesModelFactory.QueueMessage("myMessageId2", "myPopReceipt2", new BinaryData(serializedMessage2), 0, null, null, null);
 
-		//[Fact]
-		//public void GetMessagesAsync_throws_when_messageCount_is_too_small()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var messageCount = 0;
+					return Response.FromValue(new[] { queueMessage1, queueMessage2 }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-		//	{
-		//		var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
-		//	});
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
 
-		//	// Assert
-		//	// Nothing to assert because an exception will be thrown
-		//}
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.Length.ShouldBe(2);
+			result[0].Content.GetType().ShouldBe(typeof(string));
+			((string)result[0].Content).ShouldBe(messageContent1);
+			result[1].Content.GetType().ShouldBe(typeof(string));
+			((string)result[1].Content).ShouldBe(messageContent2);
+		}
 
-		//[Fact]
-		//public void GetMessagesAsync_throws_when_messageCount_is_too_large()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
+		[Fact]
+		public async Task GetMessagesAsync_throws_when_messageCount_is_too_small()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = 0;
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-		//	{
-		//		var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
-		//	});
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount)).ConfigureAwait(false);
 
-		//	// Assert
-		//	// Nothing to assert because an exception will be thrown
-		//}
+			// Assert
+			// Nothing to assert because an exception will be thrown
+		}
 
-		//[Fact]
-		//public void GetPermissionsAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var permissions = new QueuePermissions();
+		[Fact]
+		public async Task GetMessagesAsync_throws_when_messageCount_is_too_large()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = mockQueueClient.Object.MaxPeekableMessages + 1;
 
-		//	mockQueue
-		//		.Setup(c => c.GetPermissionsAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(permissions))
-		//		.Verifiable();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount)).ConfigureAwait(false);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.GetPermissionsAsync().Result;
+			// Assert
+			// Nothing to assert because an exception will be thrown
+		}
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.ShouldBe(permissions);
-		//}
+		[Fact]
+		public async Task PeekMessageAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageContent = "Message 1";
 
-		//[Fact]
-		//public void PeekMessageAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var cloudMessage = new CloudQueueMessage("Hello world");
-		//	var message = new CloudMessage("Hello world");
+			var LZ4Standard = MessagePackSerializerOptions.Standard
+				.WithResolver(TypelessContractlessStandardResolver.Instance)
+				.WithCompression(MessagePackCompression.Lz4Block);
 
-		//	mockQueue
-		//		.Setup(c => c.PeekMessageAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(cloudMessage))
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(c => c.PeekMessagesAsync(1, It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, CancellationToken cancellationToken) =>
+				{
+					var serializedMessage = QueueManager.SerializeMessage(messageContent, ImmutableDictionary<string, string>.Empty);
+					var queueMessage = QueuesModelFactory.PeekedMessage("myMessageId", new BinaryData(serializedMessage), 0, null, null);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.PeekMessageAsync().Result;
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.Content.GetType().ShouldBe(message.Content.GetType());
-		//	result.Content.ShouldBe(message.Content);
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			var result = await queueManager.PeekMessageAsync().ConfigureAwait(false);
 
-		//[Fact]
-		//public void PeekMessagesAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var cloudMessages = new[]
-		//	{
-		//		new CloudQueueMessage("Message 1"),
-		//		new CloudQueueMessage("Message 2")
-		//	};
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.Content.GetType().ShouldBe(typeof(string));
+			((string)result.Content).ShouldBe(messageContent);
+		}
 
-		//	mockQueue
-		//		.Setup(c => c.PeekMessagesAsync(It.IsAny<int>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult((IEnumerable<CloudQueueMessage>)cloudMessages))
-		//		.Verifiable();
+		[Fact]
+		public async Task PeekMessagesAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = 5;
+			var messageContent1 = "Message 1";
+			var messageContent2 = "Message 2";
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	var result = queueManager.PeekMessagesAsync(5).Result.ToArray();
+			var LZ4Standard = MessagePackSerializerOptions.Standard
+				.WithResolver(TypelessContractlessStandardResolver.Instance)
+				.WithCompression(MessagePackCompression.Lz4Block);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.Length.ShouldBe(cloudMessages.Length);
-		//}
+			mockQueueClient
+				.Setup(c => c.PeekMessagesAsync(messageCount, It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, CancellationToken cancellationToken) =>
+				{
+					var serializedMessage1 = QueueManager.SerializeMessage(messageContent1, ImmutableDictionary<string, string>.Empty);
+					var queueMessage1 = QueuesModelFactory.PeekedMessage("myMessageId1", new BinaryData(serializedMessage1), 0, null, null);
 
-		//[Fact]
-		//public void PeekMessagesAsync_throws_when_messageCount_is_too_small()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var messageCount = 0;
+					var serializedMessage2 = QueueManager.SerializeMessage(messageContent2, ImmutableDictionary<string, string>.Empty);
+					var queueMessage2 = QueuesModelFactory.PeekedMessage("myMessageId2", new BinaryData(serializedMessage2), 0, null, null);
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-		//	{
-		//		var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
-		//	});
+					return Response.FromValue(new[] { queueMessage1, queueMessage2 }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	// Nothing to assert because an exception will be thrown
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
 
-		//[Fact]
-		//public void PeekMessagesAsync_throws_when_messageCount_is_too_large()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var messageCount = CloudQueueMessage.MaxNumberOfMessagesToPeek + 1;
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.Length.ShouldBe(2);
+			result[0].Content.GetType().ShouldBe(typeof(string));
+			((string)result[0].Content).ShouldBe(messageContent1);
+			result[1].Content.GetType().ShouldBe(typeof(string));
+			((string)result[1].Content).ShouldBe(messageContent2);
+		}
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
-		//	{
-		//		var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
-		//	});
+		[Fact]
+		public async Task PeekMessagesAsync_throws_when_messageCount_is_too_small()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = 0;
 
-		//	// Assert
-		//	// Nothing to assert because an exception will be thrown
-		//}
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount)).ConfigureAwait(false);
 
-		//[Fact]
-		//public void SetMetadataAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
+			// Assert
+			// Nothing to assert because an exception will be thrown
+		}
 
-		//	mockQueue
-		//		.Setup(c => c.SetMetadataAsync(It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+		[Fact]
+		public async Task PeekMessagesAsync_throws_when_messageCount_is_too_large()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageCount = mockQueueClient.Object.MaxPeekableMessages + 1;
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.SetMetadataAsync().Wait();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount)).ConfigureAwait(false);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Assert
+			// Nothing to assert because an exception will be thrown
+		}
 
-		//[Fact]
-		//public void SetPermissionsAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var permissions = new QueuePermissions();
+		[Fact]
+		public async Task SetMetadataAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var metadata = new Dictionary<string, string>()
+				{
+					{ "key1", "value1" },
+					{"key2", "value2" },
+				};
 
-		//	mockQueue
-		//		.Setup(c => c.SetPermissionsAsync(It.IsAny<QueuePermissions>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(c => c.SetMetadataAsync(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((IDictionary<string, string> metadata, CancellationToken cancellationToken) =>
+				{
+					var mockResponse = new Mock<Response>();
+					mockResponse.SetupGet(r => r.Status).Returns(200);
+					return mockResponse.Object;
+				})
+				.Verifiable();
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.SetPermissionsAsync(permissions).Wait();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.SetMetadataAsync(metadata).ConfigureAwait(false);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//[Fact]
-		//public void UpdateMessageVisibilityTimeoutAsync()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var permissions = new QueuePermissions();
-		//	var message = new CloudMessage("Hello world");
-		//	var visibilityTimeout = TimeSpan.FromSeconds(2);
+		[Fact]
+		public async Task UpdateMessageVisibilityTimeoutAsync()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var message = new CloudMessage("Hello world");
+			var visibilityTimeout = TimeSpan.FromSeconds(2);
 
-		//	mockQueue
-		//		.Setup(c => c.UpdateMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan>(), MessageUpdateFields.Visibility, It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(q => q.UpdateMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BinaryData>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageId, string popReceipt, BinaryData message, TimeSpan visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					var receipt = QueuesModelFactory.UpdateReceipt("myPopReceipt", DateTimeOffset.UtcNow);
+					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
+				})
+				  .Verifiable();
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).Wait();
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).ConfigureAwait(false);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//}
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+		}
 
-		//[Fact]
-		//// This unit test verifies that a message based on a POCO class can be serialized/deserialized.
-		//// This was not working in v1.3.0 and was fixed in v1.4.0
-		//public void Add_and_get_POCO_message()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var queuedMessage = (CloudQueueMessage)null;
+		[Fact]
+		// This unit test verifies that a message based on a POCO class can be serialized/deserialized.
+		// This was not working in v1.3.0 and was fixed in v1.4.0
+		public async Task Add_and_get_POCO_message()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			string queuedContent = null;
 
-		//	var sampleMessage = new SampleMessageType
-		//	{
-		//		DateProp = new DateTime(2016, 10, 8, 1, 2, 3, DateTimeKind.Utc),
-		//		GuidProp = Guid.NewGuid(),
-		//		IntProp = 123,
-		//		StringProp = "Hello World"
-		//	};
+			var sampleMessage = new SampleMessageType
+			{
+				DateProp = new DateTime(2016, 10, 8, 1, 2, 3, DateTimeKind.Utc),
+				GuidProp = Guid.NewGuid(),
+				IntProp = 123,
+				StringProp = "Hello World"
+			};
 
-		//	mockQueue
-		//		.Setup(c => c.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Callback((CloudQueueMessage m, TimeSpan? ttl, TimeSpan? v, QueueRequestOptions o, OperationContext c, CancellationToken t) =>
-		//		{
-		//			queuedMessage = m;
-		//		})
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				{
+					queuedContent = messageText;
+					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
+					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	mockQueue
-		//		.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Returns(() => { return Task.FromResult(queuedMessage); })
-		//		.Verifiable();
+			mockQueueClient
+				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(queuedContent), 0, null, null, null);
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.AddMessageAsync(sampleMessage).Wait();
-		//	var result = queueManager.GetMessageAsync().Result;
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			await queueManager.AddMessageAsync(sampleMessage).ConfigureAwait(false);
+			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
 
-		//	result.ShouldNotBeNull();
-		//	result.Content.GetType().ShouldBe(typeof(SampleMessageType));
+			result.ShouldNotBeNull();
+			result.Content.GetType().ShouldBe(typeof(SampleMessageType));
 
-		//	var content = (SampleMessageType)result.Content;
-		//	content.DateProp.ShouldBe(sampleMessage.DateProp);
-		//	content.GuidProp.ShouldBe(sampleMessage.GuidProp);
-		//	content.IntProp.ShouldBe(sampleMessage.IntProp);
-		//	content.StringProp.ShouldBe(sampleMessage.StringProp);
-		//}
+			var content = (SampleMessageType)result.Content;
+			content.DateProp.ShouldBe(sampleMessage.DateProp);
+			content.GuidProp.ShouldBe(sampleMessage.GuidProp);
+			content.IntProp.ShouldBe(sampleMessage.IntProp);
+			content.StringProp.ShouldBe(sampleMessage.StringProp);
+		}
 
-		//[Fact]
-		//public void Add_and_get_large_message()
-		//{
-		//	// Arrange
-		//	var queueName = "myqueue";
-		//	var mockBlobItemUri = new Uri(Misc.BLOB_STORAGE_URL + "test.txt");
-		//	var mockQueue = Misc.GetMockQueue(queueName);
-		//	var mockQueueClient = Misc.GetMockQueueClient(mockQueue);
-		//	var mockBlobContainer = Misc.GetMockBlobContainer();
-		//	var mockBlobClient = Misc.GetMockBlobClient(mockBlobContainer);
-		//	var queuedMessage = (CloudQueueMessage)null;
-		//	var blobItemContent = (byte[])null;
-		//	var excessivelyLargeContent = RandomGenerator.GenerateString((int)CloudQueueMessage.MaxMessageSize * 2);
+		[Fact]
+		public async Task Add_and_get_large_message()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var systemClock = new MockSystemClock(new DateTime(2022, 4, 20, 10, 0, 0, 0, DateTimeKind.Utc)).Object;
+			string queuedContent = null;
+			byte[] blobItemContent = null;
 
-		//	var mockBlobItem = new Mock<CloudBlockBlob>(MockBehavior.Strict, mockBlobItemUri);
-		//	mockBlobItem
-		//		.Setup(b => b.UploadFromStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Callback((Stream source, AccessCondition ac, BlobRequestOptions o, OperationContext c, CancellationToken t) =>
-		//		{
-		//			using (var ms = new MemoryStream())
-		//			{
-		//				source.CopyTo(ms);
-		//				blobItemContent = ms.ToArray();
-		//			}
-		//		})
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			// Mock random generator that generates the name of the blob item
+			var mockRandomGenerator = new Mock<IRandomGenerator>();
+			mockRandomGenerator
+				.Setup(r => r.GenerateString(It.IsAny<int>(), It.IsAny<string>()))
+				.Returns("RandomString")
+				.Verifiable();
 
-		//	mockBlobContainer
-		//		.Setup(c => c.GetBlobReference(It.IsAny<string>()))
-		//		.Returns(mockBlobItem.Object)
-		//		.Verifiable();
+			// The MockBlobClient simulates saving/retrieving the original mesage to/from blob
+			var blobName = $"{systemClock.UtcNow:yyyy-MM-dd-HH-mm-ss}-{mockRandomGenerator.Object.GenerateString(32)}";
+			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
+			mockBlobClient
+				.Setup(b => b.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((BlobRequestConditions conditions, CancellationToken cancellationToken) =>
+				{
+					var blobProperties = BlobsModelFactory.BlobProperties();
+					return Response.FromValue(blobProperties, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
+			mockBlobClient
+				.Setup(b => b.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobRequestConditions>(), It.IsAny<IProgress<long>>(), It.IsAny<AccessTier?>(), It.IsAny<StorageTransferOptions>(), It.IsAny<CancellationToken>()))
+				.Callback((Stream content, BlobHttpHeaders httpHeaders, IDictionary<string, string> metadata, BlobRequestConditions conditions, IProgress<long> progressHandler, AccessTier? accessTier, StorageTransferOptions transferOptions, CancellationToken cancellationToken) =>
+				{
+					using (var ms = new MemoryStream())
+					{
+						content.CopyTo(ms);
+						blobItemContent = ms.ToArray();
+					}
+				})
+				.ReturnsAsync((Stream content, BlobHttpHeaders httpHeaders, IDictionary<string, string> metadata, BlobRequestConditions conditions, IProgress<long> progressHandler, AccessTier? accessTier, StorageTransferOptions transferOptions, CancellationToken cancellationToken) =>
+				{
+					var blobContentInfo = BlobsModelFactory.BlobContentInfo(new ETag("mytag"), new DateTimeOffset(systemClock.UtcNow, TimeSpan.FromSeconds(0)), null, null, null, null, 0);
+					return Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
 
-		//	mockQueue
-		//		.Setup(q => q.AddMessageAsync(It.IsAny<CloudQueueMessage>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Callback((CloudQueueMessage message, TimeSpan? ttl, TimeSpan? initialVisibilityDelay, QueueRequestOptions o, OperationContext c, CancellationToken t) =>
-		//		{
-		//			queuedMessage = message;
-		//		})
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+			mockBlobClient
+				.Setup(b => b.DownloadAsync(It.IsAny<CancellationToken>()))
+				.ReturnsAsync((CancellationToken cancellationToken) =>
+				{
+					var content = new MemoryStream();
+					var bw = new BinaryWriter(content, Encoding.UTF8, true);
+					try
+					{
+						bw.Write(blobItemContent);
+						bw.Flush();
+						content.Seek(0, SeekOrigin.Begin);
+					}
+					finally
+					{
+						bw.Dispose();
+					}
 
-		//	mockQueue
-		//		.Setup(c => c.GetMessageAsync(It.IsAny<TimeSpan?>(), It.IsAny<QueueRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.ReturnsAsync(() => queuedMessage)
-		//		.Verifiable();
+					var blobDownloadInfo = BlobsModelFactory.BlobDownloadInfo(
+						lastModified: new DateTimeOffset(systemClock.UtcNow, TimeSpan.FromSeconds(0)),
+						blobType: BlobType.Block,
+						content: content);
 
-		//	mockBlobItem
-		//		.Setup(b => b.DownloadToStreamAsync(It.IsAny<Stream>(), It.IsAny<AccessCondition>(), It.IsAny<BlobRequestOptions>(), It.IsAny<OperationContext>(), It.IsAny<CancellationToken>()))
-		//		.Callback((Stream target, AccessCondition ac, BlobRequestOptions o, OperationContext c, CancellationToken t) =>
-		//		{
-		//			var bw = new BinaryWriter(target);
-		//			try
-		//			{
-		//				bw.Write(blobItemContent);
-		//				bw.Flush();
-		//				target.Seek(0, SeekOrigin.Begin);
-		//			}
-		//			finally
-		//			{
-		//				bw.Dispose();
-		//			}
-		//		})
-		//		.Returns(Task.FromResult(true))
-		//		.Verifiable();
+					return Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok"));
 
-		//	// Act
-		//	var queueManager = new QueueManager(queueName, mockQueueClient.Object, mockBlobClient.Object);
-		//	queueManager.AddMessageAsync(excessivelyLargeContent).Wait();
-		//	var result = queueManager.GetMessageAsync().Result;
+				})
+				.Verifiable();
 
-		//	// Assert
-		//	mockQueue.Verify();
-		//	mockQueueClient.Verify();
-		//	mockBlobContainer.Verify();
-		//	mockBlobClient.Verify();
-		//	result.Content.GetType().ShouldBe(typeof(string));
-		//	result.Content.ShouldBe(excessivelyLargeContent);
-		//}
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
+
+			// MockQueueClient will send and receive the 'LargeMessageEnvelope' message that indicates the original message was saved to a blob
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			mockQueueClient
+				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				{
+					queuedContent = messageText;
+					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
+					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
+			mockQueueClient
+				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				{
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(queuedContent), 0, null, null, null);
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				})
+				.Verifiable();
+
+			// We want to generate actual random content, so we use that default random generator
+			// (i.e.: RandomGenerator.Instance) as opposed to the mock one created above
+			var excessivelyLargeContent = RandomGenerator.Instance.GenerateString(mockQueueClient.Object.MessageMaxBytes * 2);
+
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true, systemClock, mockRandomGenerator.Object);
+			await queueManager.AddMessageAsync(excessivelyLargeContent).ConfigureAwait(false);
+			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
+
+			// Assert
+			mockQueueClient.Verify();
+			mockBlobContainer.Verify();
+			result.Content.GetType().ShouldBe(typeof(string));
+			result.Content.ShouldBe(excessivelyLargeContent);
+		}
 	}
 }

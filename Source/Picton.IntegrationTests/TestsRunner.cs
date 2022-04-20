@@ -225,7 +225,7 @@ namespace Picton.IntegrationTests
 			int characterCount = 100000;
 			var largeSample = new SampleMessageType
 			{
-				StringProp = RandomGenerator.GenerateString(characterCount)
+				StringProp = RandomGenerator.Instance.GenerateString(characterCount)
 			};
 			await queueManager.AddMessageAsync(largeSample).ConfigureAwait(false);
 
