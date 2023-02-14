@@ -96,7 +96,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -146,7 +146,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -228,7 +228,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -240,7 +240,7 @@ namespace Picton.Managers
 
 			await _blobContainer.CopyAsync(cleanSourceName, cleanDestinationName, leaseId, true, cancellationToken).ConfigureAwait(false);
 
-			if (deleteSourceAfterCopy) await blob.DeleteAsync().ConfigureAwait(false);
+			if (deleteSourceAfterCopy) await blob.DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)

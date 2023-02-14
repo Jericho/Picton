@@ -184,7 +184,7 @@ namespace Picton.IntegrationTests
 			await queueManager.ClearAsync(cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			var queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -197,10 +197,10 @@ namespace Picton.IntegrationTests
 				GuidProp = Guid.NewGuid(),
 				DateProp = new DateTime(2016, 10, 6, 1, 2, 3, DateTimeKind.Utc)
 			};
-			await queueManager.AddMessageAsync(sample).ConfigureAwait(false);
+			await queueManager.AddMessageAsync(sample, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -213,10 +213,10 @@ namespace Picton.IntegrationTests
 			if (receivedMessage.DateProp != sample.DateProp) throw new Exception("Did not receive the expected message");
 
 			// Delete the message from the queue
-			await queueManager.DeleteMessageAsync(message1).ConfigureAwait(false);
+			await queueManager.DeleteMessageAsync(message1, cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -227,10 +227,10 @@ namespace Picton.IntegrationTests
 			{
 				StringProp = RandomGenerator.Instance.GenerateString(characterCount)
 			};
-			await queueManager.AddMessageAsync(largeSample).ConfigureAwait(false);
+			await queueManager.AddMessageAsync(largeSample, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -240,19 +240,19 @@ namespace Picton.IntegrationTests
 			if (largeMessage.StringProp.Length != characterCount) throw new Exception("Did not receive the expected message");
 
 			// Delete the message from the queue
-			await queueManager.DeleteMessageAsync(message2).ConfigureAwait(false);
+			await queueManager.DeleteMessageAsync(message2, cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
 			//-----------------------------------------------------------------
 			// Send a simple string
-			await queueManager.AddMessageAsync("Hello World").ConfigureAwait(false);
+			await queueManager.AddMessageAsync("Hello World", cancellationToken: cancellationToken).ConfigureAwait(false);
 
 			// Check that there is one message in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 1) throw new Exception($"We expected only one message in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the message
@@ -261,10 +261,10 @@ namespace Picton.IntegrationTests
 			if ((string)message3.Content != "Hello World") throw new Exception("Did not receive the expected message");
 
 			// Delete the message from the queue
-			await queueManager.DeleteMessageAsync(message3).ConfigureAwait(false);
+			await queueManager.DeleteMessageAsync(message3, cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 
 
@@ -277,7 +277,7 @@ namespace Picton.IntegrationTests
 			await queue.SendMessageAsync("Hello World STRING 3", cancellationToken).ConfigureAwait(false);
 
 			// Check that there are three messages in the queue
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 3) throw new Exception($"We expected three messages in the queue but we found {queuedMessagesCount} messages.");
 
 			// Get the messages
@@ -290,10 +290,10 @@ namespace Picton.IntegrationTests
 			if ((string)messages[2].Content != "Hello World STRING 3") throw new Exception("Did not receive the expected message");
 
 			// Clear the queue
-			await queueManager.ClearAsync().ConfigureAwait(false);
+			await queueManager.ClearAsync(cancellationToken).ConfigureAwait(false);
 
 			// Check that the queue is empty
-			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync().ConfigureAwait(false);
+			queuedMessagesCount = await queueManager.GetApproximateMessageCountAsync(cancellationToken).ConfigureAwait(false);
 			if (queuedMessagesCount != 0) throw new Exception($"We expected the queue to be empty but we found {queuedMessagesCount} messages.");
 		}
 	}
