@@ -513,11 +513,11 @@ namespace Picton.UnitTests.Managers
 			var queueName = "myqueue";
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
-			var metadata = new Dictionary<string, string>()
-				{
-					{ "key1", "value1" },
-					{"key2", "value2" },
-				};
+			var myMetadata = new Dictionary<string, string>()
+			{
+				{ "key1", "value1" },
+				{ "key2", "value2" },
+			};
 
 			mockQueueClient
 				.Setup(c => c.SetMetadataAsync(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
@@ -531,7 +531,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.SetMetadataAsync(metadata).ConfigureAwait(false);
+			await queueManager.SetMetadataAsync(myMetadata).ConfigureAwait(false);
 
 			// Assert
 			mockQueueClient.Verify();
@@ -546,8 +546,8 @@ namespace Picton.UnitTests.Managers
 			var queueName = "myqueue";
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
-			var message = new CloudMessage("Hello world");
-			var visibilityTimeout = TimeSpan.FromSeconds(2);
+			var myMessage = new CloudMessage("Hello world");
+			var timeout = TimeSpan.FromSeconds(2);
 
 			mockQueueClient
 				.Setup(q => q.UpdateMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BinaryData>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
@@ -560,7 +560,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.UpdateMessageVisibilityTimeoutAsync(message, visibilityTimeout).ConfigureAwait(false);
+			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout).ConfigureAwait(false);
 
 			// Assert
 			mockQueueClient.Verify();
