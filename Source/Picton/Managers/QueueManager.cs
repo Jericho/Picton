@@ -74,13 +74,8 @@ namespace Picton.Managers
 		/// <param name="queueClient">The queue client.</param>
 		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
 		public QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true)
+			: this(blobContainerClient, queueClient, autoCreateResources, null, null)
 		{
-			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
-			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
-			_systemClock = SystemClock.Instance;
-			_randomGenerator = RandomGenerator.Instance;
-
-			if (autoCreateResources) Init();
 		}
 
 		/// <summary>
@@ -89,7 +84,8 @@ namespace Picton.Managers
 		/// <param name="blobContainerClient">The blob container.</param>
 		/// <param name="queueClient">The queue client.</param>
 		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
-		/// <param name="systemClock">Allows dependency injection for unit tesing puposes. Feel free to ignore this parameter.</param>
+		/// <param name="systemClock">Allows dependency injection of a clock for unit tesing purposes. Feel free to ignore this parameter.</param>
+		/// <param name="randomGenerator">Allows dependency injection of a random number generator for unit tesing purposes. Feel free to ignore this parameter.</param>
 		[ExcludeFromCodeCoverage]
 		internal QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true, ISystemClock systemClock = null, IRandomGenerator randomGenerator = null)
 		{
@@ -105,6 +101,7 @@ namespace Picton.Managers
 
 		#region PUBLIC METHODS
 
+		/// <inheritdoc/>
 		public async Task AddMessageAsync<T>(T message, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, CancellationToken cancellationToken = default)
 		{
 			if (message == null) return;
@@ -139,11 +136,13 @@ namespace Picton.Managers
 			}
 		}
 
+		/// <inheritdoc/>
 		public Task ClearAsync(CancellationToken cancellationToken = default)
 		{
 			return _queue.ClearMessagesAsync(cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task DeleteAsync(CancellationToken cancellationToken = default)
 		{
 			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
@@ -151,6 +150,7 @@ namespace Picton.Managers
 			return Task.WhenAll(deleteQueueTask, deleteBlobContainerTask);
 		}
 
+		/// <inheritdoc/>
 		public async Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default)
 		{
 			var isLargeMessage = message.Metadata.TryGetValue(CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA, out string largeContentBlobName);
@@ -164,18 +164,21 @@ namespace Picton.Managers
 			await _queue.DeleteMessageAsync(message.Id, message.PopReceipt, cancellationToken).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public async Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default)
 		{
 			var response = await _queue.GetPropertiesAsync(cancellationToken).ConfigureAwait(false);
 			return response.Value;
 		}
 
+		/// <inheritdoc/>
 		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			var messages = await GetMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 			return messages.FirstOrDefault();
 		}
 
+		/// <inheritdoc/>
 		public async Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
@@ -190,18 +193,21 @@ namespace Picton.Managers
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public async Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default)
 		{
 			var response = await _queue.GetAccessPolicyAsync(cancellationToken).ConfigureAwait(false);
 			return response.Value;
 		}
 
+		/// <inheritdoc/>
 		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
 		{
 			var messages = await PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
 			return messages.FirstOrDefault();
 		}
 
+		/// <inheritdoc/>
 		public async Task<CloudMessage[]> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
@@ -216,11 +222,13 @@ namespace Picton.Managers
 			return await Task.WhenAll(from cloudMessage in cloudMessages select ConvertToPictonMessageAsync(cloudMessage, _blobContainer, cancellationToken)).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public Task SetMetadataAsync(IDictionary<string, string> metadata, CancellationToken cancellationToken = default)
 		{
 			return _queue.SetMetadataAsync(metadata, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task SetAccessPolicyAsync(IEnumerable<QueueSignedIdentifier> permissions, CancellationToken cancellationToken = default)
 		{
 			return _queue.SetAccessPolicyAsync(permissions, cancellationToken);
@@ -242,11 +250,13 @@ namespace Picton.Managers
 		}
 		*/
 
+		/// <inheritdoc/>
 		public Task UpdateMessageVisibilityTimeoutAsync(CloudMessage message, TimeSpan visibilityTimeout, CancellationToken cancellationToken = default)
 		{
 			return _queue.UpdateMessageAsync(message.Id, message.PopReceipt, (BinaryData)null, visibilityTimeout, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public async Task<int> GetApproximateMessageCountAsync(CancellationToken cancellationToken = default)
 		{
 			var properties = await _queue.GetPropertiesAsync(cancellationToken).ConfigureAwait(false);
@@ -259,7 +269,7 @@ namespace Picton.Managers
 
 		internal static async Task<MessageEnvelope> DeserializeMessageAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
-			bool CheckSerializationType(ReadOnlyMemory<byte> memory)
+			static bool CheckSerializationType(ReadOnlyMemory<byte> memory)
 			{
 				var reader = new MessagePackReader(memory);
 
@@ -300,7 +310,7 @@ namespace Picton.Managers
 					var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
 
 					// Add the name of the blob item to metadata
-					if (messageEnvelope.Metadata == null) messageEnvelope.Metadata = new Dictionary<string, string>();
+					messageEnvelope.Metadata ??= new Dictionary<string, string>();
 					messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
 
 					// Return the envelope

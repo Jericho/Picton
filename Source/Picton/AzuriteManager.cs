@@ -6,10 +6,17 @@ using System.Threading;
 
 namespace Picton
 {
+	/// <summary>
+	/// Starts and stops the Azurite emulator.
+	/// This is particularly useful when you need an environment to execute your integration tests.
+	/// </summary>
 	public class AzuriteManager : IDisposable
 	{
 		private Process _process;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="AzuriteManager"/> class.
+		/// </summary>
 		public AzuriteManager()
 		{
 			StartEmulator();
