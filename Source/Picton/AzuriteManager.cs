@@ -20,9 +20,6 @@ namespace Picton
 		/// </summary>
 		public void Dispose()
 		{
-			// Stop the Azurite process
-			StopEmulator();
-
 			// Call 'Dispose' to release resources
 			Dispose(true);
 
@@ -36,6 +33,8 @@ namespace Picton
 		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
 		protected virtual void Dispose(bool disposing)
 		{
+			StopEmulator();
+
 			if (disposing)
 			{
 				ReleaseManagedResources();
@@ -66,7 +65,7 @@ namespace Picton
 			var retMessage = string.Empty;
 
 			using (var proc = new Process { EnableRaisingEvents = true, StartInfo = start })
-			using (ManualResetEvent mreOut = new ManualResetEvent(false))
+			using (var mreOut = new ManualResetEvent(false))
 			{
 				proc.Start();
 				proc.OutputDataReceived += (o, e) => { if (e.Data == null) mreOut.Set(); else retMessage = e.Data; };
@@ -112,13 +111,17 @@ namespace Picton
 
 		private void StopEmulator()
 		{
+			if (_process == null) return;
+
 			try
 			{
 				_process.Kill();
 				_process.WaitForExit();
+				_process = null;
 			}
 			catch
 			{
+				// Intentionally left blank
 			}
 		}
 
