@@ -41,18 +41,6 @@ namespace Picton
 		protected virtual void Dispose(bool disposing)
 		{
 			StopEmulator();
-
-			if (disposing)
-			{
-				ReleaseManagedResources();
-			}
-			else
-			{
-				// The object went out of scope and the Finalizer has been called.
-				// The GC will take care of releasing managed resources, therefore there is nothing to do here.
-			}
-
-			ReleaseUnmanagedResources();
 		}
 
 		private static string LaunchVswhere(string arguments)
@@ -124,26 +112,13 @@ namespace Picton
 			{
 				_process.Kill();
 				_process.WaitForExit();
+				_process.Dispose();
 				_process = null;
 			}
 			catch
 			{
 				// Intentionally left blank
 			}
-		}
-
-		private void ReleaseManagedResources()
-		{
-			if (_process != null)
-			{
-				_process.Dispose();
-				_process = null;
-			}
-		}
-
-		private void ReleaseUnmanagedResources()
-		{
-			// We do not hold references to unmanaged resources
 		}
 	}
 }
