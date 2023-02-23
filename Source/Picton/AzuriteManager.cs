@@ -6,10 +6,17 @@ using System.Threading;
 
 namespace Picton
 {
+	/// <summary>
+	/// Starts and stops the Azurite emulator.
+	/// This is particularly useful when you need an environment to execute your integration tests.
+	/// </summary>
 	public class AzuriteManager : IDisposable
 	{
 		private Process _process;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="AzuriteManager"/> class.
+		/// </summary>
 		public AzuriteManager()
 		{
 			StartEmulator();
@@ -20,9 +27,6 @@ namespace Picton
 		/// </summary>
 		public void Dispose()
 		{
-			// Stop the Azurite process
-			StopEmulator();
-
 			// Call 'Dispose' to release resources
 			Dispose(true);
 
@@ -36,17 +40,7 @@ namespace Picton
 		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
 		protected virtual void Dispose(bool disposing)
 		{
-			if (disposing)
-			{
-				ReleaseManagedResources();
-			}
-			else
-			{
-				// The object went out of scope and the Finalizer has been called.
-				// The GC will take care of releasing managed resources, therefore there is nothing to do here.
-			}
-
-			ReleaseUnmanagedResources();
+			StopEmulator();
 		}
 
 		private static string LaunchVswhere(string arguments)
@@ -66,7 +60,7 @@ namespace Picton
 			var retMessage = string.Empty;
 
 			using (var proc = new Process { EnableRaisingEvents = true, StartInfo = start })
-			using (ManualResetEvent mreOut = new ManualResetEvent(false))
+			using (var mreOut = new ManualResetEvent(false))
 			{
 				proc.Start();
 				proc.OutputDataReceived += (o, e) => { if (e.Data == null) mreOut.Set(); else retMessage = e.Data; };
@@ -112,28 +106,19 @@ namespace Picton
 
 		private void StopEmulator()
 		{
+			if (_process == null) return;
+
 			try
 			{
 				_process.Kill();
 				_process.WaitForExit();
-			}
-			catch
-			{
-			}
-		}
-
-		private void ReleaseManagedResources()
-		{
-			if (_process != null)
-			{
 				_process.Dispose();
 				_process = null;
 			}
-		}
-
-		private void ReleaseUnmanagedResources()
-		{
-			// We do not hold references to unmanaged resources
+			catch
+			{
+				// Intentionally left blank
+			}
 		}
 	}
 }

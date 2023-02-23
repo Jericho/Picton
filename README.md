@@ -1,6 +1,6 @@
 # Picton
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](http://jericho.mit-license.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://jericho.mit-license.org/)
 [![Build status](https://ci.appveyor.com/api/projects/status/9guqjro396ytudv3?svg=true)](https://ci.appveyor.com/project/Jericho/picton)
 [![Coverage Status](https://coveralls.io/repos/github/Jericho/Picton/badge.svg?branch=master)](https://coveralls.io/github/Jericho/Picton?branch=master)
 [![CodeFactor](https://www.codefactor.io/repository/github/jericho/picton/badge)](https://www.codefactor.io/repository/github/jericho/picton)
@@ -46,7 +46,7 @@ Another example: the Blob queue can automatically request a lock (AKA lease) bef
 
 Picton is available as a Nuget package.
 
-[![NuGet Version](http://img.shields.io/nuget/v/Picton.svg)](https://www.nuget.org/packages/Picton/)
+[![NuGet Version](https://img.shields.io/nuget/v/Picton.svg)](https://www.nuget.org/packages/Picton/)
 
 
 ## Installation

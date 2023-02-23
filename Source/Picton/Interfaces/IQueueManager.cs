@@ -22,13 +22,13 @@ namespace Picton.Interfaces
 
 		Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
-		Task<IEnumerable<CloudMessage>> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
+		Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
 		Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default);
 
 		Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default);
 
-		Task<IEnumerable<CloudMessage>> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default);
+		Task<CloudMessage[]> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default);
 
 		Task SetMetadataAsync(IDictionary<string, string> metadata, CancellationToken cancellationToken = default);
 

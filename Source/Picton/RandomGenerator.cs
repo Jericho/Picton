@@ -1,3 +1,4 @@
+using Picton.Interfaces;
 using System;
 using System.Security.Cryptography;
 
@@ -6,20 +7,20 @@ namespace Picton
 	/// <summary>
 	/// Random generator.
 	/// </summary>
-	public static class RandomGenerator
+	public class RandomGenerator : IRandomGenerator
 	{
-		#region PUBLIC METHODS
+		#region FIELDS
 
-		/// <summary>
-		/// This method simulates a roll of the dice. The input parameter is the
-		/// number of sides of the dice.
-		/// </summary>
-		/// <param name="numberSides">Number of sides of the dice.</param>
-		/// <returns>A random value.</returns>
-		/// <remarks>
-		/// From RNGCryptoServiceProvider <a href="https://msdn.microsoft.com/en-us/library/system.security.cryptography.rngcryptoserviceprovider.aspx">documentation</a>.
-		/// </remarks>
-		public static byte RollDice(byte numberSides)
+		private static readonly Lazy<IRandomGenerator> _instance = new Lazy<IRandomGenerator>(() => new RandomGenerator(), true);
+
+		#endregion
+
+		#region PROPERTIES
+
+		public static IRandomGenerator Instance { get { return _instance.Value; } }
+
+		/// <inheritdoc/>
+		public byte RollDice(byte numberSides)
 		{
 			if (numberSides <= 0)
 				throw new ArgumentOutOfRangeException(nameof(numberSides));
@@ -41,7 +42,8 @@ namespace Picton
 			return (byte)((randomNumber[0] % numberSides) + 1);
 		}
 
-		public static string GenerateString(int length, string allowableCharacters = "abcdefghijklmnopqrstuvwxyz0123456789")
+		/// <inheritdoc/>
+		public string GenerateString(int length, string allowableCharacters = "abcdefghijklmnopqrstuvwxyz0123456789")
 		{
 			using (var random = RandomNumberGenerator.Create())
 			{
@@ -84,7 +86,8 @@ namespace Picton
 			}
 		}
 
-		public static byte[] GenerateSalt(int length)
+		/// <inheritdoc/>
+		public byte[] GenerateSalt(int length)
 		{
 			var salt = new byte[length];
 
@@ -96,11 +99,18 @@ namespace Picton
 			return salt;
 		}
 
-		public static string GenerateSaltString(int length)
+		/// <inheritdoc/>
+		public string GenerateSaltString(int length)
 		{
 			var saltBytes = GenerateSalt(length);
 			return Convert.ToBase64String(saltBytes);
 		}
+
+		#endregion
+
+		#region CONSTRUCTOR
+
+		private RandomGenerator() { }
 
 		#endregion
 

@@ -6,7 +6,10 @@ namespace Picton.Utilities
 	{
 		#region FIELDS
 
+		// Suppress Warning CA2213 because _streams is properly disposed in the 'ReleaseManagedResources' method.
+#pragma warning disable CA2213
 		private readonly MultiStream _streams;
+#pragma warning restore CA2213
 
 		#endregion
 
@@ -75,6 +78,42 @@ namespace Picton.Utilities
 
 		public override void Write(byte[] buffer, int offset, int count)
 		{
+		}
+
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		/// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				ReleaseManagedResources();
+			}
+			else
+			{
+				// The object went out of scope and the Finalizer has been called.
+				// The GC will take care of releasing managed resources, therefore there is nothing to do here.
+			}
+
+			ReleaseUnmanagedResources();
+		}
+
+		#endregion
+
+		#region PRIVATE METHODS
+
+		private void ReleaseManagedResources()
+		{
+			if (_streams != null)
+			{
+				_streams.Dispose();
+			}
+		}
+
+		private void ReleaseUnmanagedResources()
+		{
+			// We do not hold references to unmanaged resources
 		}
 
 		#endregion

@@ -40,6 +40,7 @@ namespace Picton.Managers
 
 		#region PUBLIC METHODS
 
+		/// <inheritdoc/>
 		public BlobClient GetBlobReference(string blobName)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
@@ -48,6 +49,7 @@ namespace Picton.Managers
 			return blob;
 		}
 
+		/// <inheritdoc/>
 		public async Task<BlobDownloadInfo> GetBlobContentAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			try
@@ -64,6 +66,7 @@ namespace Picton.Managers
 			}
 		}
 
+		/// <inheritdoc/>
 		public async Task<byte[]> GetBlobBinaryContentAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			try
@@ -96,7 +99,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -112,24 +115,28 @@ namespace Picton.Managers
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public Task UploadBytesAsync(string blobName, byte[] buffer, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var memorystream = new MemoryStream(buffer);
 			return this.UploadStreamAsync(blobName, memorystream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task UploadTextAsync(string blobName, string content, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return this.UploadBytesAsync(blobName, buffer, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task UploadFileAsync(string blobName, string fileName, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var fileStream = File.OpenRead(fileName);
 			return this.UploadStreamAsync(blobName, fileStream, mimeType, metadata, cacheControl, contentEncoding, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public async Task AppendStreamAsync(string blobName, Stream stream, IDictionary<string, string> metadata = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			if (string.IsNullOrEmpty(blobName)) throw new ArgumentException("You must specify the name of the blob", nameof(blobName));
@@ -146,7 +153,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -162,18 +169,21 @@ namespace Picton.Managers
 			if (!string.IsNullOrEmpty(leaseId)) await blob.ReleaseLeaseAsync(leaseId, cancellationToken).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public Task AppendBytesAsync(string blobName, byte[] buffer, IDictionary<string, string> metadata = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var memoryStream = new MemoryStream(buffer);
 			return AppendStreamAsync(blobName, memoryStream, metadata, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task AppendTextAsync(string blobName, string content, IDictionary<string, string> metadata = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			var buffer = content.ToBytes();
 			return this.AppendBytesAsync(blobName, buffer, metadata, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default)
 		{
 			var cleanBlobName = SanitizeBlobName(blobName);
@@ -181,6 +191,7 @@ namespace Picton.Managers
 			await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, null, cancellationToken).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc/>
 		public async Task DeleteBlobsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default)
 		{
 			var blobItems = ListBlobs(prefix, true, cancellationToken);
@@ -190,6 +201,7 @@ namespace Picton.Managers
 			}
 		}
 
+		/// <inheritdoc/>
 		public Pageable<BlobItem> ListBlobs(string prefix, bool includeMetadata = false, CancellationToken cancellationToken = default)
 		{
 			var cleanPrefix = SanitizeBlobName(prefix, true);
@@ -198,11 +210,13 @@ namespace Picton.Managers
 			return _blobContainer.GetBlobs(traits, BlobStates.None, cleanPrefix, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task CopyBlobAsync(string sourceBlobName, string destinationBlobName, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			return MoveOrCopyBlobAsync(sourceBlobName, destinationBlobName, false, acquireLease, maxLeaseAttempts, cancellationToken);
 		}
 
+		/// <inheritdoc/>
 		public Task MoveBlobAsync(string sourceBlobName, string destinationBlobName, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			return MoveOrCopyBlobAsync(sourceBlobName, destinationBlobName, true, acquireLease, maxLeaseAttempts, cancellationToken);
@@ -228,7 +242,7 @@ namespace Picton.Managers
 				{
 					leaseId = await blob.TryAcquireLeaseAsync(null, maxLeaseAttempts, cancellationToken).ConfigureAwait(false);
 					if (string.IsNullOrEmpty(leaseId)) break;
-					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't attempt too quickly
+					else if (attempts + 1 < maxLeaseAttempts) await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't attempt too quickly
 				}
 
 				if (string.IsNullOrEmpty(leaseId)) throw new Exception("Unable to obtain blob lease");
@@ -240,7 +254,7 @@ namespace Picton.Managers
 
 			await _blobContainer.CopyAsync(cleanSourceName, cleanDestinationName, leaseId, true, cancellationToken).ConfigureAwait(false);
 
-			if (deleteSourceAfterCopy) await blob.DeleteAsync().ConfigureAwait(false);
+			if (deleteSourceAfterCopy) await blob.DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)
