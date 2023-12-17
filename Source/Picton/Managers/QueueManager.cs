@@ -35,6 +35,7 @@ namespace Picton.Managers
 
 		#region PROPERTIES
 
+		/// <inheritdoc/>
 		public string QueueName { get => _queue.Name; }
 
 		#endregion
@@ -53,14 +54,24 @@ namespace Picton.Managers
 		/// </param>
 		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
 		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
+		/// <param name="queueClientOptions">
+		/// Optional client options that define the transport pipeline
+		/// policies for authentication, retries, etc., that are applied to
+		/// every request to the queue.
+		/// </param>
+		/// <param name="blobClientOptions">
+		/// Optional client options that define the transport pipeline
+		/// policies for authentication, retries, etc., that are applied to
+		/// every request to the blob storage.
+		/// </param>
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true)
+		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
 		{
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
-			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
-			_queue = new QueueClient(connectionString, queueName);
+			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages", blobClientOptions);
+			_queue = new QueueClient(connectionString, queueName, queueClientOptions);
 			_systemClock = SystemClock.Instance;
 			_randomGenerator = RandomGenerator.Instance;
 
