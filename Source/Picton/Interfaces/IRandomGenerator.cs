@@ -1,20 +1,14 @@
-using System;
-
 namespace Picton.Interfaces
 {
 	public interface IRandomGenerator
 	{
 		/// <summary>
-		/// This method simulates a roll of the dice. The input parameter is the
-		/// number of sides of the dice.
+		/// Generates a random integer between two values.
 		/// </summary>
-		/// <param name="numberSides">Number of sides of the dice.</param>
+		/// <param name="minValueInclusive">The minimum value.</param>
+		/// <param name="maxValueExclusive">The maximum value.</param>
 		/// <returns>A random value.</returns>
-		/// <exception cref="ArgumentOutOfRangeException">Number of sides must be greater than zero.</exception>
-		/// <remarks>
-		/// From RNGCryptoServiceProvider <a href="https://msdn.microsoft.com/en-us/library/system.security.cryptography.rngcryptoserviceprovider.aspx">documentation</a>.
-		/// </remarks>
-		byte RollDice(byte numberSides);
+		int GetInt32(int minValueInclusive, int maxValueExclusive);
 
 		string GenerateString(int length, string allowableCharacters = "abcdefghijklmnopqrstuvwxyz0123456789");
 
