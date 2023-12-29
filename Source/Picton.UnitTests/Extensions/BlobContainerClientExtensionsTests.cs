@@ -20,7 +20,7 @@ namespace Picton.UnitTests.Extensions
 				var destinationBlobName = "DestinationBlob.txt";
 
 				// Act
-				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobContainerClient)null).CopyAsync(sourceBlobName, destinationBlobName, null, true, cancellationToken)).ConfigureAwait(false);
+				await Should.ThrowAsync<ArgumentNullException>(() => ((BlobContainerClient)null).CopyAsync(sourceBlobName, destinationBlobName, null, true, cancellationToken));
 			}
 		}
 	}
