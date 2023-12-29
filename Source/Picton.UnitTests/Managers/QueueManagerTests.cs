@@ -156,7 +156,7 @@ namespace Picton.UnitTests.Managers
 		}
 
 		[Fact]
-		public async Task DeleteIfExistsAsync()
+		public async Task DeleteResourcesAsync()
 		{
 			// Arrange
 			var containerName = "mycontainer";
@@ -180,7 +180,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.DeleteAsync();
+			await queueManager.DeleteResourcesAsync();
 
 			// Assert
 		}

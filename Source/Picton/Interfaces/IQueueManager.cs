@@ -14,7 +14,7 @@ namespace Picton.Interfaces
 
 		Task ClearAsync(CancellationToken cancellationToken = default);
 
-		Task DeleteAsync(CancellationToken cancellationToken = default);
+		Task DeleteResourcesAsync(CancellationToken cancellationToken = default);
 
 		Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default);
 

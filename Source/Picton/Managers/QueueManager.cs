@@ -154,7 +154,7 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public Task DeleteAsync(CancellationToken cancellationToken = default)
+		public Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
 		{
 			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
 			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
