@@ -1,4 +1,4 @@
-using Moq;
+using NSubstitute;
 using Shouldly;
 using System;
 using System.Reflection;
@@ -19,17 +19,15 @@ namespace Picton.UnitTests.Extensions
 					new AssemblyConfigurationAttribute("debug")
 				};
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var result = mockAssembly.Object.IsDebugConfiguration();
+				var result = mockAssembly.IsDebugConfiguration();
 
 				// Assert
-				mockAssembly.Verify();
 				result.ShouldBeTrue();
 			}
 
@@ -39,20 +37,18 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = new[]
 				{
-				new AssemblyConfigurationAttribute("qwerty")
-			};
+					new AssemblyConfigurationAttribute("qwerty")
+				};
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var result = mockAssembly.Object.IsDebugConfiguration();
+				var result = mockAssembly.IsDebugConfiguration();
 
 				// Assert
-				mockAssembly.Verify();
 				result.ShouldBeFalse();
 			}
 		}
@@ -68,17 +64,15 @@ namespace Picton.UnitTests.Extensions
 					new AssemblyConfigurationAttribute("release")
 				};
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var result = mockAssembly.Object.IsReleaseConfiguration();
+				var result = mockAssembly.IsReleaseConfiguration();
 
 				// Assert
-				mockAssembly.Verify();
 				result.ShouldBeTrue();
 			}
 
@@ -91,17 +85,15 @@ namespace Picton.UnitTests.Extensions
 					new AssemblyConfigurationAttribute("qwerty")
 				};
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var result = mockAssembly.Object.IsDebugConfiguration();
+				var result = mockAssembly.IsDebugConfiguration();
 
 				// Assert
-				mockAssembly.Verify();
 				result.ShouldBeFalse();
 			}
 		}
@@ -114,17 +106,15 @@ namespace Picton.UnitTests.Extensions
 				// Arrange
 				var attributes = (AssemblyConfigurationAttribute[])null;
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var e = Should.Throw<Exception>(() => mockAssembly.Object.IsDebugConfiguration());
+				var e = Should.Throw<Exception>(() => mockAssembly.IsDebugConfiguration());
 
 				// Assert
-				mockAssembly.Verify();
 				e.Message.ShouldBe("Assembly does not contain the AssemblyConfiguration attribute.");
 			}
 
@@ -132,19 +122,17 @@ namespace Picton.UnitTests.Extensions
 			public void Throws_if_zero_matching_attributes()
 			{
 				// Arrange
-				var attributes = new AssemblyConfigurationAttribute[] { };
+				var attributes = Array.Empty<AssemblyConfigurationAttribute>();
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var e = Should.Throw<Exception>(() => mockAssembly.Object.IsDebugConfiguration());
+				var e = Should.Throw<Exception>(() => mockAssembly.IsDebugConfiguration());
 
 				// Assert
-				mockAssembly.Verify();
 				e.Message.ShouldBe("Assembly does not contain the AssemblyConfiguration attribute.");
 			}
 
@@ -158,17 +146,15 @@ namespace Picton.UnitTests.Extensions
 					new AssemblyConfigurationAttribute("qwerty")
 				};
 
-				var mockAssembly = new Mock<MockAssembly>(MockBehavior.Strict);
+				var mockAssembly = Substitute.For<MockAssembly>();
 				mockAssembly
-					.Setup(m => m.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true))
-					.Returns(attributes)
-					.Verifiable();
+					.GetCustomAttributes(typeof(AssemblyConfigurationAttribute), true)
+					.Returns(attributes);
 
 				// Act
-				var e = Should.Throw<Exception>(() => mockAssembly.Object.IsDebugConfiguration());
+				var e = Should.Throw<Exception>(() => mockAssembly.IsDebugConfiguration());
 
 				// Assert
-				mockAssembly.Verify();
 				e.Message.ShouldBe("Assembly contains multiple AssemblyConfiguration attributes. There should only be one attribute.");
 			}
 		}

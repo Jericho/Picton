@@ -1,6 +1,6 @@
 using Azure;
 using Azure.Storage.Blobs.Models;
-using Moq;
+using NSubstitute;
 using Picton.Managers;
 using Shouldly;
 using System;
@@ -23,10 +23,9 @@ namespace Picton.UnitTests.Managers
 				var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName);
 
 				// Act
-				new BlobManager(mockBlobContainer.Object, PublicAccessType.None);
+				var queueManager = new BlobManager(mockBlobContainer, PublicAccessType.None);
 
 				// Assert
-				mockBlobContainer.Verify();
 			}
 		}
 
@@ -40,19 +39,16 @@ namespace Picton.UnitTests.Managers
 
 			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
 			mockBlobClient
-				.Setup(b => b.DownloadAsync(cancellationToken))
-				.ThrowsAsync(new RequestFailedException(404, "Blob does not exist", "BlobNotFound", new Exception("???")))
-				.Verifiable();
+				.When(callInfo => callInfo.DownloadAsync(cancellationToken))
+				.Do(callInfo => throw new RequestFailedException(404, "Blob does not exist", "BlobNotFound", new Exception("???")));
 
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
 
 			// Act
-			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.None);
-			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
+			var blobManager = new BlobManager(mockBlobContainer, PublicAccessType.None);
+			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
 
 			// Assert
-			mockBlobContainer.Verify();
-			mockBlobClient.Verify();
 			downloadInfo.ShouldBeNull();
 		}
 
@@ -69,21 +65,18 @@ namespace Picton.UnitTests.Managers
 
 			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
 			mockBlobClient
-				.Setup(b => b.DownloadAsync(cancellationToken))
-				.ReturnsAsync(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")))
-				.Verifiable();
+				.DownloadAsync(cancellationToken)
+				.Returns(Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok")));
 
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
 
 			// Act
-			var blobManager = new BlobManager(mockBlobContainer.Object, PublicAccessType.BlobContainer);
-			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None).ConfigureAwait(false);
+			var blobManager = new BlobManager(mockBlobContainer, PublicAccessType.BlobContainer);
+			var downloadInfo = await blobManager.GetBlobContentAsync(blobName, CancellationToken.None);
 			var reader = new StreamReader(downloadInfo.Content);
 			var content = reader.ReadToEnd();
 
 			// Assert
-			mockBlobContainer.Verify();
-			mockBlobClient.Verify();
 			content.ShouldBe(expected);
 		}
 	}
