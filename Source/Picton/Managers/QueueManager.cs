@@ -183,13 +183,6 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
-		{
-			var messages = await GetMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
-			return messages.FirstOrDefault();
-		}
-
-		/// <inheritdoc/>
 		public async Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
@@ -209,13 +202,6 @@ namespace Picton.Managers
 		{
 			var response = await _queue.GetAccessPolicyAsync(cancellationToken).ConfigureAwait(false);
 			return response.Value;
-		}
-
-		/// <inheritdoc/>
-		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
-		{
-			var messages = await PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
-			return messages.FirstOrDefault();
 		}
 
 		/// <inheritdoc/>
