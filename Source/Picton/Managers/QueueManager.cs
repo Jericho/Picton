@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
@@ -138,12 +139,12 @@ namespace Picton.Managers
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
-				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
