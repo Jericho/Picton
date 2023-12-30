@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
@@ -35,6 +36,7 @@ namespace Picton.Managers
 
 		#region PROPERTIES
 
+		/// <inheritdoc/>
 		public string QueueName { get => _queue.Name; }
 
 		#endregion
@@ -53,14 +55,24 @@ namespace Picton.Managers
 		/// </param>
 		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
 		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
+		/// <param name="queueClientOptions">
+		/// Optional client options that define the transport pipeline
+		/// policies for authentication, retries, etc., that are applied to
+		/// every request to the queue.
+		/// </param>
+		/// <param name="blobClientOptions">
+		/// Optional client options that define the transport pipeline
+		/// policies for authentication, retries, etc., that are applied to
+		/// every request to the blob storage.
+		/// </param>
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true)
+		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
 		{
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
-			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages");
-			_queue = new QueueClient(connectionString, queueName);
+			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages", blobClientOptions);
+			_queue = new QueueClient(connectionString, queueName, queueClientOptions);
 			_systemClock = SystemClock.Instance;
 			_randomGenerator = RandomGenerator.Instance;
 
@@ -127,12 +139,12 @@ namespace Picton.Managers
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
-				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 			else
 			{
 				// The size of this message is within the range allowed by Azure Storage queues
-				await _queue.SendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
+				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -143,7 +155,7 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public Task DeleteAsync(CancellationToken cancellationToken = default)
+		public Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
 		{
 			var deleteQueueTask = _queue.DeleteIfExistsAsync(cancellationToken);
 			var deleteBlobContainerTask = _blobContainer.DeleteIfExistsAsync(null, cancellationToken);
@@ -172,13 +184,6 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public async Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
-		{
-			var messages = await GetMessagesAsync(1, visibilityTimeout, cancellationToken).ConfigureAwait(false);
-			return messages.FirstOrDefault();
-		}
-
-		/// <inheritdoc/>
 		public async Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
 		{
 			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
@@ -198,13 +203,6 @@ namespace Picton.Managers
 		{
 			var response = await _queue.GetAccessPolicyAsync(cancellationToken).ConfigureAwait(false);
 			return response.Value;
-		}
-
-		/// <inheritdoc/>
-		public async Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default)
-		{
-			var messages = await PeekMessagesAsync(1, cancellationToken).ConfigureAwait(false);
-			return messages.FirstOrDefault();
 		}
 
 		/// <inheritdoc/>

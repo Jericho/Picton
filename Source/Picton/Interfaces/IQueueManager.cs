@@ -14,19 +14,15 @@ namespace Picton.Interfaces
 
 		Task ClearAsync(CancellationToken cancellationToken = default);
 
-		Task DeleteAsync(CancellationToken cancellationToken = default);
+		Task DeleteResourcesAsync(CancellationToken cancellationToken = default);
 
 		Task DeleteMessageAsync(CloudMessage message, CancellationToken cancellationToken = default);
 
 		Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default);
 
-		Task<CloudMessage> GetMessageAsync(TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
-
 		Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
 		Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default);
-
-		Task<CloudMessage> PeekMessageAsync(CancellationToken cancellationToken = default);
 
 		Task<CloudMessage[]> PeekMessagesAsync(int messageCount, CancellationToken cancellationToken = default);
 

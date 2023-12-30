@@ -6,7 +6,7 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
 using MessagePack.Resolvers;
-using Moq;
+using NSubstitute;
 using Picton.Interfaces;
 using Picton.Managers;
 using Shouldly;
@@ -41,7 +41,7 @@ namespace Picton.UnitTests.Managers
 				var mockQueueClient = MockUtils.GetMockQueueClient();
 
 				// Act
-				new QueueManager(blobContainer, mockQueueClient.Object, false);
+				new QueueManager(blobContainer, mockQueueClient, false);
 			});
 		}
 
@@ -55,7 +55,7 @@ namespace Picton.UnitTests.Managers
 				var queueClient = (QueueClient)null;
 
 				// Act
-				new QueueManager(mockBlobContainer.Object, queueClient, false);
+				new QueueManager(mockBlobContainer, queueClient, false);
 			});
 		}
 
@@ -69,11 +69,9 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			// Act
-			new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
+			new QueueManager(mockBlobContainer, mockQueueClient, true);
 
 			// Assert
-			mockBlobContainer.Verify();
-			mockQueueClient.Verify();
 		}
 
 		[Fact]
@@ -86,21 +84,23 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			mockQueueClient
-				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
+					var messageText = callInfo.ArgAt<string>(0);
+					var visibilityTimeout = callInfo.ArgAt<TimeSpan?>(1);
+					var timeToLive = callInfo.ArgAt<TimeSpan?>(2);
+					var cancellationToken = callInfo.ArgAt<CancellationToken>(3);
+
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.AddMessageAsync("Hello world!").ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.AddMessageAsync("Hello world!");
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -113,24 +113,21 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			mockQueueClient
-				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
-				})
-				  .Verifiable();
+				});
 
 			// This string is highly "compressible" because it contains only one character repeated numerous times
-			var largeContentWillBeCompressed = new String('z', (int)mockQueueClient.Object.MessageMaxBytes * 2);
+			var largeContentWillBeCompressed = new String('z', (int)mockQueueClient.MessageMaxBytes * 2);
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.AddMessageAsync(largeContentWillBeCompressed).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.AddMessageAsync(largeContentWillBeCompressed);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -143,26 +140,23 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			mockQueueClient
-				.Setup(q => q.ClearMessagesAsync(It.IsAny<CancellationToken>()))
-				.ReturnsAsync((CancellationToken cancellationToken) =>
+				.ClearMessagesAsync(Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
-					var mockResponse = new Mock<Response>();
-					mockResponse.SetupGet(r => r.Status).Returns(200);
-					return mockResponse.Object;
-				})
-				  .Verifiable();
+					var mockResponse = Substitute.For<Response>();
+					mockResponse.Status.Returns(200);
+					return mockResponse;
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.ClearAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.ClearAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
-		public async Task DeleteIfExistsAsync()
+		public async Task DeleteResourcesAsync()
 		{
 			// Arrange
 			var containerName = "mycontainer";
@@ -171,28 +165,24 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			mockBlobContainer
-				.Setup(c => c.DeleteIfExistsAsync(null, It.IsAny<CancellationToken>()))
-				.ReturnsAsync((BlobRequestConditions conditions, CancellationToken cancellationToken) =>
+				.DeleteIfExistsAsync(null, Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					return Response.FromValue(true, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			mockQueueClient
-				.Setup(c => c.DeleteIfExistsAsync(It.IsAny<CancellationToken>()))
-				.ReturnsAsync((CancellationToken cancellationToken) =>
+				.DeleteIfExistsAsync(Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					return Response.FromValue(true, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.DeleteAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.DeleteResourcesAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -206,22 +196,19 @@ namespace Picton.UnitTests.Managers
 			var message = new CloudMessage("Hello world");
 
 			mockQueueClient
-				.Setup(c => c.DeleteMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageId, string popReceipt, CancellationToken cancellationToken) =>
+				.DeleteMessageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
-					var mockResponse = new Mock<Response>();
-					mockResponse.SetupGet(r => r.Status).Returns(200);
-					return mockResponse.Object;
-				})
-				.Verifiable();
+					var mockResponse = Substitute.For<Response>();
+					mockResponse.Status.Returns(200);
+					return mockResponse;
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.DeleteMessageAsync(message).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.DeleteMessageAsync(message);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -239,23 +226,23 @@ namespace Picton.UnitTests.Managers
 				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
-				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
+					var maxMessages = callInfo.ArgAt<int?>(0);
+					var visibilityTimeout = callInfo.ArgAt<TimeSpan?>(1);
+
 					var serializedMessage = QueueManager.SerializeMessage(messageContent, ImmutableDictionary<string, string>.Empty);
 					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(serializedMessage), 0, null, null, null);
 
 					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.GetMessageAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.Content.GetType().ShouldBe(typeof(string));
 			((string)result.Content).ShouldBe(messageContent);
 		}
@@ -270,20 +257,14 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			mockQueueClient
-				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
-				{
-					return Response.FromValue(Array.Empty<QueueMessage>(), new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(Response.FromValue(Array.Empty<QueueMessage>(), new MockAzureResponse(200, "ok")));
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.GetMessageAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.ShouldBeNull();
 		}
 
@@ -326,8 +307,8 @@ namespace Picton.UnitTests.Managers
 				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
-				.Setup(c => c.ReceiveMessagesAsync(messageCount, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				.ReceiveMessagesAsync(messageCount, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var serializedMessage1 = QueueManager.SerializeMessage(messageContent1, ImmutableDictionary<string, string>.Empty);
 					var queueMessage1 = QueuesModelFactory.QueueMessage("myMessageId1", "myPopReceipt1", new BinaryData(serializedMessage1), 0, null, null, null);
@@ -336,16 +317,13 @@ namespace Picton.UnitTests.Managers
 					var queueMessage2 = QueuesModelFactory.QueueMessage("myMessageId2", "myPopReceipt2", new BinaryData(serializedMessage2), 0, null, null, null);
 
 					return Response.FromValue(new[] { queueMessage1, queueMessage2 }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			var result = await queueManager.GetMessagesAsync(messageCount).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.GetMessagesAsync(messageCount);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.Length.ShouldBe(2);
 			result[0].Content.GetType().ShouldBe(typeof(string));
 			((string)result[0].Content).ShouldBe(messageContent1);
@@ -364,8 +342,8 @@ namespace Picton.UnitTests.Managers
 			var messageCount = 0;
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount)).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount));
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -379,11 +357,11 @@ namespace Picton.UnitTests.Managers
 			var queueName = "myqueue";
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
-			var messageCount = mockQueueClient.Object.MaxPeekableMessages + 1;
+			var messageCount = mockQueueClient.MaxPeekableMessages + 1;
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount)).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.GetMessagesAsync(messageCount));
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -404,23 +382,20 @@ namespace Picton.UnitTests.Managers
 				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
-				.Setup(c => c.PeekMessagesAsync(1, It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, CancellationToken cancellationToken) =>
+				.PeekMessagesAsync(1, Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var serializedMessage = QueueManager.SerializeMessage(messageContent, ImmutableDictionary<string, string>.Empty);
 					var queueMessage = QueuesModelFactory.PeekedMessage("myMessageId", new BinaryData(serializedMessage), 0, null, null);
 
 					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			var result = await queueManager.PeekMessageAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.PeekMessageAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.Content.GetType().ShouldBe(typeof(string));
 			((string)result.Content).ShouldBe(messageContent);
 		}
@@ -442,8 +417,8 @@ namespace Picton.UnitTests.Managers
 				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
-				.Setup(c => c.PeekMessagesAsync(messageCount, It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, CancellationToken cancellationToken) =>
+				.PeekMessagesAsync(messageCount, Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var serializedMessage1 = QueueManager.SerializeMessage(messageContent1, ImmutableDictionary<string, string>.Empty);
 					var queueMessage1 = QueuesModelFactory.PeekedMessage("myMessageId1", new BinaryData(serializedMessage1), 0, null, null);
@@ -452,16 +427,13 @@ namespace Picton.UnitTests.Managers
 					var queueMessage2 = QueuesModelFactory.PeekedMessage("myMessageId2", new BinaryData(serializedMessage2), 0, null, null);
 
 					return Response.FromValue(new[] { queueMessage1, queueMessage2 }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			var result = await queueManager.PeekMessagesAsync(messageCount).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.PeekMessagesAsync(messageCount);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.Length.ShouldBe(2);
 			result[0].Content.GetType().ShouldBe(typeof(string));
 			((string)result[0].Content).ShouldBe(messageContent1);
@@ -480,8 +452,8 @@ namespace Picton.UnitTests.Managers
 			var messageCount = 0;
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount)).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount));
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -495,11 +467,11 @@ namespace Picton.UnitTests.Managers
 			var queueName = "myqueue";
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
-			var messageCount = mockQueueClient.Object.MaxPeekableMessages + 1;
+			var messageCount = mockQueueClient.MaxPeekableMessages + 1;
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount)).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await Should.ThrowAsync<ArgumentOutOfRangeException>(() => queueManager.PeekMessagesAsync(messageCount));
 
 			// Assert
 			// Nothing to assert because an exception will be thrown
@@ -520,22 +492,19 @@ namespace Picton.UnitTests.Managers
 			};
 
 			mockQueueClient
-				.Setup(c => c.SetMetadataAsync(It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((IDictionary<string, string> metadata, CancellationToken cancellationToken) =>
+				.SetMetadataAsync(Arg.Any<IDictionary<string, string>>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
-					var mockResponse = new Mock<Response>();
-					mockResponse.SetupGet(r => r.Status).Returns(200);
-					return mockResponse.Object;
-				})
-				.Verifiable();
+					var mockResponse = Substitute.For<Response>();
+					mockResponse.Status.Returns(200);
+					return mockResponse;
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.SetMetadataAsync(myMetadata).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.SetMetadataAsync(myMetadata);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -550,21 +519,18 @@ namespace Picton.UnitTests.Managers
 			var timeout = TimeSpan.FromSeconds(2);
 
 			mockQueueClient
-				.Setup(q => q.UpdateMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<BinaryData>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageId, string popReceipt, BinaryData message, TimeSpan visibilityTimeout, CancellationToken cancellationToken) =>
+				.UpdateMessageAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<BinaryData>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var receipt = QueuesModelFactory.UpdateReceipt("myPopReceipt", DateTimeOffset.UtcNow);
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
-				})
-				  .Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout).ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout);
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 		}
 
 		[Fact]
@@ -588,33 +554,28 @@ namespace Picton.UnitTests.Managers
 			};
 
 			mockQueueClient
-				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
-					queuedContent = messageText;
+					queuedContent = callInfo.ArgAt<string>(0);
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			mockQueueClient
-				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(queuedContent), 0, null, null, null);
 					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true);
-			await queueManager.AddMessageAsync(sampleMessage).ConfigureAwait(false);
-			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			await queueManager.AddMessageAsync(sampleMessage);
+			var result = await queueManager.GetMessageAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
-
 			result.ShouldNotBeNull();
 			result.Content.GetType().ShouldBe(typeof(SampleMessageType));
 
@@ -631,48 +592,45 @@ namespace Picton.UnitTests.Managers
 			// Arrange
 			var containerName = "mycontainer";
 			var queueName = "myqueue";
-			var systemClock = new MockSystemClock(new DateTime(2022, 4, 20, 10, 0, 0, 0, DateTimeKind.Utc)).Object;
+			var systemClock = new MockSystemClock(2022, 4, 20, 10, 0, 0, 0);
 			string queuedContent = null;
 			byte[] blobItemContent = null;
 
 			// Mock random generator that generates the name of the blob item
-			var mockRandomGenerator = new Mock<IRandomGenerator>();
+			var mockRandomGenerator = Substitute.For<IRandomGenerator>();
 			mockRandomGenerator
-				.Setup(r => r.GenerateString(It.IsAny<int>(), It.IsAny<string>()))
-				.Returns("RandomString")
-				.Verifiable();
+				.GenerateString(Arg.Any<int>(), Arg.Any<string>())
+				.Returns("RandomString");
 
 			// The MockBlobClient simulates saving/retrieving the original mesage to/from blob
-			var blobName = $"{systemClock.UtcNow:yyyy-MM-dd-HH-mm-ss}-{mockRandomGenerator.Object.GenerateString(32)}";
+			var blobName = $"{systemClock.UtcNow:yyyy-MM-dd-HH-mm-ss}-{mockRandomGenerator.GenerateString(32)}";
 			var mockBlobClient = MockUtils.GetMockBlobClient(blobName);
 			mockBlobClient
-				.Setup(b => b.GetPropertiesAsync(It.IsAny<BlobRequestConditions>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((BlobRequestConditions conditions, CancellationToken cancellationToken) =>
+				.GetPropertiesAsync(Arg.Any<BlobRequestConditions>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var blobProperties = BlobsModelFactory.BlobProperties();
 					return Response.FromValue(blobProperties, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 			mockBlobClient
-				.Setup(b => b.UploadAsync(It.IsAny<Stream>(), It.IsAny<BlobHttpHeaders>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobRequestConditions>(), It.IsAny<IProgress<long>>(), It.IsAny<AccessTier?>(), It.IsAny<StorageTransferOptions>(), It.IsAny<CancellationToken>()))
-				.Callback((Stream content, BlobHttpHeaders httpHeaders, IDictionary<string, string> metadata, BlobRequestConditions conditions, IProgress<long> progressHandler, AccessTier? accessTier, StorageTransferOptions transferOptions, CancellationToken cancellationToken) =>
+				.UploadAsync(Arg.Do<Stream>(stream =>
 				{
 					using (var ms = new MemoryStream())
 					{
-						content.CopyTo(ms);
+						stream.CopyTo(ms);
 						blobItemContent = ms.ToArray();
 					}
-				})
-				.ReturnsAsync((Stream content, BlobHttpHeaders httpHeaders, IDictionary<string, string> metadata, BlobRequestConditions conditions, IProgress<long> progressHandler, AccessTier? accessTier, StorageTransferOptions transferOptions, CancellationToken cancellationToken) =>
+
+				}), Arg.Any<BlobHttpHeaders>(), Arg.Any<IDictionary<string, string>>(), Arg.Any<BlobRequestConditions>(), Arg.Any<IProgress<long>>(), Arg.Any<AccessTier?>(), Arg.Any<StorageTransferOptions>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var blobContentInfo = BlobsModelFactory.BlobContentInfo(new ETag("mytag"), new DateTimeOffset(systemClock.UtcNow, TimeSpan.FromSeconds(0)), null, null, null, null, 0);
 					return Response.FromValue(blobContentInfo, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
 			mockBlobClient
-				.Setup(b => b.DownloadAsync(It.IsAny<CancellationToken>()))
-				.ReturnsAsync((CancellationToken cancellationToken) =>
+				.DownloadAsync(Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var content = new MemoryStream();
 					var bw = new BinaryWriter(content, Encoding.UTF8, true);
@@ -694,43 +652,38 @@ namespace Picton.UnitTests.Managers
 
 					return Response.FromValue(blobDownloadInfo, new MockAzureResponse(200, "ok"));
 
-				})
-				.Verifiable();
+				});
 
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, new[] { mockBlobClient });
 
 			// MockQueueClient will send and receive the 'LargeMessageEnvelope' message that indicates the original message was saved to a blob
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			mockQueueClient
-				.Setup(q => q.SendMessageAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((string messageText, TimeSpan? visibilityTimeout, TimeSpan? timeToLive, CancellationToken cancellationToken) =>
+				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
-					queuedContent = messageText;
+					queuedContent = callInfo.ArgAt<string>(0);
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 			mockQueueClient
-				.Setup(c => c.ReceiveMessagesAsync(1, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-				.ReturnsAsync((int? maxMessages, TimeSpan? visibilityTimeout, CancellationToken cancellationToken) =>
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
 				{
 					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(queuedContent), 0, null, null, null);
 					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
-				})
-				.Verifiable();
+				});
 
-			// We want to generate actual random content, so we use that default random generator
+			// We want to generate actual random content, so we use the default random generator
 			// (i.e.: RandomGenerator.Instance) as opposed to the mock one created above
-			var excessivelyLargeContent = RandomGenerator.Instance.GenerateString(mockQueueClient.Object.MessageMaxBytes * 2);
+			var excessivelyLargeContent = RandomGenerator.Instance.GenerateString(mockQueueClient.MessageMaxBytes * 2);
 
 			// Act
-			var queueManager = new QueueManager(mockBlobContainer.Object, mockQueueClient.Object, true, systemClock, mockRandomGenerator.Object);
-			await queueManager.AddMessageAsync(excessivelyLargeContent).ConfigureAwait(false);
-			var result = await queueManager.GetMessageAsync().ConfigureAwait(false);
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true, systemClock, mockRandomGenerator);
+			await queueManager.AddMessageAsync(excessivelyLargeContent);
+			var result = await queueManager.GetMessageAsync();
 
 			// Assert
-			mockQueueClient.Verify();
-			mockBlobContainer.Verify();
 			result.Content.GetType().ShouldBe(typeof(string));
 			result.Content.ShouldBe(excessivelyLargeContent);
 		}

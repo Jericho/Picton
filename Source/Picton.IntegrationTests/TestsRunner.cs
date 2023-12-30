@@ -126,12 +126,10 @@ namespace Picton.IntegrationTests
 			var content3b = await blob3.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
 			log.LogInformation($"Content of PageBlob: {content3a.Trim('\0')}"); // Trimming the content before writing to console is important because page blobs are padded with null characters.
 
-			//===========================================================================================
-			// Unfortunately, the emulator does not support AppendBlob
-			/*
+			// AppendBlobClient
 			var blob4 = new AppendBlobClient(connectionString, containerName, "test4.txt");
-			var exists1 = await blob4.ExistsAsync(cancellationToken).ConfigureAwait(false);
-			if (!exists4) await blob4.CreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+			var exists4 = await blob4.ExistsAsync(cancellationToken).ConfigureAwait(false);
+			if (!exists4) await blob4.CreateAsync((Stream)null, cancellationToken: cancellationToken).ConfigureAwait(false); // Specifying a null stream is necessary to disambiguate our extension method with the built-in Azure SDK method
 
 			var leaseId4 = await blob4.AcquireLeaseAsync(TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
 			await blob4.UploadTextAsync("Hello World", leaseId: leaseId4, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -143,8 +141,6 @@ namespace Picton.IntegrationTests
 			var content4a = await blob4.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content4b = await blob4.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
 			log.LogInformation($"Content of AppendBlob: {content4a}");
-			*/
-			//===========================================================================================
 		}
 
 		private static async Task RunBlobManagerTests(ILogger log, string connectionString, string containerName, CancellationToken cancellationToken)

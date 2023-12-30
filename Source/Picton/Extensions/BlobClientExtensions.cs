@@ -29,6 +29,7 @@ namespace Picton
 
 		private static readonly Stream EmptyStream = new MemoryStream();
 		private static readonly IDictionary<string, string> EmptyDictionary = new Dictionary<string, string>();
+		private static readonly TimeSpan DefaultBlobLeaseTime = TimeSpan.FromSeconds(15);
 
 		#region PUBLIC EXTENSION METHODS
 
@@ -86,19 +87,18 @@ namespace Picton
 			}
 
 			var leaseClient = new BlobLeaseClient(blob, null);
-			var defaultLeaseTime = TimeSpan.FromSeconds(15);
 
 			try
 			{
 				// Optimistically try to acquire the lease. The blob may not yet
 				// exist. If it doesn't we handle the 404, create it, and retry below
-				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), null, cancellationToken).ConfigureAwait(false);
+				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(DefaultBlobLeaseTime), null, cancellationToken).ConfigureAwait(false);
 				return response.Value.LeaseId;
 			}
 			catch (RequestFailedException e) when (e.ErrorCode == "BlobNotFound")
 			{
 				await blob.CreateAsync(null, null, true, cancellationToken: cancellationToken).ConfigureAwait(false);
-				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(defaultLeaseTime), null, cancellationToken).ConfigureAwait(false);
+				var response = await leaseClient.AcquireAsync(leaseTime.GetValueOrDefault(DefaultBlobLeaseTime), null, cancellationToken).ConfigureAwait(false);
 
 				return response.Value.LeaseId;
 			}

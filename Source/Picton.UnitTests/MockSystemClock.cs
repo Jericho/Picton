@@ -1,16 +1,19 @@
-﻿using Moq;
 using Picton.Interfaces;
 using System;
 
 namespace Picton.UnitTests
 {
-	public class MockSystemClock : Mock<ISystemClock>
+	internal class MockSystemClock : ISystemClock
 	{
-		public MockSystemClock(DateTime currentDateTime)
-			: base(MockBehavior.Strict)
+		private readonly DateTime _now;
+
+		public DateTime Now => _now;
+
+		public DateTime UtcNow => _now;
+
+		public MockSystemClock(int year, int month, int day, int hour, int minute, int second, int millisecond)
 		{
-			SetupGet(m => m.Now).Returns(new DateTime(currentDateTime.Year, currentDateTime.Month, currentDateTime.Day, currentDateTime.Hour, currentDateTime.Minute, currentDateTime.Second, currentDateTime.Millisecond, DateTimeKind.Utc));
-			SetupGet(m => m.UtcNow).Returns(new DateTime(currentDateTime.Year, currentDateTime.Month, currentDateTime.Day, currentDateTime.Hour, currentDateTime.Minute, currentDateTime.Second, currentDateTime.Millisecond, DateTimeKind.Utc));
+			_now = new DateTime(year, month, day, hour, minute, second, millisecond, DateTimeKind.Utc);
 		}
 	}
 }
