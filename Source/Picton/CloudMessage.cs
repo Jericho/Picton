@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Picton
 {
-	public class CloudMessage
+	public class CloudMessage(object content)
 	{
 		#region FIELDS
 
@@ -26,13 +26,13 @@ namespace Picton
 
 		public string PopReceipt { get; internal set; }
 
-		public object Content { get; internal set; }
+		public object Content { get; internal set; } = content;
 
 		public IDictionary<string, string> Metadata
 		{
 			get
 			{
-				if (_metadata == null) _metadata = new Dictionary<string, string>();
+				_metadata ??= new Dictionary<string, string>();
 				return _metadata;
 			}
 
@@ -40,15 +40,6 @@ namespace Picton
 			{
 				_metadata = value;
 			}
-		}
-
-		#endregion
-
-		#region CONSTRUCTOR
-
-		public CloudMessage(object content)
-		{
-			Content = content;
 		}
 
 		#endregion

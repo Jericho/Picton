@@ -1,13 +1,3 @@
-using Azure;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using Azure.Storage.Queues;
-using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 namespace Picton.UnitTests
 {
 	internal static class MockUtils
@@ -33,7 +23,7 @@ namespace Picton.UnitTests
 				.CreateIfNotExists(Arg.Any<PublicAccessType>(), Arg.Any<IDictionary<string, string>>(), Arg.Any<BlobContainerEncryptionScopeOptions>(), Arg.Any<CancellationToken>())
 				.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")));
 
-			foreach (var blobClient in mockBlobClients?.Select(m => m) ?? Enumerable.Empty<BlobClient>())
+			foreach (var blobClient in mockBlobClients ?? Enumerable.Empty<BlobClient>())
 			{
 				mockBlobContainer
 					.GetBlobClient(blobClient.Name)

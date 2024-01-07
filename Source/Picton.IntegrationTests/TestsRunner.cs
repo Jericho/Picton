@@ -11,20 +11,13 @@ using System.Threading.Tasks;
 
 namespace Picton.IntegrationTests
 {
-	internal class TestsRunner
+	internal class TestsRunner(ILoggerFactory loggerFactory)
 	{
 		private enum ResultCodes
 		{
 			Success = 0,
 			Exception = 1,
 			Cancelled = 1223
-		}
-
-		private readonly ILoggerFactory _loggerFactory;
-
-		public TestsRunner(ILoggerFactory loggerFactory)
-		{
-			_loggerFactory = loggerFactory;
 		}
 
 		public async Task<int> RunAsync(CancellationToken cancellationToken = default)
@@ -37,7 +30,7 @@ namespace Picton.IntegrationTests
 				source.Cancel();
 			};
 
-			var log = _loggerFactory.CreateLogger<TestsRunner>();
+			var log = loggerFactory.CreateLogger<TestsRunner>();
 
 			// Ensure the Console is tall enough and centered on the screen
 			if (OperatingSystem.IsWindows()) Console.WindowHeight = Math.Min(60, Console.LargestWindowHeight);
@@ -90,7 +83,7 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId1)) await blob1.ReleaseLeaseAsync(leaseId1, cancellationToken).ConfigureAwait(false);
 			var content1a = await blob1.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content1b = await blob1.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation($"Content of BlobClient: {content1a}");
+			log.LogInformation("Content of BlobClient: {content1a}", content1a);
 
 
 			// BlockBlobClient
@@ -107,7 +100,7 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId2)) await blob2.ReleaseLeaseAsync(leaseId2, cancellationToken).ConfigureAwait(false);
 			var content2a = await blob2.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content2b = await blob2.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation($"Content of BlockBlob: {content2a}");
+			log.LogInformation("Content of BlockBlob: {content2a}", content2a);
 
 
 			// PageBlobClient
@@ -124,7 +117,8 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId3)) await blob3.ReleaseLeaseAsync(leaseId3, cancellationToken).ConfigureAwait(false);
 			var content3a = await blob3.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content3b = await blob3.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation($"Content of PageBlob: {content3a.Trim('\0')}"); // Trimming the content before writing to console is important because page blobs are padded with null characters.
+			var trimmedContent = content3a.Trim('\0'); // Trimming the content before writing to console is important because page blobs are padded with null characters.
+			log.LogInformation("Content of PageBlob: {trimmedContent}", trimmedContent);
 
 			// AppendBlobClient
 			var blob4 = new AppendBlobClient(connectionString, containerName, "test4.txt");
@@ -140,7 +134,7 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId4)) await blob4.ReleaseLeaseAsync(leaseId4, cancellationToken).ConfigureAwait(false);
 			var content4a = await blob4.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content4b = await blob4.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation($"Content of AppendBlob: {content4a}");
+			log.LogInformation("Content of AppendBlob: {content4a}", content4a);
 		}
 
 		private static async Task RunBlobManagerTests(ILogger log, string connectionString, string containerName, CancellationToken cancellationToken)
@@ -160,7 +154,7 @@ namespace Picton.IntegrationTests
 			var blobs = blobManager.ListBlobs("test", false, cancellationToken);
 			foreach (var blob in blobs)
 			{
-				log.LogInformation(blob.Name);
+				log.LogInformation("Blob name: {blob.Name}", blob.Name);
 			}
 
 			await blobManager.DeleteBlobAsync("test1 - Copy of.txt", cancellationToken).ConfigureAwait(false);
