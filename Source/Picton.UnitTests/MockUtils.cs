@@ -33,7 +33,7 @@ namespace Picton.UnitTests
 				.CreateIfNotExists(Arg.Any<PublicAccessType>(), Arg.Any<IDictionary<string, string>>(), Arg.Any<BlobContainerEncryptionScopeOptions>(), Arg.Any<CancellationToken>())
 				.Returns(Response.FromValue(blobContainerInfo, new MockAzureResponse(200, "ok")));
 
-			foreach (var blobClient in mockBlobClients?.Select(m => m) ?? Enumerable.Empty<BlobClient>())
+			foreach (var blobClient in mockBlobClients ?? Enumerable.Empty<BlobClient>())
 			{
 				mockBlobContainer
 					.GetBlobClient(blobClient.Name)
