@@ -1,4 +1,3 @@
-using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
@@ -54,6 +53,7 @@ namespace Picton.Managers
 		/// For more information, <see href="https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string"/>.
 		/// </param>
 		/// <param name="queueName">The name of the queue in the storage account to reference.</param>
+		/// <param name="oversizeMessagesBlobStorageName">Name of the blob storage where messages that exceed the maximum size for a queue message are stored.</param>
 		/// <param name="autoCreateResources">Create the queue and blob container if they do not already exist.</param>
 		/// <param name="queueClientOptions">
 		/// Optional client options that define the transport pipeline
@@ -66,12 +66,12 @@ namespace Picton.Managers
 		/// every request to the blob storage.
 		/// </param>
 		[ExcludeFromCodeCoverage]
-		public QueueManager(string connectionString, string queueName, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
+		public QueueManager(string connectionString, string queueName, string oversizeMessagesBlobStorageName = null, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
 		{
 			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
 
-			_blobContainer = new BlobContainerClient(connectionString, $"{queueName}-oversized-messages", blobClientOptions);
+			_blobContainer = new BlobContainerClient(connectionString, string.IsNullOrEmpty(oversizeMessagesBlobStorageName) ? $"{queueName}-oversize-messages" : oversizeMessagesBlobStorageName, blobClientOptions);
 			_queue = new QueueClient(connectionString, queueName, queueClientOptions);
 			_systemClock = SystemClock.Instance;
 			_randomGenerator = RandomGenerator.Instance;
