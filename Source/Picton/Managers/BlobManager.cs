@@ -6,6 +6,7 @@ using Picton.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,8 +15,6 @@ namespace Picton.Managers
 	public class BlobManager : IBlobManager
 	{
 		#region FIELDS
-
-		private const string PATH_SEPARATOR = "/";
 
 		private readonly BlobContainerClient _blobContainer;
 
@@ -260,16 +259,28 @@ namespace Picton.Managers
 		private string SanitizeBlobName(string blobName, bool allowEmptyName = false)
 		{
 			blobName = blobName?
-				.Replace(@"\", PATH_SEPARATOR) // Azure uses forward slash as the path segment seperator
+				.Replace(@"\", "/") // Azure uses forward slash as the path segment seperator
 				.Replace(" ", "_") // Azure supports spaces but it leads to problems in URLs
 				.Replace("#", "_") // Azure supports the # character but it leads to problems in URLs
 				.Replace("'", "_") // Azure supports quotes but it leads to problems in URLs
-				.TrimStart($"{PATH_SEPARATOR}devstoreaccount1")
-				.TrimStart($"{PATH_SEPARATOR}{_blobContainer.Name}")
-				.TrimStart(PATH_SEPARATOR);
+				.TrimStart($"/devstoreaccount1")
+				.TrimStart($"/{_blobContainer.Name}")
+				.TrimStart("/");
 
-			if (!allowEmptyName && string.IsNullOrWhiteSpace(blobName)) throw new ArgumentException("Name cannot be empty");
-			if (blobName.Length > 1024) throw new ArgumentException("Name cannot be more than 1,024 characters long");
+			if (!allowEmptyName && string.IsNullOrWhiteSpace(blobName)) throw new ArgumentException("Name cannot be empty", nameof(blobName));
+			if (blobName.Length > 1024) throw new ArgumentException("Name cannot be more than 1,024 characters long", nameof(blobName));
+
+#if NET7_0_OR_GREATER
+8			// .NET 7 introduced allocation-free and highly optimized Regex APIs. Counting is especially easy and efficient.
+			var segmentsCount = Regex.Count(input: blobName, pattern: "/");
+#else
+			var segmentsCount = 0;
+			foreach (char c in blobName ?? string.Empty)
+			{
+				if (c == '/') segmentsCount++;
+			}
+#endif
+			if (segmentsCount > 254) throw new ArgumentException("The number of path segments in a blob name cannot exceed 254.", nameof(blobName));
 
 			return blobName;
 		}
