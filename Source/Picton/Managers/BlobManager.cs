@@ -271,7 +271,7 @@ namespace Picton.Managers
 			if (blobName.Length > 1024) throw new ArgumentException("Name cannot be more than 1,024 characters long", nameof(blobName));
 
 #if NET7_0_OR_GREATER
-8			// .NET 7 introduced allocation-free and highly optimized Regex APIs. Counting is especially easy and efficient.
+			// .NET 7 introduced allocation-free and highly optimized Regex APIs. Counting is especially easy and efficient.
 			var segmentsCount = Regex.Count(input: blobName, pattern: "/");
 #else
 			var segmentsCount = 0;
