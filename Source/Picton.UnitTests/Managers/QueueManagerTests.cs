@@ -554,10 +554,10 @@ namespace Picton.UnitTests.Managers
 			};
 
 			mockQueueClient
-				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.SendMessageAsync(Arg.Any<BinaryData>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
 				{
-					queuedContent = callInfo.ArgAt<string>(0);
+					queuedContent = callInfo.ArgAt<BinaryData>(0).ToString();
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
 				});
@@ -659,10 +659,10 @@ namespace Picton.UnitTests.Managers
 			// MockQueueClient will send and receive the 'LargeMessageEnvelope' message that indicates the original message was saved to a blob
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			mockQueueClient
-				.SendMessageAsync(Arg.Any<string>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.SendMessageAsync(Arg.Any<BinaryData>(), Arg.Any<TimeSpan?>(), Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
 				{
-					queuedContent = callInfo.ArgAt<string>(0);
+					queuedContent = callInfo.ArgAt<BinaryData>(0).ToString();
 					var receipt = QueuesModelFactory.SendReceipt("myMessageId", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), "myPopReceipt", DateTimeOffset.UtcNow.AddMinutes(5));
 					return Response.FromValue(receipt, new MockAzureResponse(200, "ok"));
 				});
