@@ -27,7 +27,7 @@ namespace Picton
 		/// <param name="queue">The queue client.</param>
 		/// <param name="messageText">Message text.</param>
 		/// <param name="visibilityTimeout">Visibility timeout. Optional with a default value of 0. Cannot be larger than 7 days.</param>
-		/// <param name="timeToLive">Optional. Specifies the time-to-live interval for the message.</param>
+		/// <param name="timeToLive">The time-to-live interval for the message.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The <see cref="SendReceipt"/>.</returns>
 		public static async Task<SendReceipt> SafeSendMessageAsync(this QueueClient queue, string messageText, TimeSpan? visibilityTimeout = default, TimeSpan? timeToLive = default, CancellationToken cancellationToken = default)
@@ -60,7 +60,7 @@ namespace Picton
 		/// <param name="queue">The queue client.</param>
 		/// <param name="message">Message.</param>
 		/// <param name="visibilityTimeout">Visibility timeout. Optional with a default value of 0. Cannot be larger than 7 days.</param>
-		/// <param name="timeToLive">Optional. Specifies the time-to-live interval for the message.</param>
+		/// <param name="timeToLive">The time-to-live interval for the message.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		/// <returns>The <see cref="SendReceipt"/>.</returns>
 		public static async Task<SendReceipt> SafeSendMessageAsync(this QueueClient queue, BinaryData message, TimeSpan? visibilityTimeout = default, TimeSpan? timeToLive = default, CancellationToken cancellationToken = default)
@@ -75,7 +75,7 @@ namespace Picton
 			catch (RequestFailedException rfe) when (rfe.ErrorCode == "QueueNotFound")
 			{
 				await queue.CreateIfNotExistsAsync(QueueClientExtensions.EmptyDictionary, cancellationToken).ConfigureAwait(false);
-				response = await queue.SendMessageAsync(message, visibilityTimeout, timeToLive, cancellationToken = default).ConfigureAwait(false);
+				response = await queue.SendMessageAsync(message, visibilityTimeout, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
 
 			return response.Value;
