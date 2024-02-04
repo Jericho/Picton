@@ -101,10 +101,10 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public Task<CloudMessage[]> GetMessagesAsync(string tenantId, int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
+		public Task<CloudMessage[]> GetMessagesAsync(string tenantId, int maxMessages = 1, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default)
 		{
 			var tenantQueueManager = GetTenantQueueManager(tenantId);
-			return tenantQueueManager.GetMessagesAsync(messageCount, visibilityTimeout, cancellationToken);
+			return tenantQueueManager.GetMessagesAsync(maxMessages, visibilityTimeout, cancellationToken);
 		}
 
 		private QueueManager GetTenantQueueManager(string tenantId)
