@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc />
 	public class MultiTenantQueueManager : IMultiTenantQueueManager
 	{
 		private readonly ISystemClock _systemClock;
