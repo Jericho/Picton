@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc/>
 	public class QueueManager : IQueueManager
 	{
 		#region FIELDS

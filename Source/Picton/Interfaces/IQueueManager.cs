@@ -20,7 +20,18 @@ namespace Picton.Interfaces
 
 		Task<QueueProperties> GetPropertiesAsync(CancellationToken cancellationToken = default);
 
-		Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
+		/// <summary>
+		/// Retrieve one or more messages from the front of the queue.
+		/// </summary>
+		/// <param name="maxMessages">
+		/// A nonzero integer value that specifies the number of messages to retrieve from the queue, up to a maximum of 32.
+		/// If fewer are visible, the visible messages are returned.
+		/// By default, a single message is retrieved from the queue with this operation.
+		/// </param>
+		/// <param name="visibilityTimeout">Specifies the new visibility timeout value, in seconds, relative to server time. The default value is 30 seconds.</param>
+		/// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+		/// <returns>An array of <see cref="CloudMessage"/>.</returns>
+		Task<CloudMessage[]> GetMessagesAsync(int maxMessages = 1, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default);
 
 		Task<IEnumerable<QueueSignedIdentifier>> GetAccessPolicyAsync(CancellationToken cancellationToken = default);
 
