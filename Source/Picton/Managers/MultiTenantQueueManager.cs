@@ -30,7 +30,7 @@ namespace Picton.Managers
 		/// <see href="https://docs.microsoft.com/azure/storage/common/storage-configure-connection-string">
 		/// Configure Azure Storage connection strings</see>.
 		/// </param>
-		/// <param name="queuePrefix">The part of the queueN name that preceeds the tenantId in the storage account.</param>
+		/// <param name="queuePrefix">The part of the queue name that preceeds the tenantId in the storage account.</param>
 		/// <param name="queueClientOptions">
 		/// Optional client options that define the transport pipeline
 		/// policies for authentication, retries, etc., that are applied to
