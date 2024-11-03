@@ -32,10 +32,6 @@ namespace Picton.IntegrationTests
 
 			var log = loggerFactory.CreateLogger<TestsRunner>();
 
-			// Ensure the Console is tall enough and centered on the screen
-			if (OperatingSystem.IsWindows()) Console.WindowHeight = Math.Min(60, Console.LargestWindowHeight);
-			Utils.CenterConsole();
-
 			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
 			using (var emulator = new AzuriteManager())
 			{
