@@ -22,14 +22,6 @@ namespace Picton.IntegrationTests
 
 		public async Task<int> RunAsync(CancellationToken cancellationToken = default)
 		{
-			// Configure Console
-			var source = new CancellationTokenSource();
-			Console.CancelKeyPress += (s, e) =>
-			{
-				e.Cancel = true;
-				source.Cancel();
-			};
-
 			var log = loggerFactory.CreateLogger<TestsRunner>();
 
 			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
@@ -47,12 +39,6 @@ namespace Picton.IntegrationTests
 				await RunBlobManagerTests(log, connectionString, containerName, cancellationToken).ConfigureAwait(false);
 				await RunQueueManagerTests(log, connectionString, queueName, cancellationToken).ConfigureAwait(false);
 			}
-
-			// Prompt user to press a key in order to allow reading the log in the console
-			var promptLog = new StringWriter();
-			await promptLog.WriteLineAsync("\n\n**************************************************").ConfigureAwait(false);
-			await promptLog.WriteLineAsync("Press any key to exit...").ConfigureAwait(false);
-			Utils.Prompt(promptLog.ToString());
 
 			// Return code indicating success/failure
 			var resultCode = (int)ResultCodes.Success;
