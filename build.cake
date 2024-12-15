@@ -1,15 +1,15 @@
 // Install tools.
-#tool dotnet:?package=GitVersion.Tool&version=5.12.0
+#tool dotnet:?package=GitVersion.Tool&version=6.1.0
 #tool dotnet:?package=coveralls.net&version=4.0.1
-#tool nuget:https://f.feedz.io/jericho/jericho/nuget/?package=GitReleaseManager&version=0.17.0-collaborators0003
-#tool nuget:?package=ReportGenerator&version=5.2.0
-#tool nuget:?package=xunit.runner.console&version=2.6.6
-#tool nuget:?package=CodecovUploader&version=0.7.1
+#tool nuget:https://f.feedz.io/jericho/jericho/nuget/?package=GitReleaseManager&version=0.17.0-collaborators0008
+#tool nuget:?package=ReportGenerator&version=5.4.1
+#tool nuget:?package=xunit.runner.console&version=2.9.2
+#tool nuget:?package=CodecovUploader&version=0.8.0
 
 // Install addins.
-#addin nuget:?package=Cake.Coveralls&version=1.1.0
-#addin nuget:?package=Cake.Git&version=3.0.0
-#addin nuget:?package=Cake.Codecov&version=1.0.1
+#addin nuget:?package=Cake.Coveralls&version=4.0.0
+#addin nuget:?package=Cake.Git&version=5.0.0
+#addin nuget:?package=Cake.Codecov&version=3.0.0
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -86,6 +86,8 @@ var isTagged = BuildSystem.AppVeyor.Environment.Repository.Tag.IsTag && !string.
 var isIntegrationTestsProjectPresent = FileExists(integrationTestsProject);
 var isUnitTestsProjectPresent = FileExists(unitTestsProject);
 var isBenchmarkProjectPresent = FileExists(benchmarkProject);
+var removeIntegrationTests = isIntegrationTestsProjectPresent && (!isLocalBuild || target == "coverage");
+var removeBenchmarks = isBenchmarkProjectPresent && (!isLocalBuild || target == "coverage");
 
 var publishingError = false;
 
@@ -94,15 +96,13 @@ var publishingError = false;
 // - when building source project on Ubuntu
 // - when running unit tests on Ubuntu
 // - when calculating code coverage
-// FYI, this will cause an error if the source project and/or the unit test project are not configured to target this desired framework:
-const string DefaultFramework = "net7.0";
-var desiredFramework = (
-		!IsRunningOnWindows() ||
+const string DefaultFramework = "net9.0";
+var isSingleTfmMode = !IsRunningOnWindows() ||
 		target.Equals("Coverage", StringComparison.OrdinalIgnoreCase) ||
 		target.Equals("Run-Code-Coverage", StringComparison.OrdinalIgnoreCase) ||
 		target.Equals("Generate-Code-Coverage-Report", StringComparison.OrdinalIgnoreCase) ||
-		target.Equals("Upload-Coverage-Result", StringComparison.OrdinalIgnoreCase)
-	) ? DefaultFramework : null;
+		target.Equals("Upload-Coverage-Result", StringComparison.OrdinalIgnoreCase);
+var desiredFramework = isSingleTfmMode ? DefaultFramework : null;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,7 @@ Setup(context =>
 	milestone = versionInfo.MajorMinorPatch;
 
 	Information("Building version {0} of {1} ({2}, {3}) using version {4} of Cake",
-		versionInfo.LegacySemVerPadded,
+		versionInfo.FullSemVer,
 		libraryName,
 		configuration,
 		target,
@@ -162,7 +162,7 @@ Setup(context =>
 	// Integration tests are intended to be used for debugging purposes and not intended to be executed in CI environment.
 	// Also, the runner for these tests contains windows-specific code (such as resizing window, moving window to center of screen, etc.)
 	// which can cause problems when attempting to run unit tests on an Ubuntu image on AppVeyor.
-	if (!isLocalBuild && isIntegrationTestsProjectPresent)
+	if (removeIntegrationTests)
 	{
 		Information("");
 		Information("Removing integration tests");
@@ -172,20 +172,44 @@ Setup(context =>
 	// Similarly, benchmarking can causes problems similar to this one:
 	// error NETSDK1005: Assets file '/home/appveyor/projects/stronggrid/Source/StrongGrid.Benchmark/obj/project.assets.json' doesn't have a target for 'net5.0'.
 	// Ensure that restore has run and that you have included 'net5.0' in the TargetFrameworks for your project.
-	if (!isLocalBuild && isBenchmarkProjectPresent)
+	if (removeBenchmarks)
 	{
 		Information("");
 		Information("Removing benchmark project");
 		DotNetTool(solutionFile, "sln", $"remove {benchmarkProject.TrimStart(sourceFolder, StringComparison.OrdinalIgnoreCase)}");
 	}
+
+	// In single TFM mode we want to override the framework(s) with our desired framework
+	if (isSingleTfmMode)
+	{
+		var peekSettings = new XmlPeekSettings { SuppressWarning = true };
+		foreach(var projectFile in GetFiles("./Source/**/*.csproj"))
+		{
+			Information("Updating TFM in: {0}", projectFile.ToString());
+			if (XmlPeek(projectFile, "/Project/PropertyGroup/TargetFramework", peekSettings) != null) XmlPoke(projectFile, "/Project/PropertyGroup/TargetFramework", desiredFramework);
+			if (XmlPeek(projectFile, "/Project/PropertyGroup/TargetFrameworks", peekSettings) != null) XmlPoke(projectFile, "/Project/PropertyGroup/TargetFrameworks", desiredFramework);
+		}
+	}
 });
 
 Teardown(context =>
 {
-	if (!isLocalBuild)
+	if (removeIntegrationTests || removeBenchmarks)
 	{
 		Information("Restoring projects that may have been removed during build script setup");
 		GitCheckout(".", new FilePath[] { solutionFile });
+		Information("  Restored {0}", solutionFile.ToString());
+		Information("");
+	}
+
+	if (isSingleTfmMode)
+	{
+		Information("Restoring project files that may have been modified during build script setup");
+		foreach(var projectFile in GetFiles("./Source/**/*.csproj"))
+		{
+			GitCheckout(".", new FilePath[] { projectFile });
+			Information("  Restored {0}", projectFile.ToString());
+		}
 		Information("");
 	}
 
@@ -250,7 +274,7 @@ Task("Build")
 		NoRestore = true,
 		MSBuildSettings = new DotNetMSBuildSettings
 		{
-			Version = versionInfo.LegacySemVerPadded,
+			Version = versionInfo.SemVer,
 			AssemblyVersion = versionInfo.MajorMinorPatch,
 			FileVersion = versionInfo.MajorMinorPatch,
 			InformationalVersion = versionInfo.InformationalVersion,
@@ -352,7 +376,7 @@ Task("Generate-Code-Coverage-Report")
 		new FilePath(coverageFile),
 		codeCoverageDir,
 		new ReportGeneratorSettings() {
-			ClassFilters = new[] { "*.UnitTests*" }
+			ClassFilters = new[] { "+*" }
 		}
 	);
 });
@@ -376,7 +400,7 @@ Task("Create-NuGet-Package")
 		MSBuildSettings = new DotNetMSBuildSettings
 		{
 			PackageReleaseNotes = releaseNotesUrl,
-			PackageVersion = versionInfo.LegacySemVerPadded
+			PackageVersion = versionInfo.FullSemVer.Replace('+', '-')
 		}
 	};
 

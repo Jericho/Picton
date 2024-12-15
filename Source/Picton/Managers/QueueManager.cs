@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc/>
 	public class QueueManager : IQueueManager
 	{
 		#region FIELDS
@@ -184,13 +185,13 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public async Task<CloudMessage[]> GetMessagesAsync(int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
+		public async Task<CloudMessage[]> GetMessagesAsync(int maxMessages = 1, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default)
 		{
-			if (messageCount < 1) throw new ArgumentOutOfRangeException(nameof(messageCount), "must be greather than zero");
-			if (messageCount > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(messageCount), $"cannot be greater than {_queue.MaxPeekableMessages}");
+			if (maxMessages < 1) throw new ArgumentOutOfRangeException(nameof(maxMessages), "must be greather than zero");
+			if (maxMessages > _queue.MaxPeekableMessages) throw new ArgumentOutOfRangeException(nameof(maxMessages), $"cannot be greater than {_queue.MaxPeekableMessages}");
 
 			// Get the messages from the queue
-			var response = await _queue.ReceiveMessagesAsync(messageCount, visibilityTimeout, cancellationToken).ConfigureAwait(false);
+			var response = await _queue.ReceiveMessagesAsync(maxMessages, visibilityTimeout, cancellationToken).ConfigureAwait(false);
 			var cloudMessages = response.Value;
 
 			// Convert the Azure SDK messages into Picton messages

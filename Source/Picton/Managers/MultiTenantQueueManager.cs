@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc />
 	public class MultiTenantQueueManager : IMultiTenantQueueManager
 	{
 		private readonly ISystemClock _systemClock;
@@ -29,7 +30,7 @@ namespace Picton.Managers
 		/// <see href="https://docs.microsoft.com/azure/storage/common/storage-configure-connection-string">
 		/// Configure Azure Storage connection strings</see>.
 		/// </param>
-		/// <param name="queuePrefix">The part of the queueN name that preceeds the tenantId in the storage account.</param>
+		/// <param name="queuePrefix">The part of the queue name that preceeds the tenantId in the storage account.</param>
 		/// <param name="queueClientOptions">
 		/// Optional client options that define the transport pipeline
 		/// policies for authentication, retries, etc., that are applied to
@@ -100,10 +101,10 @@ namespace Picton.Managers
 		}
 
 		/// <inheritdoc/>
-		public Task<CloudMessage[]> GetMessagesAsync(string tenantId, int messageCount, TimeSpan? visibilityTimeout = null, CancellationToken cancellationToken = default)
+		public Task<CloudMessage[]> GetMessagesAsync(string tenantId, int maxMessages = 1, TimeSpan? visibilityTimeout = default, CancellationToken cancellationToken = default)
 		{
 			var tenantQueueManager = GetTenantQueueManager(tenantId);
-			return tenantQueueManager.GetMessagesAsync(messageCount, visibilityTimeout, cancellationToken);
+			return tenantQueueManager.GetMessagesAsync(maxMessages, visibilityTimeout, cancellationToken);
 		}
 
 		private QueueManager GetTenantQueueManager(string tenantId)
