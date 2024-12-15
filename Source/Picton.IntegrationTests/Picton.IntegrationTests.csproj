@@ -12,11 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Formitable.BetterStack.Logger.Microsoft" Version="0.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\..\BetterStack.Logger\src\Formitable.BetterStack.Logger.Microsoft\Formitable.BetterStack.Logger.Microsoft.csproj" />
     <ProjectReference Include="..\Picton\Picton.csproj" />
   </ItemGroup>
 
