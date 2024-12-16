@@ -1,5 +1,6 @@
 using Formitable.BetterStack.Logger.Microsoft;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
@@ -9,7 +10,7 @@ namespace Picton.IntegrationTests
 {
 	public class Program
 	{
-		public static async Task<int> Main()
+		public static async Task Main()
 		{
 			var source = new CancellationTokenSource();
 			Console.CancelKeyPress += (s, e) =>
@@ -21,12 +22,14 @@ namespace Picton.IntegrationTests
 			var services = new ServiceCollection();
 			ConfigureServices(services);
 			using var serviceProvider = services.BuildServiceProvider();
-			var app = serviceProvider.GetService<TestsRunner>();
-			return await app.RunAsync(source.Token).ConfigureAwait(false);
+			var app = serviceProvider.GetService<IHostedService>();
+			await app.StartAsync(source.Token).ConfigureAwait(false);
 		}
 
 		private static void ConfigureServices(ServiceCollection services)
 		{
+			services.AddHostedService<TestsRunner>();
+
 			services
 				.AddLogging(logging =>
 				{
@@ -48,8 +51,7 @@ namespace Picton.IntegrationTests
 					});
 
 					logging.AddFilter("*", LogLevel.Debug);
-				})
-				.AddTransient<TestsRunner>();
+				});
 		}
 	}
 }

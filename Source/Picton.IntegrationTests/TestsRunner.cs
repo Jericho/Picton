@@ -1,6 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Queues;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Picton.Managers;
 using System;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Picton.IntegrationTests
 {
-	internal class TestsRunner(ILoggerFactory loggerFactory)
+	internal class TestsRunner : IHostedService
 	{
 		private enum ResultCodes
 		{
@@ -20,10 +21,17 @@ namespace Picton.IntegrationTests
 			Cancelled = 1223
 		}
 
-		public async Task<int> RunAsync(CancellationToken cancellationToken = default)
-		{
-			var log = loggerFactory.CreateLogger<TestsRunner>();
+		private readonly ILogger<TestsRunner> _logger;
+		private readonly IServiceProvider _serviceProvider;
 
+		public TestsRunner(ILogger<TestsRunner> logger, IServiceProvider serviceProvider)
+		{
+			_logger = logger;
+			_serviceProvider = serviceProvider;
+		}
+
+		public async Task StartAsync(CancellationToken cancellationToken)
+		{
 			// Start Azurite before running the tests. It will be automaticaly stopped when "emulator" goes out of scope
 			using (var emulator = new AzuriteManager())
 			{
@@ -35,21 +43,21 @@ namespace Picton.IntegrationTests
 				var blobManager = new BlobManager(connectionString, containerName);
 
 				// Run the integration tests
-				await RunCloudBlobExtensionsTests(log, connectionString, containerName, cancellationToken).ConfigureAwait(false);
-				await RunBlobManagerTests(log, connectionString, containerName, cancellationToken).ConfigureAwait(false);
-				await RunQueueManagerTests(log, connectionString, queueName, cancellationToken).ConfigureAwait(false);
+				await RunCloudBlobExtensionsTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
+				await RunBlobManagerTests(connectionString, containerName, cancellationToken).ConfigureAwait(false);
+				await RunQueueManagerTests(connectionString, queueName, cancellationToken).ConfigureAwait(false);
 			}
-
-			// Return code indicating success/failure
-			var resultCode = (int)ResultCodes.Success;
-
-			return await Task.FromResult(resultCode);
 		}
 
-		private static async Task RunCloudBlobExtensionsTests(ILogger log, string connectionString, string containerName, CancellationToken cancellationToken)
+		public Task StopAsync(CancellationToken cancellationToken)
 		{
-			log.LogInformation("**************************************************");
-			log.LogInformation("Running blob extension methods tests...");
+			return Task.CompletedTask;
+		}
+
+		private async Task RunCloudBlobExtensionsTests(string connectionString, string containerName, CancellationToken cancellationToken)
+		{
+			_logger.LogInformation("**************************************************");
+			_logger.LogInformation("Running blob extension methods tests...");
 
 			// BlobClient
 			var blob1 = new BlobClient(connectionString, containerName, "test1.txt");
@@ -65,7 +73,7 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId1)) await blob1.ReleaseLeaseAsync(leaseId1, cancellationToken).ConfigureAwait(false);
 			var content1a = await blob1.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content1b = await blob1.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation("Content of BlobClient: {content1a}", content1a);
+			_logger.LogInformation("Content of BlobClient: {content1a}", content1a);
 
 
 			// BlockBlobClient
@@ -82,7 +90,7 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId2)) await blob2.ReleaseLeaseAsync(leaseId2, cancellationToken).ConfigureAwait(false);
 			var content2a = await blob2.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content2b = await blob2.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation("Content of BlockBlob: {content2a}", content2a);
+			_logger.LogInformation("Content of BlockBlob: {content2a}", content2a);
 
 
 			// PageBlobClient
@@ -100,7 +108,7 @@ namespace Picton.IntegrationTests
 			var content3a = await blob3.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content3b = await blob3.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
 			var trimmedContent = content3a.Trim('\0'); // Trimming the content before writing to console is important because page blobs are padded with null characters.
-			log.LogInformation("Content of PageBlob: {trimmedContent}", trimmedContent);
+			_logger.LogInformation("Content of PageBlob: {trimmedContent}", trimmedContent);
 
 			// AppendBlobClient
 			var blob4 = new AppendBlobClient(connectionString, containerName, "test4.txt");
@@ -116,13 +124,13 @@ namespace Picton.IntegrationTests
 			if (!string.IsNullOrEmpty(leaseId4)) await blob4.ReleaseLeaseAsync(leaseId4, cancellationToken).ConfigureAwait(false);
 			var content4a = await blob4.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
 			var content4b = await blob4.DownloadByteArrayAsync(cancellationToken).ConfigureAwait(false);
-			log.LogInformation("Content of AppendBlob: {content4a}", content4a);
+			_logger.LogInformation("Content of AppendBlob: {content4a}", content4a);
 		}
 
-		private static async Task RunBlobManagerTests(ILogger log, string connectionString, string containerName, CancellationToken cancellationToken)
+		private async Task RunBlobManagerTests(string connectionString, string containerName, CancellationToken cancellationToken)
 		{
-			log.LogInformation("**************************************************");
-			log.LogInformation("Running blob manager tests...");
+			_logger.LogInformation("**************************************************");
+			_logger.LogInformation("Running blob manager tests...");
 
 			var blobManager = new BlobManager(connectionString, containerName);
 
@@ -136,7 +144,7 @@ namespace Picton.IntegrationTests
 			var blobs = blobManager.ListBlobs("test", false, cancellationToken);
 			foreach (var blob in blobs)
 			{
-				log.LogInformation("Blob name: {blob.Name}", blob.Name);
+				_logger.LogInformation("Blob name: {blob.Name}", blob.Name);
 			}
 
 			await blobManager.DeleteBlobAsync("test1 - Copy of.txt", cancellationToken).ConfigureAwait(false);
@@ -145,10 +153,10 @@ namespace Picton.IntegrationTests
 			await blobManager.DeleteBlobsWithPrefixAsync("test", cancellationToken).ConfigureAwait(false);
 		}
 
-		private static async Task RunQueueManagerTests(ILogger log, string connectionString, string queueName, CancellationToken cancellationToken)
+		private async Task RunQueueManagerTests(string connectionString, string queueName, CancellationToken cancellationToken)
 		{
-			log.LogInformation("**************************************************");
-			log.LogInformation("Running queue manager tests...");
+			_logger.LogInformation("**************************************************");
+			_logger.LogInformation("Running queue manager tests...");
 
 			var queueManager = new QueueManager(connectionString, queueName);
 
