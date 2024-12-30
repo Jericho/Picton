@@ -12,18 +12,18 @@ namespace Picton.IntegrationTests
 	{
 		public static async Task Main()
 		{
-			var source = new CancellationTokenSource();
+			var cts = new CancellationTokenSource();
 			Console.CancelKeyPress += (s, e) =>
 			{
 				e.Cancel = true;
-				source.Cancel();
+				cts.Cancel();
 			};
 
 			var services = new ServiceCollection();
 			ConfigureServices(services);
 			using var serviceProvider = services.BuildServiceProvider();
 			var app = serviceProvider.GetService<IHostedService>();
-			await app.StartAsync(source.Token).ConfigureAwait(false);
+			await app.StartAsync(cts.Token).ConfigureAwait(false);
 		}
 
 		private static void ConfigureServices(ServiceCollection services)
