@@ -7,6 +7,7 @@ using MessagePack.Resolvers;
 using Picton.Interfaces;
 using Picton.Utilities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -147,6 +148,23 @@ namespace Picton.Managers
 				// The size of this message is within the range allowed by Azure Storage queues
 				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
+		}
+
+		/// <inheritdoc/>
+		public async Task AddMessagesAsync<T>(IEnumerable<T> messages, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, CancellationToken cancellationToken = default)
+		{
+			await Task.WhenAll(
+				from partition in Partitioner.Create(messages).GetPartitions(500)
+				select Task.Run(async () =>
+				{
+					using (partition)
+					{
+						while (partition.MoveNext())
+						{
+							await AddMessageAsync(partition.Current, metadata, timeToLive, initialVisibilityDelay, cancellationToken).ConfigureAwait(false);
+						}
+					}
+				}));
 		}
 
 		/// <inheritdoc/>
