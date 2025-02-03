@@ -37,6 +37,11 @@ namespace Picton.Managers
 
 		#region PROPERTIES
 
+		/// <summary>
+		/// Gets the version of the QueueManager (it's the version of the Picton library).
+		/// </summary>
+		public static Version Version => typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version;
+
 		/// <inheritdoc/>
 		public string QueueName { get => _queue.Name; }
 
@@ -137,7 +142,7 @@ namespace Picton.Managers
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					Version = QueueManager.Version
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
@@ -312,7 +317,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					Version = QueueManager.Version
 				};
 			}
 
@@ -327,7 +332,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					Version = QueueManager.Version
 				};
 			}
 
@@ -384,7 +389,7 @@ namespace Picton.Managers
 				{
 					Content = message,
 					Metadata = metadata,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					Version = QueueManager.Version
 				};
 
 				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
