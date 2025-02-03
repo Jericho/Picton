@@ -268,76 +268,86 @@ namespace Picton.Managers
 
 		internal static async Task<MessageEnvelope> DeserializeMessageAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
-			static bool CheckSerializationType(ReadOnlyMemory<byte> memory)
-			{
-				var reader = new MessagePackReader(memory);
+			var base64DecodeSuccessfull = false;
+			byte[] serializedContent = null;
 
-				if (reader.NextMessagePackType != MessagePackType.Extension)
-				{
-					throw new Exception("Picton is unable to figure out how this message was serialized and how to deserialize it.");
-				}
-
-				var extensionHeader = reader.ReadExtensionFormatHeader();
-
-				if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
-				{
-					throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
-				}
-
-				return true;
-			}
-
+			// Convert from base64.
 			try
 			{
-				var serializedContent = Convert.FromBase64String(messageContent);
-
-				// Perform sanity-check to ensure we are able to deserialize the content
-				CheckSerializationType(serializedContent);
-
-				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard, cancellationToken);
-
-				// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+				if (messageContent.IsBase64Encoded())
 				{
-					var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-					var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
-
-					// Get the content from blob item
-					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
-
-					// Deserialize the binary content
-					var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
-
-					// Add the name of the blob item to metadata
-					messageEnvelope.Metadata ??= new Dictionary<string, string>();
-					messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
-
-					// Return the envelope
-					return messageEnvelope;
-				}
-				else if (deserializedContent.GetType() == typeof(MessageEnvelope))
-				{
-					return (MessageEnvelope)deserializedContent;
-				}
-				else
-				{
-					throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+					serializedContent = Convert.FromBase64String(messageContent);
+					base64DecodeSuccessfull = true;
 				}
 			}
-			catch (Exception e) when (e.GetType().FullName.StartsWith("Moq."))
+			catch (FormatException)
 			{
-				throw;
-			}
-			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
-			{
-				// The message was presumably added to the queue using the
+				// The content was not base64 encoded.
+				// This probably means the message was added to the queue using the
 				// CloudQueue class in Microsoft's Azure Storage nuget package.
+			}
+
+			// If the content was not base64 encoded, we assume that it's a simple string.
+			if (!base64DecodeSuccessfull)
+			{
 				return new MessageEnvelope()
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
 					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
+			}
+
+			// Perform sanity-check to ensure we are able to deserialize the content
+			var reader = new MessagePackReader(serializedContent);
+			if (reader.NextMessagePackType != MessagePackType.Extension)
+			{
+				// The message was not serialized using the Picton library.
+				// Therefore we assume that it's a simple string that was added to the queue
+				// using the CloudQueue class in Microsoft's Azure Storage nuget package.
+				return new MessageEnvelope()
+				{
+					Content = messageContent,
+					Metadata = new Dictionary<string, string>(),
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+				};
+			}
+
+			var extensionHeader = reader.ReadExtensionFormatHeader();
+			if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
+			{
+				throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
+			}
+
+			// Now that we determined the message content
+			var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard, cancellationToken);
+
+			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
+			if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+			{
+				var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+				var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
+
+				// Get the content from blob item
+				var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+
+				// Deserialize the binary content
+				var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
+
+				// Add the name of the blob item to metadata
+				messageEnvelope.Metadata ??= new Dictionary<string, string>();
+				messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
+
+				// Return the envelope
+				return messageEnvelope;
+			}
+			else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+			{
+				return (MessageEnvelope)deserializedContent;
+			}
+			else
+			{
+				throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
 			}
 		}
 

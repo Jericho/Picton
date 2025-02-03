@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -120,6 +121,45 @@ namespace Picton
 
 			// Return the hexadecimal string.
 			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Determines if a given string is base64 encoded.
+		/// </summary>
+		/// <param name="value">The string.</param>
+		/// <returns>true if the string contains only valid base64 characters, false otherwise.</returns>
+		public static bool IsBase64Encoded(this string value)
+		{
+			if (value == null ||
+				value.Length == 0 ||
+				value.Length % 4 != 0 ||
+				value.Contains(' ') ||
+				value.Contains('\t') ||
+				value.Contains('\r') ||
+				value.Contains('\n'))
+				return false;
+
+			var index = value.Length - 1;
+			if (value[index] == '=') index--;
+
+			if (value[index] == '=') index--;
+
+			for (var i = 0; i <= index; i++)
+			{
+				if (!IsValidBase64Char(value[i])) return false;
+			}
+
+			return true;
+		}
+
+		private static bool IsValidBase64Char(char value)
+		{
+			var intValue = (int)value;
+			if (intValue >= 48 && intValue <= 57) return true; // 1 - 9
+			if (intValue >= 65 && intValue <= 90) return true; // A - Z
+			if (intValue >= 97 && intValue <= 122) return true; // a - z
+			if (intValue == 43 || intValue == 47) return true; // + or /
+			return false;
 		}
 
 		#endregion

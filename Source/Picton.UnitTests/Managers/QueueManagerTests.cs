@@ -268,6 +268,34 @@ namespace Picton.UnitTests.Managers
 			result.ShouldBeNull();
 		}
 
+		[Fact]
+		public async Task GetMessageAsync_can_handle_messages_added_to_queue_without_Picton()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageContent = "Message 1";
+
+			mockQueueClient
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
+				{
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(messageContent), 0, null, null, null);
+
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				});
+
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.GetMessageAsync();
+
+			// Assert
+			result.Content.GetType().ShouldBe(typeof(string));
+			((string)result.Content).ShouldBe(messageContent);
+		}
+
 		//[Fact]
 		//// Serializing and deserializing an instance of an internal class didn't work in MessagePack version 1.7.0 until 1.7.3.
 		//// It was resolved in 1.7.3.1 (see: https://github.com/neuecc/MessagePack-CSharp/issues/187)
