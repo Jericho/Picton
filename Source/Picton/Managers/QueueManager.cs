@@ -24,6 +24,7 @@ namespace Picton.Managers
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
 
+		private static readonly Version _queueManagerVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version;
 		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
 			.WithResolver(TypelessContractlessStandardResolver.Instance)
 			.WithCompression(MessagePackCompression.Lz4Block);
@@ -36,11 +37,6 @@ namespace Picton.Managers
 		#endregion
 
 		#region PROPERTIES
-
-		/// <summary>
-		/// Gets the version of the QueueManager (it's the version of the Picton library).
-		/// </summary>
-		public static Version Version => typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version;
 
 		/// <inheritdoc/>
 		public string QueueName { get => _queue.Name; }
@@ -142,7 +138,7 @@ namespace Picton.Managers
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName,
-					Version = QueueManager.Version
+					Version = _queueManagerVersion
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
@@ -317,7 +313,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = QueueManager.Version
+					Version = _queueManagerVersion
 				};
 			}
 
@@ -332,7 +328,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = QueueManager.Version
+					Version = _queueManagerVersion
 				};
 			}
 
@@ -389,7 +385,7 @@ namespace Picton.Managers
 				{
 					Content = message,
 					Metadata = metadata,
-					Version = QueueManager.Version
+					Version = _queueManagerVersion
 				};
 
 				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
