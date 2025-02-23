@@ -24,7 +24,6 @@ namespace Picton.Managers
 		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
 		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
 
-		private static readonly Version _queueManagerVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version;
 		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
 			.WithResolver(TypelessContractlessStandardResolver.Instance)
 			.WithCompression(MessagePackCompression.Lz4Block);
@@ -138,7 +137,7 @@ namespace Picton.Managers
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName,
-					Version = _queueManagerVersion
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
@@ -313,7 +312,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = _queueManagerVersion
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 			}
 
@@ -328,7 +327,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = _queueManagerVersion
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 			}
 
@@ -385,7 +384,7 @@ namespace Picton.Managers
 				{
 					Content = message,
 					Metadata = metadata,
-					Version = _queueManagerVersion
+					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
 				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
