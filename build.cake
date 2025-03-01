@@ -98,7 +98,7 @@ var publishingError = false;
 // Generally speaking, we want to honor all the TFM configured in the unit tests, integration tests and benchmark projects.
 // However, a single framework is sufficient when calculating code coverage.
 const string DEFAULT_FRAMEWORK = "net9.0";
-var isSingleTfmMode = (IsRunningOnWindows() && !isLocalBuild) || isCodeCoverageTarget;
+var isSingleTfmMode = isCodeCoverageTarget || (IsRunningOnWindows() && !isLocalBuild) || (!IsRunningOnWindows());
 
 
 ///////////////////////////////////////////////////////////////////////////////
