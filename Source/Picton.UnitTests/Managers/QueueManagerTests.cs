@@ -5,7 +5,6 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
-using MessagePack.Resolvers;
 using NSubstitute;
 using Picton.Interfaces;
 using Picton.Managers;
@@ -334,10 +333,6 @@ namespace Picton.UnitTests.Managers
 			var messageContent1 = "Message 1";
 			var messageContent2 = "Message 2";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.ReceiveMessagesAsync(messageCount, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
@@ -409,10 +404,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			var messageContent = "Message 1";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.PeekMessagesAsync(1, Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
@@ -443,10 +434,6 @@ namespace Picton.UnitTests.Managers
 			var messageCount = 5;
 			var messageContent1 = "Message 1";
 			var messageContent2 = "Message 2";
-
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
 				.PeekMessagesAsync(messageCount, Arg.Any<CancellationToken>())
