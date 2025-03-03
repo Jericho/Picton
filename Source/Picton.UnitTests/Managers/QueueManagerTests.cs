@@ -41,7 +41,7 @@ namespace Picton.UnitTests.Managers
 				var mockQueueClient = MockUtils.GetMockQueueClient();
 
 				// Act
-				new QueueManager(blobContainer, mockQueueClient, false);
+				var manager = new QueueManager(blobContainer, mockQueueClient, false);
 			});
 		}
 
@@ -55,7 +55,7 @@ namespace Picton.UnitTests.Managers
 				var queueClient = (QueueClient)null;
 
 				// Act
-				new QueueManager(mockBlobContainer, queueClient, false);
+				var manager = new QueueManager(mockBlobContainer, queueClient, false);
 			});
 		}
 
@@ -69,7 +69,7 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			// Act
-			new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var manager = new QueueManager(mockBlobContainer, mockQueueClient, true);
 
 			// Assert
 		}
