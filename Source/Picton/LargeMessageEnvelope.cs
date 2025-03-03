@@ -2,7 +2,7 @@ using System;
 
 namespace Picton
 {
-	internal class LargeMessageEnvelope
+	public class LargeMessageEnvelope
 	{
 		#region PROPERTIES
 

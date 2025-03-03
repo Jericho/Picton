@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Picton
 {
-	internal class MessageEnvelope
+	public class MessageEnvelope
 	{
 		#region PROPERTIES
 
