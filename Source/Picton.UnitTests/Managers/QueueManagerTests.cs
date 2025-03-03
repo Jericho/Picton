@@ -221,10 +221,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			var messageContent = "Message 1";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
