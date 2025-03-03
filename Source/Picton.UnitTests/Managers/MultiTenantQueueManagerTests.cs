@@ -45,7 +45,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new MultiTenantQueueManager(queueManagerFactory);
-			await queueManager.AddMessageAsync("1", "Hello world!");
+			await queueManager.AddMessageAsync("1", "Hello world!", null, null, null, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
