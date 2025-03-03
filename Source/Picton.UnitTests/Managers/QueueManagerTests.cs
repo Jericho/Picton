@@ -21,11 +21,19 @@ using Xunit;
 
 namespace Picton.UnitTests.Managers
 {
-	public class SampleMessageType
+	[MessagePackObject(AllowPrivate = true)]
+	internal class SampleMessageType
 	{
+		[Key(0)]
 		public string StringProp { get; set; }
+
+		[Key(1)]
 		public int IntProp { get; set; }
+
+		[Key(2)]
 		public Guid GuidProp { get; set; }
+
+		[Key(3)]
 		public DateTime DateProp { get; set; }
 	}
 
