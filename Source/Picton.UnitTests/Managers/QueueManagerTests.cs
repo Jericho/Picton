@@ -98,7 +98,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync("Hello world!");
+			await queueManager.AddMessageAsync("Hello world!", null, null, null, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -125,7 +125,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync(largeContentWillBeCompressed);
+			await queueManager.AddMessageAsync(largeContentWillBeCompressed, null, null, null, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -150,7 +150,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.ClearAsync();
+			await queueManager.ClearAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -180,7 +180,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.DeleteResourcesAsync();
+			await queueManager.DeleteResourcesAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -206,7 +206,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.DeleteMessageAsync(message);
+			await queueManager.DeleteMessageAsync(message, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -240,7 +240,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessageAsync();
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
@@ -262,7 +262,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessageAsync();
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.ShouldBeNull();
@@ -289,7 +289,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessageAsync();
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
@@ -349,7 +349,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessagesAsync(messageCount);
+			var result = await queueManager.GetMessagesAsync(messageCount, null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Length.ShouldBe(2);
@@ -421,7 +421,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.PeekMessageAsync();
+			var result = await queueManager.PeekMessageAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
@@ -459,7 +459,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.PeekMessagesAsync(messageCount);
+			var result = await queueManager.PeekMessagesAsync(messageCount, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Length.ShouldBe(2);
@@ -530,7 +530,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.SetMetadataAsync(myMetadata);
+			await queueManager.SetMetadataAsync(myMetadata, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -556,7 +556,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout);
+			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -600,8 +600,8 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync(sampleMessage);
-			var result = await queueManager.GetMessageAsync();
+			await queueManager.AddMessageAsync(sampleMessage, null, null, null, TestContext.Current.CancellationToken);
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.ShouldNotBeNull();
@@ -708,8 +708,8 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true, systemClock, mockRandomGenerator);
-			await queueManager.AddMessageAsync(excessivelyLargeContent);
-			var result = await queueManager.GetMessageAsync();
+			await queueManager.AddMessageAsync(excessivelyLargeContent, null, null, null, TestContext.Current.CancellationToken);
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
