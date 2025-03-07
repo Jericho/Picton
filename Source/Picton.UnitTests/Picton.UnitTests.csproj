@@ -11,6 +11,7 @@
 
   <!-- Enable the MSTest runner -->
   <PropertyGroup>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <OutputType>Exe</OutputType>
