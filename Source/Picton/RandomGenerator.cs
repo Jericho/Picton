@@ -17,12 +17,24 @@ namespace Picton
 
 		#region PROPERTIES
 
+		/// <summary>
+		/// Gets the singleton instance of the random number generator.
+		/// </summary>
+		/// <remarks>This property provides access to a thread-safe instance of the IRandomGenerator interface,
+		/// ensuring that all calls to generate random numbers are handled consistently across the application.</remarks>
 		public static IRandomGenerator Instance { get { return _instance.Value; } }
+
+		#endregion
+
+		#region PUBLIC METHODS
 
 		/// <inheritdoc/>
 		public int GetInt32(int minValueInclusive, int maxValueExclusive)
 		{
-#if NET48
+#if NET5_0_OR_GREATER
+			// GetInt32 was added to RandomNumberGenerator in .NET 5, so we can use it directly if we're on .NET 5 or later.
+			return RandomNumberGenerator.GetInt32(minValueInclusive, maxValueExclusive);
+#else
 			if (maxValueExclusive < minValueInclusive) throw new ArgumentOutOfRangeException(nameof(maxValueExclusive), $"{nameof(maxValueExclusive)} must be greater than (or equal to) {nameof(minValueInclusive)}");
 
 			uint range = (uint)maxValueExclusive - (uint)minValueInclusive;
@@ -45,8 +57,6 @@ namespace Picton
 			}
 
 			return (int)(minValueInclusive + (randomNumber % range));
-#else
-			return RandomNumberGenerator.GetInt32(minValueInclusive, maxValueExclusive);
 #endif
 		}
 
@@ -124,7 +134,7 @@ namespace Picton
 
 		#region PRIVATE METHODS
 
-#if NET48
+#if !NET5_0_OR_GREATER
 		private static bool IsFairRoll(uint roll, uint numSides)
 		{
 			// There are MaxValue / numSides full sets of numbers that can come up
