@@ -5,10 +5,10 @@ using Azure.Storage.Queues.Models;
 using MessagePack;
 using MessagePack.Resolvers;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -70,8 +70,8 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		public QueueManager(string connectionString, string queueName, string oversizeMessagesBlobStorageName = null, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
 		{
-			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
-			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
+			ArgumentNullException.ThrowIfNullOrEmpty(connectionString);
+			ArgumentNullException.ThrowIfNullOrEmpty(queueName);
 
 			_blobContainer = new BlobContainerClient(connectionString, string.IsNullOrEmpty(oversizeMessagesBlobStorageName) ? $"{queueName}-oversize-messages" : oversizeMessagesBlobStorageName, blobClientOptions);
 			_queue = new QueueClient(connectionString, queueName, queueClientOptions);
@@ -103,8 +103,11 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		internal QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true, ISystemClock systemClock = null, IRandomGenerator randomGenerator = null)
 		{
-			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
-			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+			ArgumentNullException.ThrowIfNull(blobContainerClient);
+			ArgumentNullException.ThrowIfNull(queueClient);
+
+			_blobContainer = blobContainerClient;
+			_queue = queueClient;
 			_systemClock = systemClock ?? SystemClock.Instance;
 			_randomGenerator = randomGenerator ?? RandomGenerator.Instance;
 

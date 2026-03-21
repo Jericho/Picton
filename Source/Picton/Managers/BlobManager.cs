@@ -2,9 +2,9 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -84,8 +84,9 @@ namespace Picton.Managers
 
 		public async Task UploadStreamAsync(string blobName, Stream stream, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrEmpty(blobName)) throw new ArgumentException("You must specify the name of the blob", nameof(blobName));
-			if (stream == null) throw new ArgumentNullException(nameof(stream));
+			ArgumentNullException.ThrowIfNullOrEmpty(blobName, nameof(blobName), "You must specify the name of the blob");
+			ArgumentNullException.ThrowIfNull(stream);
+
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10) throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "Number of attempts must be between 1 and 10");
 
 			var cleanBlobName = SanitizeBlobName(blobName);
@@ -138,8 +139,9 @@ namespace Picton.Managers
 		/// <inheritdoc/>
 		public async Task AppendStreamAsync(string blobName, Stream stream, IDictionary<string, string> metadata = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrEmpty(blobName)) throw new ArgumentException("You must specify the name of the blob", nameof(blobName));
-			if (stream == null) throw new ArgumentNullException(nameof(stream));
+			ArgumentNullException.ThrowIfNullOrEmpty(blobName, nameof(blobName), "You must specify the name of the blob");
+			ArgumentNullException.ThrowIfNull(stream);
+
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10) throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "Number of attempts must be between 1 and 10");
 
 			var cleanBlobName = SanitizeBlobName(blobName);

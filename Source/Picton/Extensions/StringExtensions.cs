@@ -3,7 +3,9 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Picton
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Contains extension methods for the <see cref="string"/> data type.
@@ -24,8 +26,8 @@ namespace Picton
 		/// <returns>The trimmed string.</returns>
 		public static string TrimStart(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
-			if (target == null) throw new ArgumentNullException(nameof(target));
-			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+			ArgumentNullException.ThrowIfNull(target);
+			ArgumentNullException.ThrowIfNullOrEmpty(trimString);
 
 			int startIndex = 0;
 			while (target.IndexOf(trimString, startIndex, comparisonType) == startIndex)
@@ -48,8 +50,8 @@ namespace Picton
 		/// <returns>The trimmed string.</returns>
 		public static string TrimEnd(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
-			if (target == null) throw new ArgumentNullException(nameof(target));
-			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+			ArgumentNullException.ThrowIfNull(target);
+			ArgumentNullException.ThrowIfNullOrEmpty(trimString);
 
 			int sourceLength = target.Length;
 			int count = sourceLength;
@@ -75,7 +77,7 @@ namespace Picton
 		/// <remarks>From the .NET Extensions project: http://dnpextensions.codeplex.com/ .</remarks>
 		public static byte[] ToBytes(this string value, Encoding encoding = null)
 		{
-			if (value == null) throw new ArgumentNullException(nameof(value));
+			ArgumentNullException.ThrowIfNull(value);
 
 			return (encoding ?? Encoding.UTF8).GetBytes(value);
 		}

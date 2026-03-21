@@ -6,7 +6,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Picton
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Contains extension methods for the <see cref="BlobContainerClient"/> class.
@@ -25,7 +27,7 @@ namespace Picton
 		/// <returns>The lease Id.</returns>
 		public static async Task<string> TryAcquireLeaseAsync(this BlobContainerClient container, TimeSpan? leaseTime = null, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
+			ArgumentNullException.ThrowIfNull(container);
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10)
 			{
 				throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "The number of attempts must be between 1 and 10");
@@ -43,7 +45,7 @@ namespace Picton
 				{
 					if (attempts < maxLeaseAttempts - 1)
 					{
-						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
+						await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't retry too quickly
 					}
 				}
 			}
@@ -96,7 +98,7 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task ReleaseLeaseAsync(this BlobContainerClient container, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
+			ArgumentNullException.ThrowIfNull(container);
 
 			var leaseClient = new BlobLeaseClient(container, leaseId);
 			return leaseClient.ReleaseAsync(null, cancellationToken);
@@ -112,7 +114,7 @@ namespace Picton
 		/// <exception cref="ArgumentNullException">blob.</exception>
 		public static Task RenewLeaseAsync(this BlobContainerClient container, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
+			ArgumentNullException.ThrowIfNull(container);
 
 			var leaseClient = new BlobLeaseClient(container, leaseId);
 			return leaseClient.RenewAsync(null, cancellationToken);
@@ -150,8 +152,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task CopyAsync(this BlobContainerClient container, string sourceBlobName, string destinationBlobName, string leaseId = null, bool waitForCompletion = true, CancellationToken cancellationToken = default)
 		{
-			if (container == null) throw new ArgumentNullException(nameof(container));
-			if (string.IsNullOrEmpty(destinationBlobName)) throw new ArgumentNullException(nameof(destinationBlobName));
+			ArgumentNullException.ThrowIfNull(container);
+			ArgumentNullException.ThrowIfNullOrEmpty(destinationBlobName);
 
 			var sourceBlob = container.GetBlobClient(sourceBlobName);
 			var destinationBlob = container.GetBlobClient(destinationBlobName);
