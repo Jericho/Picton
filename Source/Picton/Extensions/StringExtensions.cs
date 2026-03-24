@@ -89,17 +89,19 @@ namespace Picton
 		/// <returns>The hash.</returns>
 		public static byte[] ToMD5Hash(this string value)
 		{
+			// Convert the input string to a byte array.
+			byte[] data = value.ToBytes(Encoding.UTF8);
+
+#if NET
+			// Compute the hash
+			return MD5.HashData(data);
+#else
 			using (var md5 = MD5.Create())
 			{
-				// Convert the input string to a byte array.
-				byte[] data = value.ToBytes(Encoding.UTF8);
-
 				// Compute the hash.
-				byte[] hash = md5.ComputeHash(data);
-
-				// Return the byte array.
-				return hash;
+				return md5.ComputeHash(data);
 			}
+#endif
 		}
 
 		/// <summary>
