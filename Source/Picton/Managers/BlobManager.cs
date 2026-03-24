@@ -99,6 +99,7 @@ namespace Picton.Managers
 			}
 		}
 
+		/// <inheritdoc/>
 		public async Task UploadStreamAsync(string blobName, Stream stream, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
 			ArgumentNullException.ThrowIfNullOrEmpty(blobName, nameof(blobName), "You must specify the name of the blob");
@@ -291,7 +292,9 @@ namespace Picton.Managers
 
 #if NET7_0_OR_GREATER
 			// .NET 7 introduced allocation-free and highly optimized Regex APIs. Counting is especially easy and efficient.
+#pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 			var segmentsCount = Regex.Count(input: blobName, pattern: "/");
+#pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 #else
 			var segmentsCount = 0;
 			foreach (char c in blobName ?? string.Empty)
