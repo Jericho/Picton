@@ -20,7 +20,6 @@ using Xunit;
 
 namespace Picton.UnitTests.Managers
 {
-	[MessagePackObject(AllowPrivate = true)]
 	internal class SampleMessageType
 	{
 		[Key(0)]
