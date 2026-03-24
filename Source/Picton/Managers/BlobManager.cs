@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc/>
 	public class BlobManager : IBlobManager
 	{
 		#region FIELDS
@@ -22,6 +23,15 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BlobManager"/> class for managing blobs in the specified container.
+		/// </summary>
+		/// <remarks>If the specified container does not exist, it is created with the specified public access level.
+		/// This constructor does not validate the existence of the storage account or the validity of the connection
+		/// string.</remarks>
+		/// <param name="connectionString">The connection string used to authenticate and connect to the Azure Blob Storage account.</param>
+		/// <param name="containerName">The name of the blob container to manage. If the container does not exist, it will be created.</param>
+		/// <param name="accessType">The level of public access to grant to the container if it is created. The default is None.</param>
 		[ExcludeFromCodeCoverage]
 		public BlobManager(string connectionString, string containerName, PublicAccessType accessType = PublicAccessType.None)
 		{
@@ -29,6 +39,13 @@ namespace Picton.Managers
 			_blobContainer.CreateIfNotExists(accessType);
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BlobManager"/> class using the specified blob container client and access type.
+		/// </summary>
+		/// <remarks>If the specified blob container does not exist, it is created with the provided access type. If
+		/// the container already exists, its access level is not modified.</remarks>
+		/// <param name="blobContainer">The BlobContainerClient instance used to interact with the underlying blob container. Cannot be null.</param>
+		/// <param name="accessType">The level of public access to apply to the container if it is created. The default is PublicAccessType.None.</param>
 		public BlobManager(BlobContainerClient blobContainer, PublicAccessType accessType = PublicAccessType.None)
 		{
 			_blobContainer = blobContainer;
