@@ -8,7 +8,7 @@ namespace Picton
 	{
 		#region FIELDS
 
-		private static readonly Lazy<ISystemClock> _instance = new Lazy<ISystemClock>(() => new SystemClock(), true);
+		private static readonly Lazy<ISystemClock> _instance = new(() => new SystemClock(), true);
 
 		#endregion
 
