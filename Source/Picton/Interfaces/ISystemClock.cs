@@ -13,7 +13,7 @@ namespace Picton.Interfaces
 		/// <summary>Gets the current date and time.</summary>
 		DateTime Now { get; }
 
-		/// <summar>Gets the current date and time in Coordinated Universal Time (UTC).</summary>
+		/// <summary>Gets the current date and time in Coordinated Universal Time (UTC).</summary>
 		DateTime UtcNow { get; }
 	}
 }

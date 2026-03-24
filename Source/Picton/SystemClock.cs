@@ -23,11 +23,9 @@ namespace Picton
 		public static ISystemClock Instance { get { return _instance.Value; } }
 
 		/// <inheritdoc/>
-
 		public DateTime Now { get { return DateTime.Now; } }
 
 		/// <inheritdoc/>
-
 		public DateTime UtcNow { get { return DateTime.UtcNow; } }
 
 		#endregion
