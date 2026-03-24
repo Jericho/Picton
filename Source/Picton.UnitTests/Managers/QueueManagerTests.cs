@@ -4,7 +4,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
-using MessagePack;
 using NSubstitute;
 using Picton.Interfaces;
 using Picton.Managers;
@@ -22,16 +21,12 @@ namespace Picton.UnitTests.Managers
 {
 	internal class SampleMessageType
 	{
-		[Key(0)]
 		public string StringProp { get; set; }
 
-		[Key(1)]
 		public int IntProp { get; set; }
 
-		[Key(2)]
 		public Guid GuidProp { get; set; }
 
-		[Key(3)]
 		public DateTime DateProp { get; set; }
 	}
 
