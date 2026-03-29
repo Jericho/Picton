@@ -285,7 +285,7 @@ namespace Picton.UnitTests.Managers
 				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
 				{
-					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", new BinaryData(messageContent), 0, null, null, null);
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", messageContent, 0, null, null, null);
 
 					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
 				});

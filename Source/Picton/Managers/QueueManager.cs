@@ -21,12 +21,9 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
-		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
-		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
-
-		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
+		private static readonly MessagePackSerializerOptions LZ4Options = MessagePackSerializerOptions.Standard
 			.WithResolver(TypelessContractlessStandardResolver.Instance)
-			.WithCompression(MessagePackCompression.Lz4Block);
+			.WithCompression(MessagePackCompression.Lz4BlockArray);
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;
@@ -319,29 +316,8 @@ namespace Picton.Managers
 				};
 			}
 
-			// Perform sanity-check to ensure we are able to deserialize the content
-			var reader = new MessagePackReader(serializedContent);
-			if (reader.NextMessagePackType != MessagePackType.Extension)
-			{
-				// The message was not serialized using the Picton library.
-				// Therefore we assume that it's a simple string that was added to the queue
-				// using the CloudQueue class in Microsoft's Azure Storage nuget package.
-				return new MessageEnvelope()
-				{
-					Content = messageContent,
-					Metadata = new Dictionary<string, string>(),
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
-				};
-			}
-
-			var extensionHeader = reader.ReadExtensionFormatHeader();
-			if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
-			{
-				throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
-			}
-
 			// Now that we determined the message content
-			var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard, cancellationToken);
+			var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Options, cancellationToken);
 
 			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
 			if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
@@ -377,7 +353,7 @@ namespace Picton.Managers
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Standard);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Options);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
@@ -390,7 +366,7 @@ namespace Picton.Managers
 					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
-				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Options);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
