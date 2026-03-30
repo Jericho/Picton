@@ -319,8 +319,12 @@ namespace Picton.Managers
 			// Now that we determined the message content
 			var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Options, cancellationToken);
 
-			// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-			if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+			// Determine the type of this content.
+			// We can handle either MessageEnvelope or LargeMessageEnvelope.
+			// If it's a LargeMessageEnvelope, we need to get the actual content from blob storage
+			var typeOfContent = deserializedContent.GetType();
+
+			if (typeOfContent == typeof(LargeMessageEnvelope))
 			{
 				var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
 				var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
@@ -338,7 +342,7 @@ namespace Picton.Managers
 				// Return the envelope
 				return messageEnvelope;
 			}
-			else if (deserializedContent.GetType() == typeof(MessageEnvelope))
+			else if (typeOfContent == typeof(MessageEnvelope))
 			{
 				return (MessageEnvelope)deserializedContent;
 			}
