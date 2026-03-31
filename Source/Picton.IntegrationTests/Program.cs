@@ -1,55 +1,52 @@
 using Formitable.BetterStack.Logger.Microsoft;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Picton.IntegrationTests
 {
 	public class Program
 	{
-		public static async Task<int> Main()
+		public static async Task Main()
 		{
-			var source = new CancellationTokenSource();
-			Console.CancelKeyPress += (s, e) =>
-			{
-				e.Cancel = true;
-				source.Cancel();
-			};
+			var builder = Host.CreateApplicationBuilder();
 
-			var services = new ServiceCollection();
-			ConfigureServices(services);
-			using var serviceProvider = services.BuildServiceProvider();
-			var app = serviceProvider.GetService<TestsRunner>();
-			return await app.RunAsync(source.Token).ConfigureAwait(false);
+			ConfigureLogging(builder.Logging);
+			ConfigureServices(builder.Services);
+
+			var host = builder.Build();
+			await host.StartAsync().ConfigureAwait(false);
 		}
 
-		private static void ConfigureServices(ServiceCollection services)
+		private static void ConfigureLogging(ILoggingBuilder logging)
 		{
-			services
-				.AddLogging(logging =>
+			logging.ClearProviders();
+
+			var betterStackToken = Environment.GetEnvironmentVariable("BETTERSTACK_TOKEN");
+			if (!string.IsNullOrEmpty(betterStackToken))
+			{
+				logging.AddBetterStackLogger(options =>
 				{
-					var betterStackToken = Environment.GetEnvironmentVariable("BETTERSTACK_TOKEN");
-					if (!string.IsNullOrEmpty(betterStackToken))
-					{
-						logging.AddBetterStackLogger(options =>
-						{
-							options.SourceToken = betterStackToken;
-							options.Context["source"] = "Picton_integration_tests";
-							options.Context["Picton-Version"] = typeof(CloudMessage).Assembly.GetName().Version.ToString(3);
-						});
-					}
+					options.SourceToken = betterStackToken;
+					options.Context["source"] = "Picton_integration_tests";
+					options.Context["Picton-Version"] = typeof(CloudMessage).Assembly.GetName().Version.ToString(3);
+				});
+			}
 
-					logging.AddSimpleConsole(options =>
-					{
-						options.SingleLine = true;
-						options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
-					});
+			logging.AddSimpleConsole(options =>
+			{
+				options.SingleLine = true;
+				options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+			});
 
-					logging.AddFilter("*", LogLevel.Debug);
-				})
-				.AddTransient<TestsRunner>();
+			logging.AddFilter("*", LogLevel.Debug);
+		}
+
+		private static void ConfigureServices(IServiceCollection services)
+		{
+			services.AddHostedService<TestsRunner>();
 		}
 	}
 }

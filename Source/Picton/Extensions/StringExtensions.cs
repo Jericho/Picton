@@ -1,8 +1,11 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Picton
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Contains extension methods for the <see cref="string"/> data type.
@@ -23,8 +26,8 @@ namespace Picton
 		/// <returns>The trimmed string.</returns>
 		public static string TrimStart(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
-			if (target == null) throw new ArgumentNullException(nameof(target));
-			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+			ArgumentNullException.ThrowIfNull(target);
+			ArgumentNullException.ThrowIfNullOrEmpty(trimString);
 
 			int startIndex = 0;
 			while (target.IndexOf(trimString, startIndex, comparisonType) == startIndex)
@@ -47,8 +50,8 @@ namespace Picton
 		/// <returns>The trimmed string.</returns>
 		public static string TrimEnd(this string target, string trimString, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase)
 		{
-			if (target == null) throw new ArgumentNullException(nameof(target));
-			if (trimString == null) throw new ArgumentNullException(nameof(trimString));
+			ArgumentNullException.ThrowIfNull(target);
+			ArgumentNullException.ThrowIfNullOrEmpty(trimString);
 
 			int sourceLength = target.Length;
 			int count = sourceLength;
@@ -74,7 +77,7 @@ namespace Picton
 		/// <remarks>From the .NET Extensions project: http://dnpextensions.codeplex.com/ .</remarks>
 		public static byte[] ToBytes(this string value, Encoding encoding = null)
 		{
-			if (value == null) throw new ArgumentNullException(nameof(value));
+			ArgumentNullException.ThrowIfNull(value);
 
 			return (encoding ?? Encoding.UTF8).GetBytes(value);
 		}
@@ -86,17 +89,19 @@ namespace Picton
 		/// <returns>The hash.</returns>
 		public static byte[] ToMD5Hash(this string value)
 		{
+			// Convert the input string to a byte array.
+			byte[] data = value.ToBytes(Encoding.UTF8);
+
+#if NET
+			// Compute the hash
+			return MD5.HashData(data);
+#else
 			using (var md5 = MD5.Create())
 			{
-				// Convert the input string to a byte array.
-				byte[] data = value.ToBytes(Encoding.UTF8);
-
 				// Compute the hash.
-				byte[] hash = md5.ComputeHash(data);
-
-				// Return the byte array.
-				return hash;
+				return md5.ComputeHash(data);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -120,6 +125,45 @@ namespace Picton
 
 			// Return the hexadecimal string.
 			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Determines if a given string is base64 encoded.
+		/// </summary>
+		/// <param name="value">The string.</param>
+		/// <returns>true if the string contains only valid base64 characters, false otherwise.</returns>
+		public static bool IsBase64Encoded(this string value)
+		{
+			if (value == null ||
+				value.Length == 0 ||
+				value.Length % 4 != 0 ||
+				value.Contains(' ') ||
+				value.Contains('\t') ||
+				value.Contains('\r') ||
+				value.Contains('\n'))
+				return false;
+
+			var index = value.Length - 1;
+			if (value[index] == '=') index--;
+
+			if (value[index] == '=') index--;
+
+			for (var i = 0; i <= index; i++)
+			{
+				if (!IsValidBase64Char(value[i])) return false;
+			}
+
+			return true;
+		}
+
+		private static bool IsValidBase64Char(char value)
+		{
+			var intValue = (int)value;
+			if (intValue >= 48 && intValue <= 57) return true; // 1 - 9
+			if (intValue >= 65 && intValue <= 90) return true; // A - Z
+			if (intValue >= 97 && intValue <= 122) return true; // a - z
+			if (intValue == 43 || intValue == 47) return true; // + or /
+			return false;
 		}
 
 		#endregion

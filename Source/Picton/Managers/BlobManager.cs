@@ -2,9 +2,9 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace Picton.Managers
 {
+	/// <inheritdoc/>
 	public class BlobManager : IBlobManager
 	{
 		#region FIELDS
@@ -22,6 +23,15 @@ namespace Picton.Managers
 
 		#region CONSTRUCTORS
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BlobManager"/> class for managing blobs in the specified container.
+		/// </summary>
+		/// <remarks>If the specified container does not exist, it is created with the specified public access level.
+		/// This constructor does not validate the existence of the storage account or the validity of the connection
+		/// string.</remarks>
+		/// <param name="connectionString">The connection string used to authenticate and connect to the Azure Blob Storage account.</param>
+		/// <param name="containerName">The name of the blob container to manage. If the container does not exist, it will be created.</param>
+		/// <param name="accessType">The level of public access to grant to the container if it is created. The default is None.</param>
 		[ExcludeFromCodeCoverage]
 		public BlobManager(string connectionString, string containerName, PublicAccessType accessType = PublicAccessType.None)
 		{
@@ -29,6 +39,13 @@ namespace Picton.Managers
 			_blobContainer.CreateIfNotExists(accessType);
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BlobManager"/> class using the specified blob container client and access type.
+		/// </summary>
+		/// <remarks>If the specified blob container does not exist, it is created with the provided access type. If
+		/// the container already exists, its access level is not modified.</remarks>
+		/// <param name="blobContainer">The BlobContainerClient instance used to interact with the underlying blob container. Cannot be null.</param>
+		/// <param name="accessType">The level of public access to apply to the container if it is created. The default is PublicAccessType.None.</param>
 		public BlobManager(BlobContainerClient blobContainer, PublicAccessType accessType = PublicAccessType.None)
 		{
 			_blobContainer = blobContainer;
@@ -82,10 +99,12 @@ namespace Picton.Managers
 			}
 		}
 
+		/// <inheritdoc/>
 		public async Task UploadStreamAsync(string blobName, Stream stream, string mimeType = null, IDictionary<string, string> metadata = null, string cacheControl = null, string contentEncoding = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrEmpty(blobName)) throw new ArgumentException("You must specify the name of the blob", nameof(blobName));
-			if (stream == null) throw new ArgumentNullException(nameof(stream));
+			ArgumentNullException.ThrowIfNullOrEmpty(blobName, nameof(blobName), "You must specify the name of the blob");
+			ArgumentNullException.ThrowIfNull(stream);
+
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10) throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "Number of attempts must be between 1 and 10");
 
 			var cleanBlobName = SanitizeBlobName(blobName);
@@ -138,8 +157,9 @@ namespace Picton.Managers
 		/// <inheritdoc/>
 		public async Task AppendStreamAsync(string blobName, Stream stream, IDictionary<string, string> metadata = null, bool acquireLease = false, int maxLeaseAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrEmpty(blobName)) throw new ArgumentException("You must specify the name of the blob", nameof(blobName));
-			if (stream == null) throw new ArgumentNullException(nameof(stream));
+			ArgumentNullException.ThrowIfNullOrEmpty(blobName, nameof(blobName), "You must specify the name of the blob");
+			ArgumentNullException.ThrowIfNull(stream);
+
 			if (maxLeaseAttempts < 1 || maxLeaseAttempts > 10) throw new ArgumentOutOfRangeException(nameof(maxLeaseAttempts), "Number of attempts must be between 1 and 10");
 
 			var cleanBlobName = SanitizeBlobName(blobName);
@@ -272,7 +292,9 @@ namespace Picton.Managers
 
 #if NET7_0_OR_GREATER
 			// .NET 7 introduced allocation-free and highly optimized Regex APIs. Counting is especially easy and efficient.
+#pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 			var segmentsCount = Regex.Count(input: blobName, pattern: "/");
+#pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 #else
 			var segmentsCount = 0;
 			foreach (char c in blobName ?? string.Empty)

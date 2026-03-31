@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Picton
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Contains extension methods for the <see cref="QueueClient"/> class.
@@ -72,7 +74,7 @@ namespace Picton
 		/// <returns>The <see cref="SendReceipt"/>.</returns>
 		public static async Task<SendReceipt> SafeSendMessageAsync(this QueueClient queue, BinaryData message, TimeSpan? visibilityTimeout = default, TimeSpan? timeToLive = default, CancellationToken cancellationToken = default)
 		{
-			if (queue == null) throw new ArgumentNullException(nameof(queue));
+			ArgumentNullException.ThrowIfNull(queue);
 
 			Response<SendReceipt> response;
 			try

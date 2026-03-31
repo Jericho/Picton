@@ -1,10 +1,10 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,8 +46,8 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		public MultiTenantQueueManager(string connectionString, string queuePrefix, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null, ISystemClock systemClock = null, IRandomGenerator randomGenerator = null)
 		{
-			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
-			if (string.IsNullOrEmpty(queuePrefix)) throw new ArgumentNullException(nameof(queuePrefix));
+			ArgumentNullException.ThrowIfNullOrEmpty(connectionString);
+			ArgumentNullException.ThrowIfNullOrEmpty(queuePrefix);
 
 			_queueManagerFactory = (tenantId) =>
 			{
@@ -66,7 +66,9 @@ namespace Picton.Managers
 		/// <param name="queueManagerFactory">Factory method to instantiate a QueueManager for a given tenant.</param>
 		internal MultiTenantQueueManager(Func<string, QueueManager> queueManagerFactory)
 		{
-			_queueManagerFactory = queueManagerFactory ?? throw new ArgumentNullException(nameof(queueManagerFactory));
+			ArgumentNullException.ThrowIfNull(queueManagerFactory);
+
+			_queueManagerFactory = queueManagerFactory;
 
 			_systemClock = SystemClock.Instance;
 			_randomGenerator = RandomGenerator.Instance;

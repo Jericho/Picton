@@ -5,9 +5,10 @@ using Azure.Storage.Queues.Models;
 using MessagePack;
 using MessagePack.Resolvers;
 using Picton.Interfaces;
-using Picton.Utilities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -20,12 +21,9 @@ namespace Picton.Managers
 	{
 		#region FIELDS
 
-		private const sbyte LZ4_MESSAGEPACK_SERIALIZATION = 99;
-		private const sbyte TYPELESS_MESSAGEPACK_SERIALIZATION = 100;
-
-		private static readonly MessagePackSerializerOptions LZ4Standard = MessagePackSerializerOptions.Standard
+		private static readonly MessagePackSerializerOptions LZ4Options = MessagePackSerializerOptions.Standard
 			.WithResolver(TypelessContractlessStandardResolver.Instance)
-			.WithCompression(MessagePackCompression.Lz4Block);
+			.WithCompression(MessagePackCompression.Lz4BlockArray);
 
 		private readonly QueueClient _queue;
 		private readonly BlobContainerClient _blobContainer;
@@ -69,8 +67,8 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		public QueueManager(string connectionString, string queueName, string oversizeMessagesBlobStorageName = null, bool autoCreateResources = true, QueueClientOptions queueClientOptions = null, BlobClientOptions blobClientOptions = null)
 		{
-			if (string.IsNullOrEmpty(connectionString)) throw new ArgumentNullException(nameof(connectionString));
-			if (string.IsNullOrEmpty(queueName)) throw new ArgumentNullException(nameof(queueName));
+			ArgumentNullException.ThrowIfNullOrEmpty(connectionString);
+			ArgumentNullException.ThrowIfNullOrEmpty(queueName);
 
 			_blobContainer = new BlobContainerClient(connectionString, string.IsNullOrEmpty(oversizeMessagesBlobStorageName) ? $"{queueName}-oversize-messages" : oversizeMessagesBlobStorageName, blobClientOptions);
 			_queue = new QueueClient(connectionString, queueName, queueClientOptions);
@@ -102,8 +100,11 @@ namespace Picton.Managers
 		[ExcludeFromCodeCoverage]
 		internal QueueManager(BlobContainerClient blobContainerClient, QueueClient queueClient, bool autoCreateResources = true, ISystemClock systemClock = null, IRandomGenerator randomGenerator = null)
 		{
-			_blobContainer = blobContainerClient ?? throw new ArgumentNullException(nameof(blobContainerClient));
-			_queue = queueClient ?? throw new ArgumentNullException(nameof(queueClient));
+			ArgumentNullException.ThrowIfNull(blobContainerClient);
+			ArgumentNullException.ThrowIfNull(queueClient);
+
+			_blobContainer = blobContainerClient;
+			_queue = queueClient;
 			_systemClock = systemClock ?? SystemClock.Instance;
 			_randomGenerator = randomGenerator ?? RandomGenerator.Instance;
 
@@ -136,7 +137,7 @@ namespace Picton.Managers
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
@@ -147,6 +148,23 @@ namespace Picton.Managers
 				// The size of this message is within the range allowed by Azure Storage queues
 				await _queue.SafeSendMessageAsync(data, initialVisibilityDelay, timeToLive, cancellationToken).ConfigureAwait(false);
 			}
+		}
+
+		/// <inheritdoc/>
+		public async Task AddMessagesAsync<T>(IEnumerable<T> messages, IDictionary<string, string> metadata = null, TimeSpan? timeToLive = null, TimeSpan? initialVisibilityDelay = null, CancellationToken cancellationToken = default)
+		{
+			await Task.WhenAll(
+				from partition in Partitioner.Create(messages).GetPartitions(500)
+				select Task.Run(async () =>
+				{
+					using (partition)
+					{
+						while (partition.MoveNext())
+						{
+							await AddMessageAsync(partition.Current, metadata, timeToLive, initialVisibilityDelay, cancellationToken).ConfigureAwait(false);
+						}
+					}
+				}));
 		}
 
 		/// <inheritdoc/>
@@ -268,76 +286,69 @@ namespace Picton.Managers
 
 		internal static async Task<MessageEnvelope> DeserializeMessageAsync(string messageContent, BlobContainerClient blobContainerClient, CancellationToken cancellationToken)
 		{
-			static bool CheckSerializationType(ReadOnlyMemory<byte> memory)
-			{
-				var reader = new MessagePackReader(memory);
+			var base64DecodeSuccessfull = false;
+			byte[] serializedContent = null;
 
-				if (reader.NextMessagePackType != MessagePackType.Extension)
-				{
-					throw new Exception("Picton is unable to figure out how this message was serialized and how to deserialize it.");
-				}
-
-				var extensionHeader = reader.ReadExtensionFormatHeader();
-
-				if (extensionHeader.TypeCode != LZ4_MESSAGEPACK_SERIALIZATION && extensionHeader.TypeCode != TYPELESS_MESSAGEPACK_SERIALIZATION)
-				{
-					throw new Exception($"Picton is unable to deserialize content using serialization method '{extensionHeader.TypeCode}'");
-				}
-
-				return true;
-			}
-
+			// Convert from base64.
 			try
 			{
-				var serializedContent = Convert.FromBase64String(messageContent);
-
-				// Perform sanity-check to ensure we are able to deserialize the content
-				CheckSerializationType(serializedContent);
-
-				var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Standard, cancellationToken);
-
-				// If the serialized content exceeded the max Azure Storage size limit, it was saved in a blob
-				if (deserializedContent.GetType() == typeof(LargeMessageEnvelope))
+				if (messageContent.IsBase64Encoded())
 				{
-					var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
-					var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
-
-					// Get the content from blob item
-					var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
-
-					// Deserialize the binary content
-					var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
-
-					// Add the name of the blob item to metadata
-					messageEnvelope.Metadata ??= new Dictionary<string, string>();
-					messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
-
-					// Return the envelope
-					return messageEnvelope;
-				}
-				else if (deserializedContent.GetType() == typeof(MessageEnvelope))
-				{
-					return (MessageEnvelope)deserializedContent;
-				}
-				else
-				{
-					throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+					serializedContent = Convert.FromBase64String(messageContent);
+					base64DecodeSuccessfull = true;
 				}
 			}
-			catch (Exception e) when (e.GetType().FullName.StartsWith("Moq."))
+			catch (FormatException)
 			{
-				throw;
-			}
-			catch (Exception e) when (!e.Message.StartsWith("Picton is unable"))
-			{
-				// The message was presumably added to the queue using the
+				// The content was not base64 encoded.
+				// This probably means the message was added to the queue using the
 				// CloudQueue class in Microsoft's Azure Storage nuget package.
+			}
+
+			// If the content was not base64 encoded, we assume that it's a simple string.
+			if (!base64DecodeSuccessfull)
+			{
 				return new MessageEnvelope()
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
+			}
+
+			// Now that we determined the message content
+			var deserializedContent = MessagePackSerializer.Typeless.Deserialize(serializedContent, LZ4Options, cancellationToken);
+
+			// Determine the type of this content.
+			// We can handle either MessageEnvelope or LargeMessageEnvelope.
+			// If it's a LargeMessageEnvelope, we need to get the actual content from blob storage
+			var typeOfContent = deserializedContent.GetType();
+
+			if (typeOfContent == typeof(LargeMessageEnvelope))
+			{
+				var largeEnvelope = (LargeMessageEnvelope)deserializedContent;
+				var blob = blobContainerClient.GetBlobClient(largeEnvelope.BlobName);
+
+				// Get the content from blob item
+				var blobContent = await blob.DownloadTextAsync(cancellationToken).ConfigureAwait(false);
+
+				// Deserialize the binary content
+				var messageEnvelope = await DeserializeMessageAsync(blobContent, blobContainerClient, cancellationToken).ConfigureAwait(false);
+
+				// Add the name of the blob item to metadata
+				messageEnvelope.Metadata ??= new Dictionary<string, string>();
+				messageEnvelope.Metadata[CloudMessage.LARGE_CONTENT_BLOB_NAME_METADATA] = largeEnvelope.BlobName;
+
+				// Return the envelope
+				return messageEnvelope;
+			}
+			else if (typeOfContent == typeof(MessageEnvelope))
+			{
+				return (MessageEnvelope)deserializedContent;
+			}
+			else
+			{
+				throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
 			}
 		}
 
@@ -346,7 +357,7 @@ namespace Picton.Managers
 			var typeOfMessage = message.GetType();
 			if (typeOfMessage == typeof(MessageEnvelope) || typeOfMessage == typeof(LargeMessageEnvelope))
 			{
-				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Standard);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(message, LZ4Options);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}
@@ -356,10 +367,10 @@ namespace Picton.Managers
 				{
 					Content = message,
 					Metadata = metadata,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
-				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Standard);
+				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Options);
 				var messageAsString = Convert.ToBase64String(lz4SerializedMessage);
 				return messageAsString;
 			}

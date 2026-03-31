@@ -15,7 +15,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Picton
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Contains extension methods for the <see cref="BlobClient"/> class.
@@ -43,7 +45,7 @@ namespace Picton
 		/// <returns>The lease Id.</returns>
 		public static async Task<string> TryAcquireLeaseAsync(this BlobBaseClient blob, TimeSpan? leaseTime = null, int maxAttempts = 1, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 			if (maxAttempts < 1 || maxAttempts > 10)
 			{
 				throw new ArgumentOutOfRangeException(nameof(maxAttempts), "The number of attempts must be between 1 and 10");
@@ -61,7 +63,7 @@ namespace Picton
 				{
 					if (attempts < maxAttempts - 1)
 					{
-						await Task.Delay(500).ConfigureAwait(false);    // Make sure we don't retry too quickly
+						await Task.Delay(500, cancellationToken).ConfigureAwait(false);    // Make sure we don't retry too quickly
 					}
 				}
 			}
@@ -113,7 +115,7 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task ReleaseLeaseAsync(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var leaseClient = new BlobLeaseClient(blob, leaseId);
 			return leaseClient.ReleaseAsync(null, cancellationToken);
@@ -129,7 +131,7 @@ namespace Picton
 		/// <exception cref="ArgumentNullException">blob.</exception>
 		public static Task RenewLeaseAsync(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var leaseClient = new BlobLeaseClient(blob, leaseId);
 			return leaseClient.RenewAsync(null, cancellationToken);
@@ -168,8 +170,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task UploadStreamAsync(this PageBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -206,8 +208,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task UploadStreamAsync(this BlockBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -247,8 +249,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task UploadStreamAsync(this AppendBlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -281,8 +283,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task UploadStreamAsync(this BlobClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -324,8 +326,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task UploadStreamAsync(this BlobBaseClient blob, Stream content, string leaseId = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			if (blob is PageBlobClient pageBlob) return pageBlob.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
 			else if (blob is BlockBlobClient blockBlob) return blockBlob.UploadStreamAsync(content, leaseId, mimeType, cacheControl, contentEncoding, cancellationToken);
@@ -378,8 +380,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task AppendStreamAsync(this PageBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -414,8 +416,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task AppendStreamAsync(this BlockBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -461,8 +463,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task AppendStreamAsync(this AppendBlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -491,8 +493,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task AppendStreamAsync(this BlobClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			content.Position = 0; // Rewind the stream. IMPORTANT!
 
@@ -546,8 +548,8 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task AppendStreamAsync(this BlobBaseClient blob, Stream content, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
-			if (content == null) throw new ArgumentNullException(nameof(content));
+			ArgumentNullException.ThrowIfNull(blob);
+			ArgumentNullException.ThrowIfNull(content);
 
 			if (blob is PageBlobClient pageBlob) return pageBlob.AppendStreamAsync(content, leaseId, cancellationToken);
 			else if (blob is BlockBlobClient blockBlob) return blockBlob.AppendStreamAsync(content, leaseId, cancellationToken);
@@ -594,7 +596,7 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static Task SetMetadataAsync(this BlobBaseClient blob, IDictionary<string, string> metadata, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
@@ -613,7 +615,7 @@ namespace Picton
 		/// <returns>The content as a string.</returns>
 		public static async Task<string> DownloadTextAsync(this BlobBaseClient blob, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			using (var stream = new MemoryStream())
 			{
@@ -621,7 +623,11 @@ namespace Picton
 				using (var reader = new StreamReader(response.Value.Content, true))
 				{
 					stream.Position = 0;
+#if NET
+					return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+#else
 					return await reader.ReadToEndAsync().ConfigureAwait(false);
+#endif
 				}
 			}
 		}
@@ -634,7 +640,7 @@ namespace Picton
 		/// <returns>The content as a byte array.</returns>
 		public static async Task<byte[]> DownloadByteArrayAsync(this BlobBaseClient blob, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var response = await blob.DownloadAsync(cancellationToken).ConfigureAwait(false);
 			var stream = response.Value.Content;
@@ -647,7 +653,11 @@ namespace Picton
 			{
 				using (var memoryStream = new MemoryStream())
 				{
+#if NET
+					await response.Value.Content.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
+#else
 					await response.Value.Content.CopyToAsync(memoryStream).ConfigureAwait(false);
+#endif
 					return memoryStream.ToArray();
 				}
 			}
@@ -667,7 +677,7 @@ namespace Picton
 		/// </remarks>
 		public static string GetSharedAccessSignatureUri(this BlobBaseClient blob, StorageSharedKeyCredential sharedKeyCredential, BlobSasPermissions permissions, TimeSpan? duration = null, ISystemClock systemClock = null)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var now = (systemClock ?? SystemClock.Instance).UtcNow;
 
@@ -715,7 +725,7 @@ namespace Picton
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
 		public static async Task CreateAsync(this PageBlobClient blob, long blobSize, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var headers = new BlobHttpHeaders()
 			{
@@ -755,7 +765,7 @@ namespace Picton
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
 		public static async Task CreateAsync(this BlockBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var headers = new BlobHttpHeaders()
 			{
@@ -790,7 +800,7 @@ namespace Picton
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
 		public static async Task CreateAsync(this AppendBlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var headers = new BlobHttpHeaders()
 			{
@@ -830,7 +840,7 @@ namespace Picton
 		/// <returns>A <see cref="Azure.Response{T}">response</see> describing the state of the blob.</returns>
 		public static async Task CreateAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, bool overwriteIfExists = true, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			var headers = new BlobHttpHeaders()
 			{
@@ -881,7 +891,7 @@ namespace Picton
 		/// <returns>A <see cref="Task"/> object that represents the asynchronous operation.</returns>
 		public static async Task<BlobProperties> GetProperties(this BlobBaseClient blob, string leaseId = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			BlobRequestConditions requestConditions = null;
 			if (!string.IsNullOrEmpty(leaseId))
@@ -906,7 +916,7 @@ namespace Picton
 		/// <returns>true if the blob was created; false otherwise.</returns>
 		public static async Task<bool> CreateIfNotExistsAsync(this BlobClient blob, Stream content = null, IDictionary<string, string> metadata = null, string mimeType = null, string cacheControl = null, string contentEncoding = null, CancellationToken cancellationToken = default)
 		{
-			if (blob == null) throw new ArgumentNullException(nameof(blob));
+			ArgumentNullException.ThrowIfNull(blob);
 
 			try
 			{

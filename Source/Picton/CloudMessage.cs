@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace Picton
 {
+	/// <summary>
+	/// Represents a message stored in a cloud-based queue, including its content, metadata, and queue-related properties.
+	/// </summary>
+	/// <remarks>Use this class to access message details such as its unique identifier, dequeue count, visibility
+	/// timing, and associated metadata. The message content can be of any type, but it is the responsibility of the caller
+	/// to ensure it can be serialized and deserialized as required by the queue implementation.</remarks>
+	/// <param name="content">The content of the message. This can be any object that represents the data to be stored in the queue.</param>
 	public class CloudMessage(object content)
 	{
 		#region FIELDS

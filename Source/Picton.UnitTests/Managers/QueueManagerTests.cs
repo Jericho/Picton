@@ -5,7 +5,6 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using MessagePack;
-using MessagePack.Resolvers;
 using NSubstitute;
 using Picton.Interfaces;
 using Picton.Managers;
@@ -21,11 +20,19 @@ using Xunit;
 
 namespace Picton.UnitTests.Managers
 {
-	internal class SampleMessageType
+	[MessagePackObject(AllowPrivate = true)]
+	public class SampleMessageType
 	{
+		[Key(0)]
 		public string StringProp { get; set; }
+
+		[Key(1)]
 		public int IntProp { get; set; }
+
+		[Key(2)]
 		public Guid GuidProp { get; set; }
+
+		[Key(3)]
 		public DateTime DateProp { get; set; }
 	}
 
@@ -41,7 +48,7 @@ namespace Picton.UnitTests.Managers
 				var mockQueueClient = MockUtils.GetMockQueueClient();
 
 				// Act
-				new QueueManager(blobContainer, mockQueueClient, false);
+				var manager = new QueueManager(blobContainer, mockQueueClient, false);
 			});
 		}
 
@@ -55,7 +62,7 @@ namespace Picton.UnitTests.Managers
 				var queueClient = (QueueClient)null;
 
 				// Act
-				new QueueManager(mockBlobContainer, queueClient, false);
+				var manager = new QueueManager(mockBlobContainer, queueClient, false);
 			});
 		}
 
@@ -69,7 +76,7 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 
 			// Act
-			new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var manager = new QueueManager(mockBlobContainer, mockQueueClient, true);
 
 			// Assert
 		}
@@ -98,7 +105,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync("Hello world!");
+			await queueManager.AddMessageAsync("Hello world!", null, null, null, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -125,7 +132,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync(largeContentWillBeCompressed);
+			await queueManager.AddMessageAsync(largeContentWillBeCompressed, null, null, null, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -150,7 +157,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.ClearAsync();
+			await queueManager.ClearAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -180,7 +187,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.DeleteResourcesAsync();
+			await queueManager.DeleteResourcesAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -206,7 +213,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.DeleteMessageAsync(message);
+			await queueManager.DeleteMessageAsync(message, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -220,10 +227,6 @@ namespace Picton.UnitTests.Managers
 			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			var messageContent = "Message 1";
-
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
 
 			mockQueueClient
 				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
@@ -240,7 +243,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessageAsync();
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
@@ -262,10 +265,38 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessageAsync();
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.ShouldBeNull();
+		}
+
+		[Fact]
+		public async Task GetMessageAsync_can_handle_messages_added_to_queue_without_Picton()
+		{
+			// Arrange
+			var containerName = "mycontainer";
+			var queueName = "myqueue";
+			var mockBlobContainer = MockUtils.GetMockBlobContainerClient(containerName, null);
+			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
+			var messageContent = "Message 1";
+
+			mockQueueClient
+				.ReceiveMessagesAsync(1, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
+				.Returns(callInfo =>
+				{
+					var queueMessage = QueuesModelFactory.QueueMessage("myMessageId", "myPopReceipt", messageContent, 0, null, null, null);
+
+					return Response.FromValue(new[] { queueMessage }, new MockAzureResponse(200, "ok"));
+				});
+
+			// Act
+			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
+
+			// Assert
+			result.Content.GetType().ShouldBe(typeof(string));
+			((string)result.Content).ShouldBe(messageContent);
 		}
 
 		//[Fact]
@@ -302,10 +333,6 @@ namespace Picton.UnitTests.Managers
 			var messageContent1 = "Message 1";
 			var messageContent2 = "Message 2";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.ReceiveMessagesAsync(messageCount, Arg.Any<TimeSpan?>(), Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
@@ -321,7 +348,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.GetMessagesAsync(messageCount);
+			var result = await queueManager.GetMessagesAsync(messageCount, null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Length.ShouldBe(2);
@@ -377,10 +404,6 @@ namespace Picton.UnitTests.Managers
 			var mockQueueClient = MockUtils.GetMockQueueClient(queueName);
 			var messageContent = "Message 1";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.PeekMessagesAsync(1, Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
@@ -393,7 +416,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.PeekMessageAsync();
+			var result = await queueManager.PeekMessageAsync(TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
@@ -412,10 +435,6 @@ namespace Picton.UnitTests.Managers
 			var messageContent1 = "Message 1";
 			var messageContent2 = "Message 2";
 
-			var LZ4Standard = MessagePackSerializerOptions.Standard
-				.WithResolver(TypelessContractlessStandardResolver.Instance)
-				.WithCompression(MessagePackCompression.Lz4Block);
-
 			mockQueueClient
 				.PeekMessagesAsync(messageCount, Arg.Any<CancellationToken>())
 				.Returns(callInfo =>
@@ -431,7 +450,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			var result = await queueManager.PeekMessagesAsync(messageCount);
+			var result = await queueManager.PeekMessagesAsync(messageCount, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Length.ShouldBe(2);
@@ -502,7 +521,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.SetMetadataAsync(myMetadata);
+			await queueManager.SetMetadataAsync(myMetadata, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -528,7 +547,7 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout);
+			await queueManager.UpdateMessageVisibilityTimeoutAsync(myMessage, timeout, TestContext.Current.CancellationToken);
 
 			// Assert
 		}
@@ -572,8 +591,8 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true);
-			await queueManager.AddMessageAsync(sampleMessage);
-			var result = await queueManager.GetMessageAsync();
+			await queueManager.AddMessageAsync(sampleMessage, null, null, null, TestContext.Current.CancellationToken);
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.ShouldNotBeNull();
@@ -680,8 +699,8 @@ namespace Picton.UnitTests.Managers
 
 			// Act
 			var queueManager = new QueueManager(mockBlobContainer, mockQueueClient, true, systemClock, mockRandomGenerator);
-			await queueManager.AddMessageAsync(excessivelyLargeContent);
-			var result = await queueManager.GetMessageAsync();
+			await queueManager.AddMessageAsync(excessivelyLargeContent, null, null, null, TestContext.Current.CancellationToken);
+			var result = await queueManager.GetMessageAsync(null, TestContext.Current.CancellationToken);
 
 			// Assert
 			result.Content.GetType().ShouldBe(typeof(string));
