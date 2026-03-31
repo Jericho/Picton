@@ -4,7 +4,7 @@ using System;
 namespace Picton
 {
 	[MessagePackObject(AllowPrivate = true)]
-	internal class LargeMessageEnvelope
+	public class LargeMessageEnvelope
 	{
 		#region PROPERTIES
 

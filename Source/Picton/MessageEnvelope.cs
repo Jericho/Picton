@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Picton
 {
 	[MessagePackObject(AllowPrivate = true)]
-	internal class MessageEnvelope
+	public class MessageEnvelope
 	{
 		#region PROPERTIES
 
