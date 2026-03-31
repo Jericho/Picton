@@ -27,7 +27,7 @@ namespace Picton
 		/// Gets or sets the version of the Picton library that was used to send the message.
 		/// </summary>
 		[Key(1)]
-		public Version Version { get; set; }
+		public Version PictonVersion { get; set; }
 
 		#endregion
 	}

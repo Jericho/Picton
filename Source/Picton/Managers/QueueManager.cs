@@ -137,7 +137,7 @@ namespace Picton.Managers
 				var largeEnvelope = new LargeMessageEnvelope
 				{
 					BlobName = blobName,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 				data = SerializeMessage(largeEnvelope, null);
 
@@ -312,7 +312,7 @@ namespace Picton.Managers
 				{
 					Content = messageContent,
 					Metadata = new Dictionary<string, string>(),
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 			}
 
@@ -367,7 +367,7 @@ namespace Picton.Managers
 				{
 					Content = message,
 					Metadata = metadata,
-					Version = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
+					PictonVersion = typeof(QueueManager).GetTypeInfo().Assembly.GetName().Version
 				};
 
 				var lz4SerializedMessage = MessagePackSerializer.Typeless.Serialize(envelope, LZ4Options);
