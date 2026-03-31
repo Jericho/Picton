@@ -21,7 +21,7 @@ using Xunit;
 namespace Picton.UnitTests.Managers
 {
 	[MessagePackObject(AllowPrivate = true)]
-	internal class SampleMessageType
+	public class SampleMessageType
 	{
 		[Key(0)]
 		public string StringProp { get; set; }
