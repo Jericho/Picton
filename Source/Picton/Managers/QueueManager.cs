@@ -348,7 +348,7 @@ namespace Picton.Managers
 			}
 			else
 			{
-				throw new Exception($"Picton is unable to deserialize a message of type '{deserializedContent.GetType()}'");
+				throw new Exception($"Picton is unable to deserialize a message of type '{typeOfContent}'");
 			}
 		}
 
